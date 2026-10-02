@@ -1039,7 +1039,7 @@
   "globals.messages.startTypingToSearch": "Comece a digitar para pesquisar...",
   "globals.messages.strongPassword": "A senha deve ter entre {min} e {max} caracteres, deve conter pelo menos uma letra maiúscula, uma letra minúscula, um número e um caractere especial.",
   "globals.messages.submit": "Enviar",
-  "globals.messages.submitFeedback": "É padrão",
+  "globals.messages.submitFeedback": "Enviar",
   "globals.messages.submitting": "Enviando...",
   "globals.messages.thankYou": "Obrigado!",
   "globals.messages.thankYouFeedback": "✅ Obrigado pelos seus comentários!",
