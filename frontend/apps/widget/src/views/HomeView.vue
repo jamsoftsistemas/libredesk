@@ -63,8 +63,10 @@ const homeItems = computed(() =>
 const mostRecentConversation = computed(() => {
   const conversations = chatStore.getConversations
   if (!conversations || conversations.length === 0) return null
-  // Get the most recent conversation (already sorted by last_message.created_at in the store)
-  return conversations[0]
+  // Conversations are already sorted by last_message.created_at in the store.
+  // Only resolved/closed conversations should not be resumable, so skip those
+  // and let the customer start a new conversation instead.
+  return conversations.find((conversation) => conversation.status_category !== 'resolved') || null
 })
 
 </script>
