@@ -127,6 +127,7 @@ import PrimaryNavItems from '@main/components/sidebar/PrimaryNavItems.vue'
 import { useIsMobile } from '@shared-ui/composables'
 import api from '@main/api'
 import { usePushNotifications } from '@/composables/usePushNotifications'
+import { initInternalSupportWidget } from '@main/composables/useInternalSupportWidget'
 
 const route = useRoute()
 const emitter = useEmitter()
@@ -201,6 +202,7 @@ onMounted(() => {
   emitter.on(EMITTER_EVENTS.OPEN_CREATE_CONVERSATION, openCreateConversation)
   emitter.on(EMITTER_EVENTS.OPEN_VIEW_FORM, createView)
   initStores()
+  initInternalSupportWidget()
 })
 
 const openCreateConversation = ({ contact = null } = {}) => {

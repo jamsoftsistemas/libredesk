@@ -151,6 +151,7 @@ const updateSettings = (key, data) =>
     }
   })
 const getSettings = (key) => http.get(`/api/v1/settings/${key}`)
+const getInternalSupportWidgetSession = () => http.get('/api/v1/support/widget-session')
 const login = (data) => http.post(`/api/v1/auth/login`, data, {
   headers: {
     'Content-Type': 'application/json'
@@ -761,6 +762,7 @@ export default {
   updateTeam,
   getSettings,
   updateSettings,
+  getInternalSupportWidgetSession,
   createOIDC,
   getAllOIDC,
   getConfig,

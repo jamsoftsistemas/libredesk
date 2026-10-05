@@ -46,6 +46,10 @@ onMounted(async () => {
 })
 
 const submitForm = async (values) => {
+  // Internal support inbox id is edited as a string (select value) but stored as an int.
+  if (values.internal_support_inbox_id !== undefined) {
+    values.internal_support_inbox_id = Number(values.internal_support_inbox_id) || 0
+  }
   // Prepend keys with `app.`
   const updatedValues = Object.fromEntries(
     Object.entries(values).map(([key, value]) => [`app.${key}`, value])

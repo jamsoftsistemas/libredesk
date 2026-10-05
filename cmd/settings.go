@@ -7,6 +7,7 @@ import (
 
 	"github.com/abhinavxd/libredesk/internal/envelope"
 	"github.com/abhinavxd/libredesk/internal/httputil"
+	"github.com/abhinavxd/libredesk/internal/inbox/channel/livechat"
 	"github.com/abhinavxd/libredesk/internal/setting/models"
 	"github.com/abhinavxd/libredesk/internal/stringutil"
 	"github.com/valyala/fasthttp"
@@ -60,6 +61,17 @@ func handleUpdateGeneralSettings(r *fastglue.Request) error {
 	req.RootURL = strings.TrimRight(strings.TrimSpace(req.RootURL), "/")
 	if !httputil.IsValidHTTPURL(req.RootURL) {
 		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, app.i18n.T("admin.general.rootURL.valid"), nil, envelope.InputError)
+	}
+
+	// If set, the internal support inbox must be an enabled live chat inbox.
+	if req.InternalSupportInboxID != 0 {
+		inbox, err := app.inbox.GetDBRecord(req.InternalSupportInboxID)
+		if err != nil {
+			return r.SendErrorEnvelope(fasthttp.StatusBadRequest, app.i18n.T("validation.notFoundInbox"), nil, envelope.InputError)
+		}
+		if !inbox.Enabled || inbox.Channel != livechat.ChannelLiveChat {
+			return r.SendErrorEnvelope(fasthttp.StatusBadRequest, app.i18n.T("admin.general.internalSupportInbox.invalid"), nil, envelope.InputError)
+		}
 	}
 
 	app.Lock()

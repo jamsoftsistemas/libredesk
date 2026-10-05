@@ -84,7 +84,17 @@ export default defineConfig(({ mode, command }) => {
           target: wsTarget,
           ws: true,
           changeOrigin: true,
-        }
+        },
+        // Only needed when running the main app's dev server: it embeds the widget
+        // (served by the backend) in an iframe, so its page and assets need proxying too.
+        // Declared after '/widget/ws' so that more specific rule keeps matching first.
+        // The widget app's own dev server already serves these paths itself.
+        ...(isWidget ? {} : {
+          '/widget': {
+            target: apiTarget,
+            changeOrigin: true,
+          },
+        }),
       },
     },
     build: {
