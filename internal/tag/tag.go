@@ -33,11 +33,12 @@ type Opts struct {
 
 // queries contains prepared SQL queries.
 type queries struct {
-	GetAllTags   *sqlx.Stmt `query:"get-all-tags"`
-	GetTagsByIDs *sqlx.Stmt `query:"get-tags-by-ids"`
-	InsertTag    *sqlx.Stmt `query:"insert-tag"`
-	DeleteTag    *sqlx.Stmt `query:"delete-tag"`
-	UpdateTag    *sqlx.Stmt `query:"update-tag"`
+	GetAllTags    *sqlx.Stmt `query:"get-all-tags"`
+	GetTagsByIDs  *sqlx.Stmt `query:"get-tags-by-ids"`
+	GetScopedTags *sqlx.Stmt `query:"get-scoped-tags"`
+	InsertTag     *sqlx.Stmt `query:"insert-tag"`
+	DeleteTag     *sqlx.Stmt `query:"delete-tag"`
+	UpdateTag     *sqlx.Stmt `query:"update-tag"`
 }
 
 // New creates and returns a new instance of the Manager.
@@ -75,10 +76,22 @@ func (t *Manager) GetByIDs(ids []int) ([]models.Tag, error) {
 	return tags, nil
 }
 
+// GetScoped retrieves tags visible in the given team/inbox context i.e. tags with visibility
+// `all`, plus tags scoped to the given team or inbox. Pass nil for teamID when the context has
+// no team (e.g. an unassigned conversation).
+func (t *Manager) GetScoped(query string, teamID, inboxID *int) ([]models.Tag, error) {
+	var tags = make([]models.Tag, 0)
+	if err := t.q.GetScopedTags.Select(&tags, query, teamID, inboxID); err != nil {
+		t.lo.Error("error fetching scoped tags", "error", err)
+		return nil, envelope.NewError(envelope.GeneralError, t.i18n.T("globals.messages.somethingWentWrong"), nil)
+	}
+	return tags, nil
+}
+
 // Create creates a new tag.
-func (t *Manager) Create(name string) (models.Tag, error) {
+func (t *Manager) Create(name, visibility string, teamID, inboxID *int) (models.Tag, error) {
 	var tag models.Tag
-	if err := t.q.InsertTag.Get(&tag, name); err != nil {
+	if err := t.q.InsertTag.Get(&tag, name, visibility, teamID, inboxID); err != nil {
 		if dbutil.IsUniqueViolationError(err) {
 			return tag, envelope.NewError(envelope.ConflictError, t.i18n.T("errors.alreadyExistsTag"), nil)
 		}
@@ -98,9 +111,9 @@ func (t *Manager) Delete(id int) error {
 }
 
 // Update updates a tag by id.
-func (t *Manager) Update(id int, name string) (models.Tag, error) {
+func (t *Manager) Update(id int, name, visibility string, teamID, inboxID *int) (models.Tag, error) {
 	var tag models.Tag
-	if err := t.q.UpdateTag.Get(&tag, id, name); err != nil {
+	if err := t.q.UpdateTag.Get(&tag, id, name, visibility, teamID, inboxID); err != nil {
 		t.lo.Error("error updating tag", "error", err)
 		return tag, envelope.NewError(envelope.GeneralError, t.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}

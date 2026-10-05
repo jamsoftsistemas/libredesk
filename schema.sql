@@ -13,6 +13,7 @@ DROP TYPE IF EXISTS "ai_provider" CASCADE; CREATE TYPE "ai_provider" AS ENUM ('o
 DROP TYPE IF EXISTS "automation_execution_mode" CASCADE; CREATE TYPE "automation_execution_mode" AS ENUM ('all', 'first_match');
 DROP TYPE IF EXISTS "macro_visibility" CASCADE; CREATE TYPE "macro_visibility" AS ENUM ('all', 'team', 'user');
 DROP TYPE IF EXISTS "view_visibility" CASCADE; CREATE TYPE "view_visibility" AS ENUM ('all', 'team', 'user');
+DROP TYPE IF EXISTS "tag_visibility" CASCADE; CREATE TYPE "tag_visibility" AS ENUM ('all', 'team', 'inbox');
 DROP TYPE IF EXISTS "media_disposition" CASCADE; CREATE TYPE "media_disposition" AS ENUM ('inline', 'attachment');
 DROP TYPE IF EXISTS "media_store" CASCADE; CREATE TYPE "media_store" AS ENUM ('s3', 'fs');
 DROP TYPE IF EXISTS "user_availability_status" CASCADE; CREATE TYPE "user_availability_status" AS ENUM ('online', 'away', 'away_manual', 'offline', 'away_and_reassigning');
@@ -472,8 +473,15 @@ CREATE TABLE tags (
 	created_at TIMESTAMPTZ DEFAULT NOW(),
 	updated_at TIMESTAMPTZ DEFAULT NOW(),
 	"name" TEXT NOT NULL UNIQUE,
-	CONSTRAINT constraint_tags_on_name CHECK (length("name") <= 140)
+	visibility tag_visibility NOT NULL DEFAULT 'all',
+	team_id BIGINT REFERENCES teams(id) ON DELETE CASCADE ON UPDATE CASCADE NULL,
+	inbox_id INT REFERENCES inboxes(id) ON DELETE CASCADE ON UPDATE CASCADE NULL,
+	CONSTRAINT constraint_tags_on_name CHECK (length("name") <= 140),
+	CONSTRAINT constraint_tags_visibility_team CHECK (visibility != 'team' OR team_id IS NOT NULL),
+	CONSTRAINT constraint_tags_visibility_inbox CHECK (visibility != 'inbox' OR inbox_id IS NOT NULL)
 );
+CREATE INDEX index_tags_on_team_id ON tags(team_id);
+CREATE INDEX index_tags_on_inbox_id ON tags(inbox_id);
 
 DROP TABLE IF EXISTS team_members CASCADE;
 CREATE TABLE team_members (

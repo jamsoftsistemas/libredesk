@@ -20,6 +20,16 @@ export const createColumns = (t, { onEdit } = {}) => [
     }
   },
   {
+    accessorKey: 'visibility',
+    enableGlobalFilter: false,
+    header: function () {
+      return h('div', { class: 'text-center' }, t('globals.terms.visibility'))
+    },
+    cell: function ({ row }) {
+      return h('div', { class: 'text-center' }, row.getValue('visibility'))
+    }
+  },
+  {
     accessorKey: 'created_at',
     enableGlobalFilter: false,
     header: function () {
