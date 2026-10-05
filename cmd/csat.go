@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"strconv"
 
+	amodels "github.com/abhinavxd/libredesk/internal/automation/models"
 	"github.com/abhinavxd/libredesk/internal/envelope"
+	umodels "github.com/abhinavxd/libredesk/internal/user/models"
 	"github.com/valyala/fasthttp"
 	"github.com/zerodha/fastglue"
 )
@@ -98,6 +100,7 @@ func handleUpdateCSATResponse(r *fastglue.Request) error {
 			},
 		})
 	}
+	evaluateCSATAutomation(app, uuid)
 
 	return app.tmpl.RenderWebPage(r.RequestCtx, "info", map[string]interface{}{
 		"Data": map[string]interface{}{
@@ -105,6 +108,23 @@ func handleUpdateCSATResponse(r *fastglue.Request) error {
 			"Message": app.i18n.T("csat.thankYouMessage"),
 		},
 	})
+}
+
+// evaluateCSATAutomation fires the `conversation.csat.submitted` automation event for the
+// conversation a just-submitted CSAT response belongs to. Logs and continues on error; a
+// survey submission must never fail because automation evaluation had a problem.
+func evaluateCSATAutomation(app *App, uuid string) {
+	csatResp, err := app.csat.Get(uuid)
+	if err != nil {
+		app.lo.Error("error fetching csat for automation", "uuid", uuid, "error", err)
+		return
+	}
+	conversation, err := app.conversation.GetConversation(csatResp.ConversationID, "", "")
+	if err != nil {
+		app.lo.Error("error fetching conversation for CSAT automation", "uuid", uuid, "error", err)
+		return
+	}
+	app.automation.EvaluateConversationUpdateRulesByID(conversation.ID, conversation.UUID, amodels.EventConversationCSATSubmitted, umodels.User{ID: conversation.ContactID})
 }
 
 // handleShowCSATWidget renders a minimal CSAT widget page (just stars) for iframe embedding.
@@ -164,6 +184,7 @@ func handleSubmitCSATResponse(r *fastglue.Request) error {
 	if err := app.csat.UpdateResponse(uuid, req.Rating, req.Feedback, nil); err != nil {
 		return sendErrorEnvelope(r, err)
 	}
+	evaluateCSATAutomation(app, uuid)
 
 	return r.SendEnvelope(true)
 }

@@ -85,5 +85,14 @@ export const FIELD_OPERATORS = {
         OPERATOR.LESS_THAN
     ],
     NUMBER: [OPERATOR.EQUALS, OPERATOR.NOT_EQUALS, OPERATOR.GREATER_THAN, OPERATOR.LESS_THAN],
+    // "set"/"not set" is only implemented by the automation evaluator, not the SQL filter builder.
+    NUMBER_AUTOMATION: [
+        OPERATOR.EQUALS,
+        OPERATOR.NOT_EQUALS,
+        OPERATOR.SET,
+        OPERATOR.NOT_SET,
+        OPERATOR.GREATER_THAN,
+        OPERATOR.LESS_THAN
+    ],
     MULTI_SELECT: [OPERATOR.CONTAINS, OPERATOR.NOT_CONTAINS, OPERATOR.SET, OPERATOR.NOT_SET]
 }

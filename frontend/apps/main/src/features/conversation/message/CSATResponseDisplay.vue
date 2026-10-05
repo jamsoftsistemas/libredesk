@@ -7,8 +7,8 @@
       </div>
 
       <div v-if="csatResponse.rating" class="flex items-center gap-2 mb-2">
-        <span class="text-lg">{{ csatRatingEmoji(csatResponse.rating) }}</span>
-        <span class="text-sm font-medium">{{ t(csatRatingTextKey(csatResponse.rating)) }}</span>
+        <span class="text-lg">{{ csatRatingEmoji(csatResponse.rating, csatRatingOverrides) }}</span>
+        <span class="text-sm font-medium">{{ csatRatingLabel(csatResponse.rating, csatRatingOverrides, t) }}</span>
         <span class="text-xs text-muted-foreground">{{ csatResponse.rating }}/5</span>
       </div>
 
@@ -29,9 +29,13 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { csatRatingEmoji, csatRatingTextKey } from '@shared-ui/utils/csat.js'
+import { csatRatingEmoji, csatRatingLabel } from '@shared-ui/utils/csat.js'
+import { useInboxStore } from '@main/stores/inbox'
+import { useConversationStore } from '@main/stores/conversation'
 
 const { t } = useI18n()
+const inboxStore = useInboxStore()
+const conversationStore = useConversationStore()
 
 const props = defineProps({
   message: {
@@ -42,6 +46,12 @@ const props = defineProps({
 
 const isCsatMessage = computed(() => props.message.meta?.is_csat === true)
 const isSubmitted = computed(() => props.message.meta?.csat_submitted === true)
+
+const csatRatingOverrides = computed(() => {
+  const inboxID = conversationStore.current?.inbox_id
+  const inbox = inboxStore.inboxes.find((i) => i.id === inboxID)
+  return inbox?.config?.csat_ratings
+})
 
 const csatResponse = computed(() => {
   if (!isSubmitted.value) return null

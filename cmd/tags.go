@@ -72,12 +72,7 @@ func handleCreateTag(r *fastglue.Request) error {
 		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, app.i18n.Ts("globals.messages.empty", "name", "`name`"), nil, envelope.InputError)
 	}
 
-	visibility, err := normalizeTagVisibility(app, tag.Visibility, tag.TeamID, tag.InboxID)
-	if err != nil {
-		return sendErrorEnvelope(r, err)
-	}
-
-	createdTag, cErr := app.tag.Create(tag.Name, visibility, tag.TeamID, tag.InboxID)
+	createdTag, cErr := app.tag.Create(tag.Name, toIntSlice(tag.TeamIDs), toIntSlice(tag.InboxIDs))
 	if cErr != nil {
 		return sendErrorEnvelope(r, cErr)
 	}
@@ -121,12 +116,7 @@ func handleUpdateTag(r *fastglue.Request) error {
 		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, app.i18n.Ts("globals.messages.empty", "name", "`name`"), nil, envelope.InputError)
 	}
 
-	visibility, vErr := normalizeTagVisibility(app, tag.Visibility, tag.TeamID, tag.InboxID)
-	if vErr != nil {
-		return sendErrorEnvelope(r, vErr)
-	}
-
-	updatedTag, err := app.tag.Update(id, tag.Name, visibility, tag.TeamID, tag.InboxID)
+	updatedTag, err := app.tag.Update(id, tag.Name, toIntSlice(tag.TeamIDs), toIntSlice(tag.InboxIDs))
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}
@@ -134,26 +124,11 @@ func handleUpdateTag(r *fastglue.Request) error {
 	return r.SendEnvelope(updatedTag)
 }
 
-// normalizeTagVisibility defaults an empty visibility to `all` and validates that the visibility
-// value matches the team_id/inbox_id provided, mirroring the DB CHECK constraints on the tags table.
-func normalizeTagVisibility(app *App, visibility string, teamID, inboxID *int) (string, error) {
-	if visibility == "" {
-		visibility = tmodels.VisibilityAll
+// toIntSlice converts a pq.Int32Array (as decoded from a JSON request body) to a plain []int.
+func toIntSlice(ids []int32) []int {
+	out := make([]int, len(ids))
+	for i, id := range ids {
+		out[i] = int(id)
 	}
-	switch visibility {
-	case tmodels.VisibilityAll:
-		return visibility, nil
-	case tmodels.VisibilityTeam:
-		if teamID == nil {
-			return "", envelope.NewError(envelope.InputError, app.i18n.Ts("globals.messages.empty", "name", "`team_id`"), nil)
-		}
-		return visibility, nil
-	case tmodels.VisibilityInbox:
-		if inboxID == nil {
-			return "", envelope.NewError(envelope.InputError, app.i18n.Ts("globals.messages.empty", "name", "`inbox_id`"), nil)
-		}
-		return visibility, nil
-	default:
-		return "", envelope.NewError(envelope.InputError, app.i18n.T("globals.messages.somethingWentWrong"), nil)
-	}
+	return out
 }

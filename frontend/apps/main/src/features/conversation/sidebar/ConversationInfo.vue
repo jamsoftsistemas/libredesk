@@ -106,8 +106,8 @@
     <div v-if="conversation.csat_responded_at && conversation.csat_rating">
       <p class="sidebar-label">{{ $t('globals.terms.csatRating') }}</p>
       <div class="flex items-center gap-2">
-        <span class="text-lg">{{ csatRatingEmoji(conversation.csat_rating) }}</span>
-        <span class="sidebar-value">{{ $t(csatRatingTextKey(conversation.csat_rating)) }}</span>
+        <span class="text-lg">{{ csatRatingEmoji(conversation.csat_rating, csatRatingOverrides) }}</span>
+        <span class="sidebar-value">{{ csatRatingLabel(conversation.csat_rating, csatRatingOverrides, t) }}</span>
         <span class="text-xs text-muted-foreground">{{ conversation.csat_rating }}/5</span>
       </div>
     </div>
@@ -144,7 +144,8 @@ import { useCustomAttributeStore } from '@main/stores/customAttributes'
 import { EMITTER_EVENTS } from '@main/constants/emitterEvents.js'
 import { useEmitter } from '@main/composables/useEmitter'
 import { handleHTTPError } from '@shared-ui/utils/http.js'
-import { csatRatingEmoji, csatRatingTextKey } from '@shared-ui/utils/csat.js'
+import { csatRatingEmoji, csatRatingLabel } from '@shared-ui/utils/csat.js'
+import { useInboxStore } from '@main/stores/inbox'
 import api from '@main/api'
 import { useI18n } from 'vue-i18n'
 
@@ -152,9 +153,14 @@ const emitter = useEmitter()
 const { t } = useI18n()
 const customAttributeStore = useCustomAttributeStore()
 const conversationStore = useConversationStore()
+const inboxStore = useInboxStore()
 const conversation = computed(() => conversationStore.current)
 
 const channelIcon = computed(() => CHANNEL_ICONS[conversation.value?.inbox_channel] || Mail)
+const csatRatingOverrides = computed(() => {
+  const inbox = inboxStore.inboxes.find((i) => i.id === conversation.value?.inbox_id)
+  return inbox?.config?.csat_ratings
+})
 customAttributeStore.fetchCustomAttributes()
 
 const feedbackExpanded = ref(false)

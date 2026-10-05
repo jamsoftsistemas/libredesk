@@ -1,7 +1,7 @@
 <template>
   <div class="p-4 rounded-2xl text-sm bg-background text-foreground border border-border">
     <div v-if="!isSubmitted">
-      <p class="mb-3">{{ t('globals.messages.pleaseRateConversation') }}</p>
+      <p class="mb-3">{{ csatMessage }}</p>
 
       <div class="flex gap-3 mb-4">
         <button
@@ -46,8 +46,10 @@
       
       <!-- Show submitted rating if provided -->
       <div v-if="csatMeta.submitted_rating" class="mb-2">
-        <span class="text-lg">{{ getRatingEmoji(csatMeta.submitted_rating) }}</span>
-        <span class="text-xs text-muted-foreground ml-2">{{ getRatingText(csatMeta.submitted_rating) }}</span>
+        <span class="text-lg">{{ csatRatingEmoji(csatMeta.submitted_rating, ratingOverrides) }}</span>
+        <span class="text-xs text-muted-foreground ml-2">{{
+          csatRatingLabel(csatMeta.submitted_rating, ratingOverrides, t)
+        }}</span>
       </div>
       
       <!-- Show submitted feedback if provided -->
@@ -62,9 +64,11 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '@widget/api/index.js'
+import { useWidgetStore } from '@widget/store/widget.js'
 import { Button } from '@shared-ui/components/ui/button'
 import { Textarea } from '@shared-ui/components/ui/textarea'
 import { Spinner } from '@shared-ui/components/ui/spinner'
+import { buildCSATRatings, csatRatingEmoji, csatRatingLabel } from '@shared-ui/utils/csat.js'
 
 const props = defineProps({
   message: { type: Object, required: true }
@@ -72,6 +76,7 @@ const props = defineProps({
 
 const emit = defineEmits(['submitted'])
 
+const widgetStore = useWidgetStore()
 const selectedRating = ref(null)
 const feedback = ref('')
 const isSubmitting = ref(false)
@@ -85,13 +90,11 @@ const csatUuid = computed(() => csatMeta.value.csat_uuid || '')
 
 const { t } = useI18n()
 
-const ratings = [
-  { value: 1, emoji: '😢', text: t('globals.terms.poor') },
-  { value: 2, emoji: '😕', text: t('globals.terms.fair') },
-  { value: 3, emoji: '😊', text: t('globals.terms.good') },
-  { value: 4, emoji: '😃', text: t('globals.terms.great') },
-  { value: 5, emoji: '🤩', text: t('globals.terms.excellent') }
-]
+const ratingOverrides = computed(() => widgetStore.config.csat_ratings)
+const csatMessage = computed(
+  () => widgetStore.config.csat_message || t('globals.messages.pleaseRateConversation')
+)
+const ratings = computed(() => buildCSATRatings(ratingOverrides.value, t))
 
 const submitRating = async () => {
   if ((!selectedRating.value && !feedback.value.trim()) || !csatUuid.value) return
@@ -108,13 +111,4 @@ const submitRating = async () => {
   }
 }
 
-const getRatingEmoji = (rating) => {
-  const ratingObj = ratings.find(r => r.value === rating)
-  return ratingObj ? ratingObj.emoji : ''
-}
-
-const getRatingText = (rating) => {
-  const ratingObj = ratings.find(r => r.value === rating)
-  return ratingObj ? ratingObj.text : ''
-}
 </script>

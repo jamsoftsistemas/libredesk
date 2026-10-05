@@ -30,6 +30,7 @@ import (
 	"github.com/abhinavxd/libredesk/internal/dbutil"
 	"github.com/abhinavxd/libredesk/internal/envelope"
 	"github.com/abhinavxd/libredesk/internal/inbox"
+	"github.com/abhinavxd/libredesk/internal/inbox/channel/livechat"
 	imodels "github.com/abhinavxd/libredesk/internal/inbox/models"
 	mmodels "github.com/abhinavxd/libredesk/internal/media/models"
 	nmodels "github.com/abhinavxd/libredesk/internal/notification/models"
@@ -1929,6 +1930,11 @@ func (m *Manager) SendCSATReply(actorUserID int, conversation models.Conversatio
 	} else {
 		// The widget renders the rating form from the meta, the text is what the agent view shows.
 		message = m.i18n.T("globals.messages.pleaseRateConversation")
+		if inb.Channel == inbox.ChannelLiveChat {
+			if custom := m.livechatCSATMessage(conversation.InboxID); custom != "" {
+				message = custom
+			}
+		}
 	}
 
 	if _, err := m.QueueReply(nil /**media**/, conversation.InboxID, actorUserID, conversation.ContactID, conversation.UUID, message, to, nil, nil, meta); err != nil {
@@ -1936,6 +1942,20 @@ func (m *Manager) SendCSATReply(actorUserID int, conversation models.Conversatio
 		return envelope.NewError(envelope.GeneralError, m.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}
 	return nil
+}
+
+// livechatCSATMessage returns the inbox-configured CSAT message for a live chat inbox, or an
+// empty string when the inbox has none set, so the caller falls back to the default copy.
+func (m *Manager) livechatCSATMessage(inboxID int) string {
+	inb, err := m.inboxStore.GetDBRecord(inboxID)
+	if err != nil {
+		return ""
+	}
+	var cfg livechat.Config
+	if err := json.Unmarshal(inb.Config, &cfg); err != nil {
+		return ""
+	}
+	return cfg.CSATMessage
 }
 
 // DeleteConversation deletes a conversation.

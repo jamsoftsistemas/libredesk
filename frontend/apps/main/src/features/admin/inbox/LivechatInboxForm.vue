@@ -40,6 +40,72 @@
                   </p>
                 </FormField>
 
+                <FormField
+                  v-if="form.values.csat_enabled"
+                  v-slot="{ componentField }"
+                  name="config.csat_message"
+                >
+                  <FormItem>
+                    <FormLabel>{{ $t('admin.inbox.livechat.csatMessage') }}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="text"
+                        :placeholder="$t('globals.messages.pleaseRateConversation')"
+                        v-bind="componentField"
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {{ $t('admin.inbox.livechat.csatMessage.description') }}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                </FormField>
+
+                <div v-if="form.values.csat_enabled" class="space-y-2">
+                  <label class="text-sm font-medium">{{ $t('admin.inbox.livechat.csatRatings') }}</label>
+                  <p class="text-sm text-muted-foreground">
+                    {{ $t('admin.inbox.livechat.csatRatings.description') }}
+                  </p>
+                  <div
+                    v-for="(defaultRating, index) in defaultCSATRatings"
+                    :key="defaultRating.value"
+                    class="flex items-start gap-2"
+                  >
+                    <FormField
+                      v-slot="{ componentField }"
+                      :name="`config.csat_ratings[${index}].emoji`"
+                    >
+                      <FormItem class="w-16">
+                        <FormControl>
+                          <Input
+                            type="text"
+                            maxlength="8"
+                            class="text-center"
+                            :placeholder="defaultRating.emoji"
+                            v-bind="componentField"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    </FormField>
+                    <FormField
+                      v-slot="{ componentField }"
+                      :name="`config.csat_ratings[${index}].label`"
+                    >
+                      <FormItem class="flex-1">
+                        <FormControl>
+                          <Input
+                            type="text"
+                            :placeholder="defaultRating.text"
+                            v-bind="componentField"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    </FormField>
+                  </div>
+                </div>
+
                 <FormField v-slot="{ componentField, handleChange }" name="prompt_tags_on_reply">
                   <FormItem>
                     <SwitchField
@@ -1376,6 +1442,7 @@ import WidgetHelpConfig from './WidgetHelpConfig.vue'
 import { useHelpCenterArticles } from './useHelpCenterArticles.js'
 import WidgetCampaigns from './WidgetCampaigns.vue'
 import { useInboxStore } from '@/stores/inbox'
+import { buildCSATRatings } from '@shared-ui/utils/csat.js'
 import api from '@/api'
 import {
   FormControl,
@@ -1472,6 +1539,8 @@ const FIELD_SECTION = [
   ['config.launcher', 'launcher'],
   ['config.home_apps', 'homeApps'],
   ['config.notice_banner', 'noticeBanner'],
+  ['config.csat_message', 'basics'],
+  ['config.csat_ratings', 'basics'],
   ['config.greeting_message', 'messages'],
   ['config.introduction_message', 'messages'],
   ['config.chat_introduction', 'messages'],
@@ -1519,6 +1588,14 @@ const props = defineProps({
 })
 
 const { t } = useI18n()
+const defaultCSATRatings = buildCSATRatings(null, t)
+// The form always edits exactly 5 rows; pad/truncate whatever the API returned (empty when
+// the inbox never customized it) so array indices never go out of bounds.
+const normalizeCSATRatings = (ratings) =>
+  Array.from({ length: 5 }, (_, i) => ({
+    emoji: ratings?.[i]?.emoji || '',
+    label: ratings?.[i]?.label || ''
+  }))
 const route = useRoute()
 const router = useRouter()
 const legacySection = LEGACY_TAB_SECTION[route.query.tab]
@@ -1672,6 +1749,14 @@ const form = useForm({
       show_office_hours_in_chat: false,
       show_office_hours_after_assignment: false,
       chat_reply_expectation_message: 'We typically reply in 5 minutes.',
+      csat_message: '',
+      csat_ratings: [
+        { emoji: '', label: '' },
+        { emoji: '', label: '' },
+        { emoji: '', label: '' },
+        { emoji: '', label: '' },
+        { emoji: '', label: '' }
+      ],
       notice_banner: {
         enabled: false,
         text: 'Our response times are slower than usual. We regret the inconvenience caused.'
@@ -1965,6 +2050,9 @@ const onSubmit = form.handleSubmit(
     }
     values.config.prechat_form = pc
 
+    const ratings = normalizeCSATRatings(values.config.csat_ratings)
+    values.config.csat_ratings = ratings.every((r) => !r.emoji && !r.label) ? [] : ratings
+
     await props.submitForm(values)
   },
   ({ errors }) => {
@@ -2040,7 +2128,8 @@ watch(
           features: {
             ...newValues.config?.features,
             transcript: newValues.config?.features?.transcript ?? false
-          }
+          },
+          csat_ratings: normalizeCSATRatings(newValues.config?.csat_ratings)
         }
       },
       false

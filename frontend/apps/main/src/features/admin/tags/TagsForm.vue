@@ -11,51 +11,32 @@
             </FormItem>
         </FormField>
 
-        <FormField v-slot="{ componentField }" name="visibility">
+        <FormField v-slot="{ componentField, handleChange }" name="team_ids">
             <FormItem>
-                <FormLabel>{{ $t('globals.terms.visibility') }}</FormLabel>
+                <FormLabel>{{ $t('globals.terms.team', 2) }}</FormLabel>
                 <FormControl>
-                    <Select v-bind="componentField">
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectGroup>
-                                <SelectItem value="all">{{ $t('globals.terms.all') }}</SelectItem>
-                                <SelectItem value="team">{{ $t('globals.terms.team') }}</SelectItem>
-                                <SelectItem value="inbox">{{ $t('globals.terms.inbox') }}</SelectItem>
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
+                    <SelectTeamCombobox
+                        multiple
+                        :model-value="componentField.modelValue"
+                        @update:model-value="handleChange"
+                    />
                 </FormControl>
+                <FormDescription>{{ $t('admin.conversationTags.teamIds.description') }}</FormDescription>
                 <FormMessage />
             </FormItem>
         </FormField>
 
-        <FormField
-            v-if="formValues.visibility === 'team'"
-            v-slot="{ componentField }"
-            name="team_id"
-        >
+        <FormField v-slot="{ componentField, handleChange }" name="inbox_ids">
             <FormItem>
-                <FormLabel>{{ $t('globals.terms.team') }}</FormLabel>
+                <FormLabel>{{ $t('globals.terms.inbox', 2) }}</FormLabel>
                 <FormControl>
-                    <SelectTeamCombobox v-bind="componentField" />
+                    <SelectInboxCombobox
+                        multiple
+                        :model-value="componentField.modelValue"
+                        @update:model-value="handleChange"
+                    />
                 </FormControl>
-                <FormMessage />
-            </FormItem>
-        </FormField>
-
-        <FormField
-            v-if="formValues.visibility === 'inbox'"
-            v-slot="{ componentField }"
-            name="inbox_id"
-        >
-            <FormItem>
-                <FormLabel>{{ $t('globals.terms.inbox') }}</FormLabel>
-                <FormControl>
-                    <SelectInboxCombobox v-bind="componentField" />
-                </FormControl>
+                <FormDescription>{{ $t('admin.conversationTags.inboxIds.description') }}</FormDescription>
                 <FormMessage />
             </FormItem>
         </FormField>
@@ -66,7 +47,6 @@
 </template>
 
 <script setup>
-import { useFormValues } from 'vee-validate'
 import {
     FormControl,
     FormDescription,
@@ -75,17 +55,7 @@ import {
     FormLabel,
     FormMessage
 } from '@shared-ui/components/ui/form'
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from '@shared-ui/components/ui/select'
 import { Input } from '@shared-ui/components/ui/input'
 import SelectTeamCombobox from '@main/components/combobox/SelectTeamCombobox.vue'
 import SelectInboxCombobox from '@main/components/combobox/SelectInboxCombobox.vue'
-
-const formValues = useFormValues()
 </script>
