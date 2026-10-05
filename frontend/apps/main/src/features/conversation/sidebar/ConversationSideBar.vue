@@ -47,6 +47,8 @@
                 multiple
                 keep-open-on-select
                 :model-value="conversationStore.current.tags || []"
+                :team-id="conversationStore.current.assigned_team_id || undefined"
+                :inbox-id="conversationStore.current.inbox_id"
                 @update:modelValue="onTagsChange"
               />
               <div class="mt-2 flex flex-wrap items-center gap-1">

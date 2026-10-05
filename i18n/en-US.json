@@ -1071,6 +1071,7 @@
   "globals.terms.admin": "Admin | Admins",
   "globals.terms.agent": "Agent | Agents",
   "globals.terms.agentAccess": "Agent access",
+  "globals.terms.all": "All",
   "globals.terms.alert": "Alert | Alerts",
   "globals.terms.announcement": "Announcement | Announcements",
   "globals.terms.answer": "Answer",

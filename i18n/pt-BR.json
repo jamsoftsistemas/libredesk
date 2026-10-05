@@ -1066,6 +1066,7 @@
   "globals.terms.admin": "Administrador | Administradores",
   "globals.terms.agent": "Agente | Agentes",
   "globals.terms.agentAccess": "Acesso do agente",
+  "globals.terms.all": "Todos",
   "globals.terms.alert": "Alerta | Alertas",
   "globals.terms.announcement": "Anúncio | Anúncios",
   "globals.terms.answer": "Responder",

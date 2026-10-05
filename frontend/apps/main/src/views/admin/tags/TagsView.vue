@@ -124,7 +124,10 @@ onUnmounted(() => {
 })
 
 const form = useForm({
-  validationSchema: toTypedSchema(createFormSchema(t))
+  validationSchema: toTypedSchema(createFormSchema(t)),
+  initialValues: {
+    visibility: 'all'
+  }
 })
 
 const editTag = (item) => {
