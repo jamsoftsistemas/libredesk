@@ -1117,6 +1117,7 @@ VALUES
 	('app.timezone', '"Asia/Kolkata"'::jsonb),
 	('app.business_hours_id', '""'::jsonb),
 	('app.show_conversation_subject', 'true'::jsonb),
+	('app.internal_support_inbox_id', '0'::jsonb),
 	('ai_agent.faq_learning_enabled', 'false'::jsonb),
     ('notification.email.username', '"admin@yourcompany.com"'::jsonb),
     ('notification.email.host', '""'::jsonb),

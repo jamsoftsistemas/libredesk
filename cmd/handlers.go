@@ -186,6 +186,9 @@ func initHandlers(g *fastglue.Fastglue, hub *ws.Hub) {
 	g.PUT("/api/v1/automations/rules/execution-mode", perm(handleUpdateAutomationRuleExecutionMode, "automations:manage"))
 	g.DELETE("/api/v1/automations/rules/{id}", perm(handleDeleteAutomationRule, "automations:manage"))
 
+	// Internal support widget.
+	g.GET("/api/v1/support/widget-session", auth(handleGetInternalSupportWidgetSession))
+
 	// Inboxes.
 	g.GET("/api/v1/inboxes", auth(handleGetInboxes))
 	g.GET("/api/v1/inboxes/{id}/campaign-stats", perm(handleCampaignStats, "inboxes:manage"))

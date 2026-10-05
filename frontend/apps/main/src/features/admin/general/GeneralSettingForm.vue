@@ -167,6 +167,35 @@
       </FormField>
     </div>
 
+    <div class="grid gap-6 md:grid-cols-2">
+      <FormField v-slot="{ componentField }" name="internal_support_inbox_id">
+        <FormItem>
+          <FormLabel>
+            {{ t('admin.general.internalSupportInbox') }}
+          </FormLabel>
+          <FormControl>
+            <Select v-bind="componentField">
+              <SelectTrigger>
+                <SelectValue :placeholder="t('admin.general.internalSupportInbox.placeholder')" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="0">{{ t('globals.terms.none') }}</SelectItem>
+                  <SelectItem v-for="inbox in liveChatInboxes" :key="inbox.id" :value="inbox.id">
+                    {{ inbox.name }}
+                  </SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </FormControl>
+          <FormDescription>
+            {{ t('admin.general.internalSupportInbox.description') }}
+          </FormDescription>
+          <FormMessage />
+        </FormItem>
+      </FormField>
+    </div>
+
     <Button type="submit" :isLoading="formLoading"> {{ submitLabel }} </Button>
   </form>
 </template>
@@ -212,6 +241,7 @@ import api from '../../../api/index.js'
 const emitter = useEmitter()
 const { t } = useI18n()
 const businessHours = ref({})
+const liveChatInboxes = ref([])
 const formLoading = ref(false)
 const props = defineProps({
   initialValues: {
@@ -244,6 +274,7 @@ const form = useForm({
 
 onMounted(() => {
   fetchBusinessHours()
+  fetchLiveChatInboxes()
 })
 
 const fetchBusinessHours = async () => {
@@ -254,6 +285,20 @@ const fetchBusinessHours = async () => {
       bh.id = bh.id.toString()
     })
     businessHours.value = response.data.data
+  } catch (error) {
+    emitter.emit(EMITTER_EVENTS.SHOW_TOAST, {
+      variant: 'destructive',
+      description: handleHTTPError(error).message
+    })
+  }
+}
+
+const fetchLiveChatInboxes = async () => {
+  try {
+    const response = await api.getInboxes()
+    liveChatInboxes.value = response.data.data
+      .filter((inbox) => inbox.channel === 'livechat')
+      .map((inbox) => ({ ...inbox, id: inbox.id.toString() }))
   } catch (error) {
     emitter.emit(EMITTER_EVENTS.SHOW_TOAST, {
       variant: 'destructive',
@@ -289,6 +334,8 @@ watch(
     // Convert business hours id to string
     if (newValues.business_hours_id)
       newValues.business_hours_id = newValues.business_hours_id.toString()
+    // Convert internal support inbox id to string
+    newValues.internal_support_inbox_id = (newValues.internal_support_inbox_id || 0).toString()
     form.setValues(newValues, false)
   },
   { deep: true }
