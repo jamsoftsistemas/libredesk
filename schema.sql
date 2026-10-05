@@ -13,7 +13,6 @@ DROP TYPE IF EXISTS "ai_provider" CASCADE; CREATE TYPE "ai_provider" AS ENUM ('o
 DROP TYPE IF EXISTS "automation_execution_mode" CASCADE; CREATE TYPE "automation_execution_mode" AS ENUM ('all', 'first_match');
 DROP TYPE IF EXISTS "macro_visibility" CASCADE; CREATE TYPE "macro_visibility" AS ENUM ('all', 'team', 'user');
 DROP TYPE IF EXISTS "view_visibility" CASCADE; CREATE TYPE "view_visibility" AS ENUM ('all', 'team', 'user');
-DROP TYPE IF EXISTS "tag_visibility" CASCADE; CREATE TYPE "tag_visibility" AS ENUM ('all', 'team', 'inbox');
 DROP TYPE IF EXISTS "media_disposition" CASCADE; CREATE TYPE "media_disposition" AS ENUM ('inline', 'attachment');
 DROP TYPE IF EXISTS "media_store" CASCADE; CREATE TYPE "media_store" AS ENUM ('s3', 'fs');
 DROP TYPE IF EXISTS "user_availability_status" CASCADE; CREATE TYPE "user_availability_status" AS ENUM ('online', 'away', 'away_manual', 'offline', 'away_and_reassigning');
@@ -473,15 +472,26 @@ CREATE TABLE tags (
 	created_at TIMESTAMPTZ DEFAULT NOW(),
 	updated_at TIMESTAMPTZ DEFAULT NOW(),
 	"name" TEXT NOT NULL UNIQUE,
-	visibility tag_visibility NOT NULL DEFAULT 'all',
-	team_id BIGINT REFERENCES teams(id) ON DELETE CASCADE ON UPDATE CASCADE NULL,
-	inbox_id INT REFERENCES inboxes(id) ON DELETE CASCADE ON UPDATE CASCADE NULL,
-	CONSTRAINT constraint_tags_on_name CHECK (length("name") <= 140),
-	CONSTRAINT constraint_tags_visibility_team CHECK (visibility != 'team' OR team_id IS NOT NULL),
-	CONSTRAINT constraint_tags_visibility_inbox CHECK (visibility != 'inbox' OR inbox_id IS NOT NULL)
+	CONSTRAINT constraint_tags_on_name CHECK (length("name") <= 140)
 );
-CREATE INDEX index_tags_on_team_id ON tags(team_id);
-CREATE INDEX index_tags_on_inbox_id ON tags(inbox_id);
+
+-- A tag with no rows in either table below is global (visible everywhere). Otherwise it's
+-- visible to a conversation whose assigned team or inbox matches any row here (OR semantics).
+DROP TABLE IF EXISTS tag_teams CASCADE;
+CREATE TABLE tag_teams (
+	tag_id INT NOT NULL REFERENCES tags(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	team_id BIGINT NOT NULL REFERENCES teams(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	PRIMARY KEY (tag_id, team_id)
+);
+CREATE INDEX index_tag_teams_on_team_id ON tag_teams(team_id);
+
+DROP TABLE IF EXISTS tag_inboxes CASCADE;
+CREATE TABLE tag_inboxes (
+	tag_id INT NOT NULL REFERENCES tags(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	inbox_id INT NOT NULL REFERENCES inboxes(id) ON DELETE CASCADE ON UPDATE CASCADE,
+	PRIMARY KEY (tag_id, inbox_id)
+);
+CREATE INDEX index_tag_inboxes_on_inbox_id ON tag_inboxes(inbox_id);
 
 DROP TABLE IF EXISTS team_members CASCADE;
 CREATE TABLE team_members (

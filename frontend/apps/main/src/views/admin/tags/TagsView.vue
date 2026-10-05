@@ -126,13 +126,21 @@ onUnmounted(() => {
 const form = useForm({
   validationSchema: toTypedSchema(createFormSchema(t)),
   initialValues: {
-    visibility: 'all'
+    team_ids: [],
+    inbox_ids: []
   }
 })
 
 const editTag = (item) => {
   editingId.value = item.id
-  form.setValues(item, false)
+  form.setValues(
+    {
+      ...item,
+      team_ids: (item.team_ids || []).map(String),
+      inbox_ids: (item.inbox_ids || []).map(String)
+    },
+    false
+  )
   form.setErrors({})
   isEditing.value = true
   dialogOpen.value = true
@@ -153,6 +161,8 @@ const getTags = async () => {
 
 const onSubmit = form.handleSubmit(async (values) => {
   isLoading.value = true
+  values.team_ids = (values.team_ids || []).map(Number)
+  values.inbox_ids = (values.inbox_ids || []).map(Number)
   try {
     if (isEditing.value) {
       await api.updateTag(editingId.value, values)

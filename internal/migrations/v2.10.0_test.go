@@ -6,12 +6,12 @@ import (
 	"github.com/abhinavxd/libredesk/internal/testutil"
 )
 
+// V2_10_0 added a single, mutually-exclusive team_id/inbox_id scoping to tags. It was superseded
+// by V2_11_0 (many-to-many tag_teams/tag_inboxes) before release, so a fresh install's schema.sql
+// no longer has these columns - this only verifies the migration itself stays idempotent for
+// anyone upgrading from a version before it ever ran.
 func TestV2_10_0TagScopingMigration(t *testing.T) {
 	db := testutil.NewDB(t, "migration_v2_10_0")
-
-	db.MustExec(`ALTER TABLE tags DROP CONSTRAINT constraint_tags_visibility_team`)
-	db.MustExec(`ALTER TABLE tags DROP CONSTRAINT constraint_tags_visibility_inbox`)
-	db.MustExec(`ALTER TABLE tags DROP COLUMN visibility, DROP COLUMN team_id, DROP COLUMN inbox_id`)
 
 	for range 2 {
 		if err := V2_10_0(db, nil, nil); err != nil {

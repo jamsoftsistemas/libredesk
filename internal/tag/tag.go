@@ -39,6 +39,8 @@ type queries struct {
 	InsertTag     *sqlx.Stmt `query:"insert-tag"`
 	DeleteTag     *sqlx.Stmt `query:"delete-tag"`
 	UpdateTag     *sqlx.Stmt `query:"update-tag"`
+	SetTagTeams   *sqlx.Stmt `query:"set-tag-teams"`
+	SetTagInboxes *sqlx.Stmt `query:"set-tag-inboxes"`
 }
 
 // New creates and returns a new instance of the Manager.
@@ -76,9 +78,9 @@ func (t *Manager) GetByIDs(ids []int) ([]models.Tag, error) {
 	return tags, nil
 }
 
-// GetScoped retrieves tags visible in the given team/inbox context i.e. tags with visibility
-// `all`, plus tags scoped to the given team or inbox. Pass nil for teamID when the context has
-// no team (e.g. an unassigned conversation).
+// GetScoped retrieves tags visible in the given team/inbox context i.e. tags with no team/inbox
+// scoping (global), plus tags scoped to the given team or inbox. Pass nil for teamID when the
+// context has no team (e.g. an unassigned conversation).
 func (t *Manager) GetScoped(query string, teamID, inboxID *int) ([]models.Tag, error) {
 	var tags = make([]models.Tag, 0)
 	if err := t.q.GetScopedTags.Select(&tags, query, teamID, inboxID); err != nil {
@@ -88,16 +90,21 @@ func (t *Manager) GetScoped(query string, teamID, inboxID *int) ([]models.Tag, e
 	return tags, nil
 }
 
-// Create creates a new tag.
-func (t *Manager) Create(name, visibility string, teamID, inboxID *int) (models.Tag, error) {
+// Create creates a new tag scoped to the given teams/inboxes. Empty teamIDs and inboxIDs makes
+// the tag global.
+func (t *Manager) Create(name string, teamIDs, inboxIDs []int) (models.Tag, error) {
 	var tag models.Tag
-	if err := t.q.InsertTag.Get(&tag, name, visibility, teamID, inboxID); err != nil {
+	if err := t.q.InsertTag.Get(&tag, name); err != nil {
 		if dbutil.IsUniqueViolationError(err) {
 			return tag, envelope.NewError(envelope.ConflictError, t.i18n.T("errors.alreadyExistsTag"), nil)
 		}
 		t.lo.Error("error inserting tag", "error", err)
 		return tag, envelope.NewError(envelope.GeneralError, t.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}
+	if err := t.setScope(tag.ID, teamIDs, inboxIDs); err != nil {
+		return tag, err
+	}
+	tag.TeamIDs, tag.InboxIDs = toInt32Array(teamIDs), toInt32Array(inboxIDs)
 	return tag, nil
 }
 
@@ -110,12 +117,37 @@ func (t *Manager) Delete(id int) error {
 	return nil
 }
 
-// Update updates a tag by id.
-func (t *Manager) Update(id int, name, visibility string, teamID, inboxID *int) (models.Tag, error) {
+// Update updates a tag's name and team/inbox scoping by id.
+func (t *Manager) Update(id int, name string, teamIDs, inboxIDs []int) (models.Tag, error) {
 	var tag models.Tag
-	if err := t.q.UpdateTag.Get(&tag, id, name, visibility, teamID, inboxID); err != nil {
+	if err := t.q.UpdateTag.Get(&tag, id, name); err != nil {
 		t.lo.Error("error updating tag", "error", err)
 		return tag, envelope.NewError(envelope.GeneralError, t.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}
+	if err := t.setScope(id, teamIDs, inboxIDs); err != nil {
+		return tag, err
+	}
+	tag.TeamIDs, tag.InboxIDs = toInt32Array(teamIDs), toInt32Array(inboxIDs)
 	return tag, nil
+}
+
+// setScope replaces a tag's team and inbox associations.
+func (t *Manager) setScope(tagID int, teamIDs, inboxIDs []int) error {
+	if _, err := t.q.SetTagTeams.Exec(tagID, pq.Array(teamIDs)); err != nil {
+		t.lo.Error("error setting tag teams", "error", err)
+		return envelope.NewError(envelope.GeneralError, t.i18n.T("globals.messages.somethingWentWrong"), nil)
+	}
+	if _, err := t.q.SetTagInboxes.Exec(tagID, pq.Array(inboxIDs)); err != nil {
+		t.lo.Error("error setting tag inboxes", "error", err)
+		return envelope.NewError(envelope.GeneralError, t.i18n.T("globals.messages.somethingWentWrong"), nil)
+	}
+	return nil
+}
+
+func toInt32Array(ids []int) pq.Int32Array {
+	out := make(pq.Int32Array, len(ids))
+	for i, id := range ids {
+		out[i] = int32(id)
+	}
+	return out
 }

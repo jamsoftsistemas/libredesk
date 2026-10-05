@@ -3,7 +3,6 @@ package tag
 import (
 	"testing"
 
-	"github.com/abhinavxd/libredesk/internal/tag/models"
 	"github.com/abhinavxd/libredesk/internal/testutil"
 	"github.com/jmoiron/sqlx"
 	"github.com/zerodha/logf"
@@ -29,7 +28,7 @@ func newTestManagerWithDB(t *testing.T) (*Manager, *sqlx.DB) {
 func TestGetAllPagination(t *testing.T) {
 	mgr := newTestManager(t)
 	for _, name := range []string{"alpha", "bravo", "charlie", "delta", "echo"} {
-		if _, err := mgr.Create(name, models.VisibilityAll, nil, nil); err != nil {
+		if _, err := mgr.Create(name, nil, nil); err != nil {
 			t.Fatalf("creating tag %q: %v", name, err)
 		}
 	}
@@ -62,7 +61,7 @@ func TestGetAllPagination(t *testing.T) {
 func TestGetAllSearch(t *testing.T) {
 	mgr := newTestManager(t)
 	for _, name := range []string{"billing", "refund", "billing-dispute"} {
-		if _, err := mgr.Create(name, models.VisibilityAll, nil, nil); err != nil {
+		if _, err := mgr.Create(name, nil, nil); err != nil {
 			t.Fatalf("creating tag %q: %v", name, err)
 		}
 	}
@@ -88,7 +87,7 @@ func TestGetByIDs(t *testing.T) {
 	mgr := newTestManager(t)
 	var ids []int
 	for _, name := range []string{"alpha", "bravo", "charlie"} {
-		tag, err := mgr.Create(name, models.VisibilityAll, nil, nil)
+		tag, err := mgr.Create(name, nil, nil)
 		if err != nil {
 			t.Fatalf("creating tag %q: %v", name, err)
 		}
@@ -112,41 +111,52 @@ func TestGetByIDs(t *testing.T) {
 	}
 }
 
+func createTeam(t *testing.T, db *sqlx.DB, name string) int {
+	t.Helper()
+	db.MustExec(`INSERT INTO teams (name, conversation_assignment_type) VALUES ($1, 'Manual')`, name)
+	var id int
+	if err := db.Get(&id, `SELECT id FROM teams WHERE name = $1`, name); err != nil {
+		t.Fatalf("fetching team id for %q: %v", name, err)
+	}
+	return id
+}
+
+func createInbox(t *testing.T, db *sqlx.DB, name string) int {
+	t.Helper()
+	db.MustExec(`INSERT INTO inboxes (name, channel) VALUES ($1, 'email')`, name)
+	var id int
+	if err := db.Get(&id, `SELECT id FROM inboxes WHERE name = $1`, name); err != nil {
+		t.Fatalf("fetching inbox id for %q: %v", name, err)
+	}
+	return id
+}
+
 func TestGetScoped(t *testing.T) {
 	mgr, db := newTestManagerWithDB(t)
 
-	var teamID, otherTeamID, inboxID, otherInboxID int
-	db.MustExec(`INSERT INTO teams (name, conversation_assignment_type) VALUES ('Support', 'Manual')`)
-	if err := db.Get(&teamID, `SELECT id FROM teams WHERE name = 'Support'`); err != nil {
-		t.Fatalf("fetching team id: %v", err)
-	}
-	db.MustExec(`INSERT INTO teams (name, conversation_assignment_type) VALUES ('Sales', 'Manual')`)
-	if err := db.Get(&otherTeamID, `SELECT id FROM teams WHERE name = 'Sales'`); err != nil {
-		t.Fatalf("fetching other team id: %v", err)
-	}
-	db.MustExec(`INSERT INTO inboxes (name, channel) VALUES ('Help desk', 'email')`)
-	if err := db.Get(&inboxID, `SELECT id FROM inboxes WHERE name = 'Help desk'`); err != nil {
-		t.Fatalf("fetching inbox id: %v", err)
-	}
-	db.MustExec(`INSERT INTO inboxes (name, channel) VALUES ('Billing desk', 'email')`)
-	if err := db.Get(&otherInboxID, `SELECT id FROM inboxes WHERE name = 'Billing desk'`); err != nil {
-		t.Fatalf("fetching other inbox id: %v", err)
-	}
+	teamID := createTeam(t, db, "Support")
+	otherTeamID := createTeam(t, db, "Sales")
+	inboxID := createInbox(t, db, "Help desk")
+	otherInboxID := createInbox(t, db, "Billing desk")
 
-	if _, err := mgr.Create("global", models.VisibilityAll, nil, nil); err != nil {
+	if _, err := mgr.Create("global", nil, nil); err != nil {
 		t.Fatalf("creating global tag: %v", err)
 	}
-	if _, err := mgr.Create("support-team", models.VisibilityTeam, &teamID, nil); err != nil {
+	if _, err := mgr.Create("support-team", []int{teamID}, nil); err != nil {
 		t.Fatalf("creating team tag: %v", err)
 	}
-	if _, err := mgr.Create("sales-team", models.VisibilityTeam, &otherTeamID, nil); err != nil {
+	if _, err := mgr.Create("sales-team", []int{otherTeamID}, nil); err != nil {
 		t.Fatalf("creating other team tag: %v", err)
 	}
-	if _, err := mgr.Create("help-desk", models.VisibilityInbox, nil, &inboxID); err != nil {
+	if _, err := mgr.Create("help-desk", nil, []int{inboxID}); err != nil {
 		t.Fatalf("creating inbox tag: %v", err)
 	}
-	if _, err := mgr.Create("billing-desk", models.VisibilityInbox, nil, &otherInboxID); err != nil {
+	if _, err := mgr.Create("billing-desk", nil, []int{otherInboxID}); err != nil {
 		t.Fatalf("creating other inbox tag: %v", err)
+	}
+	// Scoped to both a team the caller isn't in and an inbox the caller is in - should still match.
+	if _, err := mgr.Create("multi-scoped", []int{otherTeamID}, []int{inboxID}); err != nil {
+		t.Fatalf("creating multi-scoped tag: %v", err)
 	}
 
 	got, err := mgr.GetScoped("", &teamID, &inboxID)
@@ -157,7 +167,7 @@ func TestGetScoped(t *testing.T) {
 	for _, tag := range got {
 		names = append(names, tag.Name)
 	}
-	want := []string{"global", "help-desk", "support-team"}
+	want := []string{"global", "help-desk", "multi-scoped", "support-team"}
 	if len(names) != len(want) {
 		t.Fatalf("GetScoped names = %v, want %v", names, want)
 	}
@@ -175,8 +185,65 @@ func TestGetScoped(t *testing.T) {
 	for _, tag := range gotNoTeam {
 		names = append(names, tag.Name)
 	}
-	want = []string{"global", "help-desk"}
-	if len(names) != len(want) || names[0] != want[0] || names[1] != want[1] {
+	want = []string{"global", "help-desk", "multi-scoped"}
+	if len(names) != len(want) {
 		t.Fatalf("GetScoped without team names = %v, want %v", names, want)
+	}
+	for i, name := range want {
+		if names[i] != name {
+			t.Fatalf("GetScoped without team names = %v, want %v", names, want)
+		}
+	}
+}
+
+func TestMultiTeamMultiInboxScoping(t *testing.T) {
+	mgr, db := newTestManagerWithDB(t)
+
+	teamA := createTeam(t, db, "Team A")
+	teamB := createTeam(t, db, "Team B")
+	teamC := createTeam(t, db, "Team C")
+	inboxX := createInbox(t, db, "Inbox X")
+	inboxY := createInbox(t, db, "Inbox Y")
+
+	created, err := mgr.Create("multi", []int{teamA, teamB}, []int{inboxX, inboxY})
+	if err != nil {
+		t.Fatalf("creating multi-scoped tag: %v", err)
+	}
+	if len(created.TeamIDs) != 2 || len(created.InboxIDs) != 2 {
+		t.Fatalf("created tag = %+v, want 2 team ids and 2 inbox ids", created)
+	}
+
+	// Visible for either team.
+	for _, teamID := range []int{teamA, teamB} {
+		got, err := mgr.GetScoped("", &teamID, nil)
+		if err != nil {
+			t.Fatalf("GetScoped for team %d: %v", teamID, err)
+		}
+		if len(got) != 1 || got[0].Name != "multi" {
+			t.Fatalf("GetScoped for team %d = %+v, want just the multi tag", teamID, got)
+		}
+	}
+
+	// Not visible for an unrelated team with no matching inbox either.
+	got, err := mgr.GetScoped("", &teamC, nil)
+	if err != nil {
+		t.Fatalf("GetScoped for unrelated team: %v", err)
+	}
+	if len(got) != 0 {
+		t.Fatalf("GetScoped for unrelated team = %+v, want none", got)
+	}
+
+	// Shrinking to a single team via Update replaces the old set entirely.
+	updated, err := mgr.Update(created.ID, "multi", []int{teamA}, nil)
+	if err != nil {
+		t.Fatalf("updating tag scope: %v", err)
+	}
+	if len(updated.TeamIDs) != 1 || updated.TeamIDs[0] != int32(teamA) || len(updated.InboxIDs) != 0 {
+		t.Fatalf("updated tag = %+v, want only team A", updated)
+	}
+	if got, err := mgr.GetScoped("", &teamB, nil); err != nil {
+		t.Fatalf("GetScoped after update: %v", err)
+	} else if len(got) != 0 {
+		t.Fatalf("GetScoped for team B after narrowing scope = %+v, want none", got)
 	}
 }

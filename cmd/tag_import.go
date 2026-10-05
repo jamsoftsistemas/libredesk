@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/abhinavxd/libredesk/internal/envelope"
-	tmodels "github.com/abhinavxd/libredesk/internal/tag/models"
 	"github.com/valyala/fasthttp"
 	"github.com/zerodha/fastglue"
 )
@@ -89,7 +88,7 @@ func processTagImport(app *App, records [][]string) error {
 			continue
 		}
 
-		_, err := app.tag.Create(name, tmodels.VisibilityAll, nil, nil)
+		_, err := app.tag.Create(name, nil, nil)
 		if err != nil {
 			app.importer.UpdateCounts(importNSTags, 0, 0, 1)
 			e, ok := err.(envelope.Error)

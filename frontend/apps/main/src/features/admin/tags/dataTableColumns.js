@@ -20,13 +20,23 @@ export const createColumns = (t, { onEdit } = {}) => [
     }
   },
   {
-    accessorKey: 'visibility',
+    id: 'scope',
     enableGlobalFilter: false,
     header: function () {
-      return h('div', { class: 'text-center' }, t('globals.terms.visibility'))
+      return h('div', { class: 'text-center' }, t('globals.terms.scope'))
     },
     cell: function ({ row }) {
-      return h('div', { class: 'text-center' }, row.getValue('visibility'))
+      const tag = row.original
+      const teamCount = tag.team_ids?.length || 0
+      const inboxCount = tag.inbox_ids?.length || 0
+      const parts = []
+      if (teamCount) parts.push(t('globals.terms.team', teamCount) + ` (${teamCount})`)
+      if (inboxCount) parts.push(t('globals.terms.inbox', inboxCount) + ` (${inboxCount})`)
+      return h(
+        'div',
+        { class: 'text-center text-muted-foreground' },
+        parts.length ? parts.join(', ') : t('globals.terms.all')
+      )
     }
   },
   {
