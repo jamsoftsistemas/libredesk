@@ -232,7 +232,8 @@ const conversationEventOptions = [
   { label: t('admin.automation.event.priority.change'), value: 'conversation.priority.change' },
   { label: t('admin.automation.event.status.change'), value: 'conversation.status.change' },
   { label: t('admin.automation.event.message.outgoing'), value: 'conversation.message.outgoing' },
-  { label: t('admin.automation.event.message.incoming'), value: 'conversation.message.incoming' }
+  { label: t('admin.automation.event.message.incoming'), value: 'conversation.message.incoming' },
+  { label: t('admin.automation.event.csat.submitted'), value: 'conversation.csat.submitted' }
 ]
 
 const props = defineProps({

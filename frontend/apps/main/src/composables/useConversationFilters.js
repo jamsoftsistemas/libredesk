@@ -278,6 +278,11 @@ export function useConversationFilters () {
                 { label: t('admin.automation.businessHoursClosed'), value: 'closed' }
             ]
         },
+        csat_rating: {
+            label: t('globals.terms.csatRating'),
+            type: FIELD_TYPE.NUMBER,
+            operators: FIELD_OPERATORS.NUMBER_AUTOMATION
+        },
         inbox: {
             label: t('globals.terms.inbox'),
             type: FIELD_TYPE.SELECT,

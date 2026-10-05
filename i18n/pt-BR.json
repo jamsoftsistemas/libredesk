@@ -203,6 +203,7 @@
   "admin.automation.conversationUpdate": "Atualizar conversa",
   "admin.automation.conversationUpdate.description": "Regras que são executadas quando uma conversa é atualizada.",
   "admin.automation.evaluateRuleOnTheseEvents": "Avalie a regra sobre estes eventos.",
+  "admin.automation.event.csat.submitted": "CSAT preenchido",
   "admin.automation.event.message.incoming": "Mensagem recebida",
   "admin.automation.event.message.outgoing": "Mensagem enviada",
   "admin.automation.event.priority.change": "Alterar prioridade",

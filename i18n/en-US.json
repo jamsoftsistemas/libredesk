@@ -207,6 +207,7 @@
   "admin.automation.conversationUpdate": "Conversation update",
   "admin.automation.conversationUpdate.description": "Rules that run when a conversation is updated.",
   "admin.automation.evaluateRuleOnTheseEvents": "Evaluate rule on these events.",
+  "admin.automation.event.csat.submitted": "CSAT submitted",
   "admin.automation.event.message.incoming": "Incoming message",
   "admin.automation.event.message.outgoing": "Outgoing message",
   "admin.automation.event.priority.change": "Priority change",

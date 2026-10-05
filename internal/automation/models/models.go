@@ -58,6 +58,7 @@ const (
 	ConversationIncomingTo             = "to"
 	ContactEmail                       = "contact_email"
 	ConversationBusinessHoursStatus    = "business_hours_status"
+	ConversationCSATRating             = "csat_rating"
 
 	BusinessHoursOpen   = "open"
 	BusinessHoursClosed = "closed"
@@ -80,6 +81,7 @@ const (
 	EventConversationPriorityChange  = "conversation.priority.change"
 	EventConversationMessageOutgoing = "conversation.message.outgoing"
 	EventConversationMessageIncoming = "conversation.message.incoming"
+	EventConversationCSATSubmitted   = "conversation.csat.submitted"
 
 	ExecutionModeAll        = "all"
 	ExecutionModeFirstMatch = "first_match"

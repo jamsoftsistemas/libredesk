@@ -185,6 +185,12 @@ func (e *Engine) evaluateRule(rule models.RuleDetail, conversation cmodels.Conve
 			}
 		case models.ConversationIncomingTo:
 			return evaluateRecipientRule(conversation.IncomingTo, rule)
+		case models.ConversationCSATRating:
+			if conversation.CSATRespondedAt.Valid {
+				valueToCompare = strconv.Itoa(conversation.CSATRating.Int)
+			} else if rule.Operator != models.RuleOperatorSet && rule.Operator != models.RuleOperatorNotSet {
+				return false
+			}
 		default:
 			e.lo.Error("error unrecognized conversation field", "field", rule.Field, "field_type", rule.FieldType, "conversation_uuid", conversation.UUID)
 			return false

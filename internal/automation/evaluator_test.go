@@ -664,6 +664,84 @@ func TestRealWorld_CSATAutomation(t *testing.T) {
 	assert.Equal(t, models.ActionSendCSAT, mockStore.appliedActions[0].Type)
 }
 
+// Test: csat_rating field with set/not-set and numeric comparisons, driven by whether the
+// contact has actually submitted the survey (CSATRespondedAt), not just a non-zero rating.
+func TestCSATRatingField(t *testing.T) {
+	setRule := models.RuleDetail{Field: models.ConversationCSATRating, Operator: models.RuleOperatorSet, FieldType: models.FieldTypeConversationField}
+	notSetRule := models.RuleDetail{Field: models.ConversationCSATRating, Operator: models.RuleOperatorNotSet, FieldType: models.FieldTypeConversationField}
+	lowRatingRule := models.RuleDetail{Field: models.ConversationCSATRating, Operator: models.RuleOperatorLessThan, Value: "3", FieldType: models.FieldTypeConversationField}
+
+	runCSAT := func(t *testing.T, conv cmodels.Conversation, rule models.RuleDetail) {
+		t.Helper()
+		mockStore := new(mockConversationStore)
+		mockStore.On("ApplyAction", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		engine := createTestEngine(mockStore)
+		rules := []models.Rule{
+			{
+				Groups:        []models.RuleGroup{{LogicalOp: models.OperatorAnd, Rules: []models.RuleDetail{rule}}},
+				Actions:       []models.RuleAction{{Type: models.ActionAddTags, Value: []string{"1"}}},
+				GroupOperator: models.OperatorOR,
+				ExecutionMode: models.ExecutionModeAll,
+			},
+		}
+		engine.evalConversationRules(rules, conv, nil)
+		assert.Equal(t, 1, mockStore.callCount)
+	}
+
+	t.Run("not yet responded matches not-set", func(t *testing.T) {
+		conv := createTestConversation(func(c *cmodels.Conversation) {})
+		runCSAT(t, conv, notSetRule)
+	})
+
+	t.Run("not yet responded does not match set", func(t *testing.T) {
+		mockStore := new(mockConversationStore)
+		mockStore.On("ApplyAction", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		engine := createTestEngine(mockStore)
+		conv := createTestConversation(func(c *cmodels.Conversation) {})
+		rules := []models.Rule{
+			{
+				Groups:        []models.RuleGroup{{LogicalOp: models.OperatorAnd, Rules: []models.RuleDetail{setRule}}},
+				Actions:       []models.RuleAction{{Type: models.ActionAddTags, Value: []string{"1"}}},
+				GroupOperator: models.OperatorOR,
+				ExecutionMode: models.ExecutionModeAll,
+			},
+		}
+		engine.evalConversationRules(rules, conv, nil)
+		assert.Equal(t, 0, mockStore.callCount, "unresponded CSAT should not match the set operator")
+	})
+
+	t.Run("responded with a low rating matches set and less-than", func(t *testing.T) {
+		conv := createTestConversation(func(c *cmodels.Conversation) {
+			c.CSATRating = null.IntFrom(2)
+			c.CSATRespondedAt = null.TimeFrom(time.Now())
+		})
+		runCSAT(t, conv, setRule)
+		runCSAT(t, conv, lowRatingRule)
+	})
+
+	t.Run("responded with rating 0 (feedback only) matches set and less-than", func(t *testing.T) {
+		conv := createTestConversation(func(c *cmodels.Conversation) {
+			c.CSATRating = null.IntFrom(0)
+			c.CSATRespondedAt = null.TimeFrom(time.Now())
+		})
+		runCSAT(t, conv, setRule)
+
+		mockStore := new(mockConversationStore)
+		mockStore.On("ApplyAction", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		engine := createTestEngine(mockStore)
+		rules := []models.Rule{
+			{
+				Groups:        []models.RuleGroup{{LogicalOp: models.OperatorAnd, Rules: []models.RuleDetail{lowRatingRule}}},
+				Actions:       []models.RuleAction{{Type: models.ActionAddTags, Value: []string{"1"}}},
+				GroupOperator: models.OperatorOR,
+				ExecutionMode: models.ExecutionModeAll,
+			},
+		}
+		engine.evalConversationRules(rules, conv, nil)
+		assert.Equal(t, 1, mockStore.callCount, "rating 0 is still less than 3")
+	})
+}
+
 // Test: Real-world NEW TICKET automation
 func TestRealWorld_NewTicketAutomation(t *testing.T) {
 	mockStore := new(mockConversationStore)
