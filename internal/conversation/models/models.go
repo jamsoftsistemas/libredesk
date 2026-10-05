@@ -97,6 +97,7 @@ type ChatConversation struct {
 	CreatedAt          time.Time         `db:"created_at" json:"created_at"`
 	UUID               string            `db:"uuid" json:"uuid"`
 	Status             string            `db:"status" json:"status"`
+	StatusCategory     string            `db:"status_category" json:"status_category"`
 	LastChatMessage    LastChatMessage   `db:"last_message" json:"last_message"`
 	UnreadMessages     []ChatMessage     `db:"-" json:"unread_messages,omitempty"`
 	UnreadMessageCount int               `db:"unread_message_count" json:"unread_message_count"`
