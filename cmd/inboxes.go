@@ -511,6 +511,10 @@ func validateInbox(app *App, inbox imodels.Inbox, isUpdate bool) error {
 		if config.ShowOfficeHoursAfterAssignment && !config.ShowOfficeHoursInChat {
 			return envelope.NewError(envelope.InputError, "`show_office_hours_after_assignment` cannot be enabled when `show_office_hours_in_chat` is disabled", nil)
 		}
+		// CSATRatings is either left unset (use defaults) or fully customized, one entry per rating 1-5.
+		if n := len(config.CSATRatings); n != 0 && n != 5 {
+			return envelope.NewError(envelope.InputError, app.i18n.T("validation.invalidValue"), nil)
+		}
 		// Validate continuity settings - required when linked email inbox is set.
 		if inbox.LinkedEmailInboxID.Valid && inbox.LinkedEmailInboxID.Int > 0 {
 			if config.Continuity.OfflineThreshold == "" {

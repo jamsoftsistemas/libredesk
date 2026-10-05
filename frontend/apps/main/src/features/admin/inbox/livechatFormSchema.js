@@ -279,6 +279,15 @@ export const createFormSchema = (t) =>
       show_office_hours_in_chat: z.boolean(),
       show_office_hours_after_assignment: z.boolean(),
       chat_reply_expectation_message: z.string().optional(),
+      csat_message: z.string().optional(),
+      csat_ratings: z
+        .array(
+          z.object({
+            emoji: z.string().optional(),
+            label: z.string().optional()
+          })
+        )
+        .optional(),
       notice_banner: z
         .object({
           enabled: z.boolean(),

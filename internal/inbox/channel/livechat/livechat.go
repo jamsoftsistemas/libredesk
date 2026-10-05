@@ -178,19 +178,31 @@ type Config struct {
 		Text    string `json:"text"`
 		Enabled bool   `json:"enabled"`
 	} `json:"notice_banner"`
-	HomeApps                       []HomeApp         `json:"home_apps"`
-	TrustedDomains                 []string          `json:"trusted_domains"`
-	BlockedIPs                     []string          `json:"blocked_ips"`
-	DirectToConversation           bool              `json:"direct_to_conversation"`
-	GreetingMessage                string            `json:"greeting_message"`
-	ChatIntroduction               string            `json:"chat_introduction"`
-	IntroductionMessage            string            `json:"introduction_message"`
-	Continuity                     ContinuityConfig  `json:"continuity"`
-	ShowOfficeHoursInChat          bool              `json:"show_office_hours_in_chat"`
-	ShowOfficeHoursAfterAssignment bool              `json:"show_office_hours_after_assignment"`
-	ChatReplyExpectationMessage    string            `json:"chat_reply_expectation_message"`
-	SessionDuration                string            `json:"session_duration"`
-	PreChatForm                    PreChatFormConfig `json:"prechat_form"`
+	HomeApps                       []HomeApp        `json:"home_apps"`
+	TrustedDomains                 []string         `json:"trusted_domains"`
+	BlockedIPs                     []string         `json:"blocked_ips"`
+	DirectToConversation           bool             `json:"direct_to_conversation"`
+	GreetingMessage                string           `json:"greeting_message"`
+	ChatIntroduction               string           `json:"chat_introduction"`
+	IntroductionMessage            string           `json:"introduction_message"`
+	Continuity                     ContinuityConfig `json:"continuity"`
+	ShowOfficeHoursInChat          bool             `json:"show_office_hours_in_chat"`
+	ShowOfficeHoursAfterAssignment bool             `json:"show_office_hours_after_assignment"`
+	ChatReplyExpectationMessage    string           `json:"chat_reply_expectation_message"`
+	// CSATMessage overrides the default "please rate this conversation" text sent alongside the
+	// CSAT survey. Empty means the caller falls back to the default copy.
+	CSATMessage string `json:"csat_message"`
+	// CSATRatings overrides the default 5 emoji/label pairs shown on the CSAT survey (ordered
+	// from rating 1 to 5). Must be either empty (use defaults) or exactly 5 entries.
+	CSATRatings     []CSATRatingOption `json:"csat_ratings"`
+	SessionDuration string             `json:"session_duration"`
+	PreChatForm     PreChatFormConfig  `json:"prechat_form"`
+}
+
+// CSATRatingOption is one emoji/label pair of a CSAT survey's rating scale.
+type CSATRatingOption struct {
+	Emoji string `json:"emoji"`
+	Label string `json:"label"`
 }
 
 // Client represents a connected chat client
@@ -368,6 +380,9 @@ func (c *Config) fillEmptyLists() {
 	}
 	if c.PreChatForm.Fields == nil {
 		c.PreChatForm.Fields = []PreChatFormField{}
+	}
+	if c.CSATRatings == nil {
+		c.CSATRatings = []CSATRatingOption{}
 	}
 }
 
