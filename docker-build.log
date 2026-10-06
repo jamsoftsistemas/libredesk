@@ -1,413 +1,415 @@
 #0 building with "desktop-linux" instance using docker driver
 
 #1 [internal] load build definition from Dockerfile
-#1 transferring dockerfile: 1.65kB done
+#1 transferring dockerfile: 1.65kB 0.0s done
 #1 DONE 0.1s
 
 #2 [internal] load metadata for docker.io/library/golang:1.25-alpine
-#2 DONE 1.1s
+#2 ...
 
-#3 [internal] load metadata for docker.io/library/alpine:3.18
-#3 DONE 1.1s
+#3 [auth] library/node:pull token for registry-1.docker.io
+#3 DONE 0.0s
 
-#4 [internal] load metadata for docker.io/library/node:20-alpine
-#4 DONE 1.1s
+#4 [auth] library/golang:pull token for registry-1.docker.io
+#4 DONE 0.0s
 
-#5 [internal] load .dockerignore
-#5 transferring context: 32B
-#5 transferring context: 124B done
-#5 DONE 0.1s
+#5 [auth] library/alpine:pull token for registry-1.docker.io
+#5 DONE 0.0s
 
-#6 [stage-2 1/5] FROM docker.io/library/alpine:3.18@sha256:de0eb0b3f2a47ba1eb89389859a9bd88b28e82f5826b6969ad604979713c2d4f
-#6 DONE 0.0s
+#6 [internal] load metadata for docker.io/library/alpine:3.18
+#6 ...
 
-#7 [backend  1/10] FROM docker.io/library/golang:1.25-alpine@sha256:1ae0735f00daffa3aaf1363a5184c0d2dc55c78e3db4ec70241cdac97bf84b59
-#7 DONE 0.0s
+#7 [internal] load metadata for docker.io/library/node:20-alpine
+#7 DONE 2.1s
 
-#8 [frontend 1/9] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
-#8 DONE 0.0s
+#2 [internal] load metadata for docker.io/library/golang:1.25-alpine
+#2 DONE 2.2s
 
-#9 [internal] load build context
-#9 transferring context: 60.35MB 2.5s done
-#9 DONE 2.6s
+#6 [internal] load metadata for docker.io/library/alpine:3.18
+#6 DONE 2.2s
 
-#10 [frontend 5/9] RUN cd frontend && pnpm install --frozen-lockfile
-#10 CACHED
+#8 [internal] load .dockerignore
+#8 transferring context: 124B 0.0s done
+#8 DONE 0.1s
 
-#11 [backend  5/10] RUN go mod download
-#11 CACHED
+#9 [frontend 1/9] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+#9 DONE 0.0s
 
-#12 [frontend 6/9] COPY frontend ./frontend
+#10 [stage-2 1/5] FROM docker.io/library/alpine:3.18@sha256:de0eb0b3f2a47ba1eb89389859a9bd88b28e82f5826b6969ad604979713c2d4f
+#10 DONE 0.0s
+
+#11 [backend  1/10] FROM docker.io/library/golang:1.25-alpine@sha256:1ae0735f00daffa3aaf1363a5184c0d2dc55c78e3db4ec70241cdac97bf84b59
+#11 DONE 0.0s
+
+#12 [internal] load build context
+#12 transferring context: 52.49MB 2.0s done
 #12 DONE 2.0s
 
-#13 [frontend 7/9] COPY static ./static
-#13 DONE 0.3s
+#13 [frontend 2/9] RUN corepack enable
+#13 CACHED
 
-#14 [frontend 8/9] COPY internal/countries ./internal/countries
-#14 DONE 0.2s
+#14 [frontend 3/9] WORKDIR /src
+#14 CACHED
 
-#15 [backend  2/10] RUN apk add --no-cache git
+#15 [frontend 4/9] COPY frontend/package.json frontend/pnpm-lock.yaml ./frontend/
 #15 CACHED
 
-#16 [backend  4/10] COPY go.mod go.sum ./
+#16 [backend  2/10] RUN apk add --no-cache git
 #16 CACHED
 
 #17 [backend  3/10] WORKDIR /src
 #17 CACHED
 
-#18 [backend  5/10] RUN go mod download
+#18 [backend  4/10] COPY go.mod go.sum ./
 #18 CACHED
 
-#19 [frontend 9/9] RUN cd frontend && pnpm build:main && pnpm build:widget && pnpm build:widget-loader
-#19 2.230 
-#19 2.230 > libredesk@ build:main /src/frontend
-#19 2.230 > vite build --mode main
-#19 2.230 
-#19 3.585 vite v6.4.3 building for main...
-#19 3.721 transforming...
-#19 19.45 node_modules/.pnpm/@vueuse+core@14.3.0_vue@3.5.13_typescript@5.7.3_/node_modules/@vueuse/core/dist/index.js (3362:0): A comment
-#19 19.45 
-#19 19.45 "/* #__PURE__ */"
-#19 19.45 
-#19 19.45 in "node_modules/.pnpm/@vueuse+core@14.3.0_vue@3.5.13_typescript@5.7.3_/node_modules/@vueuse/core/dist/index.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
-#19 19.45 node_modules/.pnpm/@vueuse+core@14.3.0_vue@3.5.13_typescript@5.7.3_/node_modules/@vueuse/core/dist/index.js (5780:22): A comment
-#19 19.45 
-#19 19.45 "/* #__PURE__ */"
-#19 19.45 
-#19 19.45 in "node_modules/.pnpm/@vueuse+core@14.3.0_vue@3.5.13_typescript@5.7.3_/node_modules/@vueuse/core/dist/index.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
-#19 ...
+#19 [frontend 5/9] RUN cd frontend && pnpm install --frozen-lockfile
+#19 CACHED
 
-#20 [backend  6/10] COPY . .
-#20 DONE 1.8s
+#20 [backend  5/10] RUN go mod download
+#20 CACHED
 
-#19 [frontend 9/9] RUN cd frontend && pnpm build:main && pnpm build:widget && pnpm build:widget-loader
-#19 40.67 ✓ 5588 modules transformed.
-#19 42.25 rendering chunks...
-#19 42.71 computing gzip size...
-#19 42.83 ../../dist/main/index.html                                                                   1.22 kB │ gzip:   0.53 kB
-#19 42.83 ../../dist/main/assets/notification-DsESxpda.mp3                                            36.86 kB
-#19 42.83 ../../dist/main/assets/AutomationList-DmQEl3YM.css                                           0.10 kB │ gzip:   0.08 kB
-#19 42.83 ../../dist/main/assets/InboxLayout-D74gECvk.css                                              0.18 kB │ gzip:   0.16 kB
-#19 42.83 ../../dist/main/assets/InboxView-DiXvlsJG.css                                                0.28 kB │ gzip:   0.15 kB
-#19 42.83 ../../dist/main/assets/App-DueMzbiX.css                                                      0.35 kB │ gzip:   0.22 kB
-#19 42.83 ../../dist/main/assets/WhatsAppTemplatePicker-42_BqFzB.css                                   0.35 kB │ gzip:   0.16 kB
-#19 42.84 ../../dist/main/assets/InboxView-Dc7IsYTi.css                                                0.72 kB │ gzip:   0.35 kB
-#19 42.84 ../../dist/main/assets/OverviewView-Cm2LoPqO.css                                             0.76 kB │ gzip:   0.31 kB
-#19 42.84 ../../dist/main/assets/ResizablePanelGroup-CMHuf-78.css                                      1.25 kB │ gzip:   0.49 kB
-#19 42.84 ../../dist/main/assets/ConversationDetailView-CsTEHVld.css                                   2.87 kB │ gzip:   1.07 kB
-#19 42.84 ../../dist/main/assets/editorStyles-I1GUf9al.css                                             3.90 kB │ gzip:   1.17 kB
-#19 42.84 ../../dist/main/assets/style-ByXJua90.css                                                    8.42 kB │ gzip:   1.77 kB
-#19 42.84 ../../dist/main/assets/HelpCenterTree-bcELdu_v.css                                          10.54 kB │ gzip:   2.78 kB
-#19 42.84 ../../dist/main/assets/index-XBmzLhoM.css                                                  114.19 kB │ gzip:  19.03 kB
-#19 42.84 ../../dist/main/assets/user-Bkpevj-a.js                                                      0.06 kB │ gzip:   0.07 kB
-#19 42.84 ../../dist/main/assets/utils-x2MAyj3t.js                                                     0.09 kB │ gzip:   0.10 kB
-#19 42.84 ../../dist/main/assets/_plugin-vue_export-helper-DlAUqK2U.js                                 0.09 kB │ gzip:   0.10 kB
-#19 42.84 ../../dist/main/assets/channelIcons-KwAhTXrh.js                                              0.14 kB │ gzip:   0.13 kB
-#19 42.84 ../../dist/main/assets/contact-B6XYncpN.js                                                   0.19 kB │ gzip:   0.16 kB
-#19 42.84 ../../dist/main/assets/HelpCenter-DEse5fDL.js                                                0.24 kB │ gzip:   0.20 kB
-#19 42.84 ../../dist/main/assets/CardContent-hMDGfAzK.js                                               0.31 kB │ gzip:   0.25 kB
-#19 42.84 ../../dist/main/assets/Skeleton-5EY-CRXs.js                                                  0.31 kB │ gzip:   0.25 kB
-#19 42.84 ../../dist/main/assets/CardHeader-BKKn_HXK.js                                                0.33 kB │ gzip:   0.26 kB
-#19 42.84 ../../dist/main/assets/CardTitle-BW-im_ux.js                                                 0.34 kB │ gzip:   0.27 kB
-#19 42.84 ../../dist/main/assets/AlertTitle-czoRx1Wm.js                                                0.34 kB │ gzip:   0.28 kB
-#19 42.84 ../../dist/main/assets/Agents-DCDgne58.js                                                    0.34 kB │ gzip:   0.27 kB
-#19 42.84 ../../dist/main/assets/Macros-Cod2UjQb.js                                                    0.34 kB │ gzip:   0.27 kB
-#19 42.84 ../../dist/main/assets/SheetHeader-Bec_Msmo.js                                               0.35 kB │ gzip:   0.28 kB
-#19 42.84 ../../dist/main/assets/Card-Dqnlrmsr.js                                                      0.35 kB │ gzip:   0.28 kB
-#19 42.84 ../../dist/main/assets/DialogTrigger-k-Az0_Zg.js                                             0.35 kB │ gzip:   0.27 kB
-#19 42.84 ../../dist/main/assets/Automation-BCewVr7k.js                                                0.35 kB │ gzip:   0.27 kB
-#19 42.84 ../../dist/main/assets/SharedViews-DvYicl_9.js                                               0.35 kB │ gzip:   0.27 kB
-#19 42.84 ../../dist/main/assets/aiAssistant-Cx6nirRt.js                                               0.36 kB │ gzip:   0.26 kB
-#19 42.84 ../../dist/main/assets/DialogFooter-D6v9efn7.js                                              0.36 kB │ gzip:   0.28 kB
-#19 42.84 ../../dist/main/assets/conversation-DTuKU_io.js                                              0.37 kB │ gzip:   0.27 kB
-#19 42.84 ../../dist/main/assets/AccountLayout-BUgTy12I.js                                             0.38 kB │ gzip:   0.29 kB
-#19 42.84 ../../dist/main/assets/SLA-C9kpq75O.js                                                       0.40 kB │ gzip:   0.28 kB
-#19 42.84 ../../dist/main/assets/Teams-lHdbWQNv.js                                                     0.40 kB │ gzip:   0.28 kB
-#19 42.84 ../../dist/main/assets/sla-CBqWWIWS.js                                                       0.41 kB │ gzip:   0.30 kB
-#19 42.84 ../../dist/main/assets/BetaBadge-zmP-FhvJ.js                                                 0.42 kB │ gzip:   0.32 kB
-#19 42.84 ../../dist/main/assets/FormDescription-Dg6N5eW1.js                                           0.42 kB │ gzip:   0.31 kB
-#19 42.84 ../../dist/main/assets/BusinessHours-Vg0iZl6s.js                                             0.43 kB │ gzip:   0.29 kB
-#19 42.84 ../../dist/main/assets/DropdownMenuSeparator-DeTLhM6A.js                                     0.47 kB │ gzip:   0.32 kB
-#19 42.84 ../../dist/main/assets/Roles-v8MsRdJf.js                                                     0.50 kB │ gzip:   0.37 kB
-#19 42.84 ../../dist/main/assets/OIDC-CvL8uLlo.js                                                      0.50 kB │ gzip:   0.37 kB
-#19 42.84 ../../dist/main/assets/SelectGroup-BHGN6iqH.js                                               0.50 kB │ gzip:   0.34 kB
-#19 42.84 ../../dist/main/assets/Webhooks-BPYt0vh5.js                                                  0.51 kB │ gzip:   0.37 kB
-#19 42.84 ../../dist/main/assets/LoadingOverlay-FsQc7nwo.js                                            0.52 kB │ gzip:   0.35 kB
-#19 42.84 ../../dist/main/assets/Templates-poo5txZ1.js                                                 0.52 kB │ gzip:   0.38 kB
-#19 42.85 ../../dist/main/assets/SheetTitle-CIyV9ynZ.js                                                0.54 kB │ gzip:   0.36 kB
-#19 42.85 ../../dist/main/assets/DialogDescription-B-tLSMhn.js                                         0.54 kB │ gzip:   0.36 kB
-#19 42.85 ../../dist/main/assets/OuterApp-CtrNtOTG.js                                                  0.54 kB │ gzip:   0.36 kB
-#19 42.85 ../../dist/main/assets/DotLoader-DqnmPJag.js                                                 0.58 kB │ gzip:   0.31 kB
-#19 42.85 ../../dist/main/assets/AdminLayout-CJUbIn9T.js                                               0.59 kB │ gzip:   0.39 kB
-#19 42.85 ../../dist/main/assets/http-IcUvEyn5.js                                                      0.59 kB │ gzip:   0.33 kB
-#19 42.85 ../../dist/main/assets/useBulkActionPermissions-B-R3Ihus.js                                  0.59 kB │ gzip:   0.34 kB
-#19 42.85 ../../dist/main/assets/AdminSplitLayout-u0H7jMCx.js                                          0.59 kB │ gzip:   0.41 kB
-#19 42.85 ../../dist/main/assets/ContextLinks-CeXuxVcs.js                                              0.59 kB │ gzip:   0.39 kB
-#19 42.85 ../../dist/main/assets/sharedView-BFPWwLZd.js                                                0.60 kB │ gzip:   0.40 kB
-#19 42.85 ../../dist/main/assets/Label-Cekp-Sj7.js                                                     0.61 kB │ gzip:   0.39 kB
-#19 42.85 ../../dist/main/assets/datetime-BX30SWB8.js                                                  0.61 kB │ gzip:   0.38 kB
-#19 42.85 ../../dist/main/assets/Separator-VyLaCENe.js                                                 0.63 kB │ gzip:   0.38 kB
-#19 42.85 ../../dist/main/assets/CopyButton-DE50mxiF.js                                                0.65 kB │ gzip:   0.44 kB
-#19 42.85 ../../dist/main/assets/TabsContent-gNVTO04B.js                                               0.70 kB │ gzip:   0.42 kB
-#19 42.85 ../../dist/main/assets/aiPrompt-cneirmJZ.js                                                  0.76 kB │ gzip:   0.48 kB
-#19 42.85 ../../dist/main/assets/tag-vB_7rg4w.js                                                       0.77 kB │ gzip:   0.45 kB
-#19 42.85 ../../dist/main/assets/users-BMn2KG7L.js                                                     0.77 kB │ gzip:   0.49 kB
-#19 42.85 ../../dist/main/assets/SidebarTrigger-C-TIwYkW.js                                            0.78 kB │ gzip:   0.51 kB
-#19 42.85 ../../dist/main/assets/color-Cmfip38w.js                                                     0.82 kB │ gzip:   0.49 kB
-#19 42.85 ../../dist/main/assets/Textarea-CUOhnOjd.js                                                  0.86 kB │ gzip:   0.51 kB
-#19 42.85 ../../dist/main/assets/customAttributes-nMe_vrBU.js                                          0.88 kB │ gzip:   0.49 kB
-#19 42.85 ../../dist/main/assets/SwitchField-3VkvIXPG.js                                               0.89 kB │ gzip:   0.49 kB
-#19 42.85 ../../dist/main/assets/PreviewThemeToggle-DDENWyUb.js                                        0.90 kB │ gzip:   0.46 kB
-#19 42.85 ../../dist/main/assets/inbox-73Ngxx5j.js                                                     0.91 kB │ gzip:   0.46 kB
-#19 42.85 ../../dist/main/assets/Input-D71dhegP.js                                                     0.92 kB │ gzip:   0.53 kB
-#19 42.85 ../../dist/main/assets/whatsappTemplate-DHjJ4Sl4.js                                          0.93 kB │ gzip:   0.59 kB
-#19 42.85 ../../dist/main/assets/useEmitter-sKHvWqEl.js                                                0.96 kB │ gzip:   0.63 kB
-#19 42.85 ../../dist/main/assets/index-DOcsI1o8.js                                                     0.99 kB │ gzip:   0.50 kB
-#19 42.85 ../../dist/main/assets/index-p8l0RW1h.js                                                     0.99 kB │ gzip:   0.51 kB
-#19 42.85 ../../dist/main/assets/useBulkActions-DdyqhUXY.js                                            1.09 kB │ gzip:   0.62 kB
-#19 42.85 ../../dist/main/assets/remote-lookup-D6enlkdV.js                                             1.10 kB │ gzip:   0.62 kB
-#19 42.85 ../../dist/main/assets/CollapsibleTrigger-LRgQqxWv.js                                        1.12 kB │ gzip:   0.47 kB
-#19 42.85 ../../dist/main/assets/Checkbox-Dh_loEUR.js                                                  1.25 kB │ gzip:   0.62 kB
-#19 42.85 ../../dist/main/assets/CodeEditor-DPut-mQr.js                                                1.31 kB │ gzip:   0.75 kB
-#19 42.85 ../../dist/main/assets/TableRow-f8bJptKp.js                                                  1.31 kB │ gzip:   0.48 kB
-#19 42.85 ../../dist/main/assets/AuthLayout-DUqLpd2Z.js                                                1.33 kB │ gzip:   0.79 kB
-#19 42.85 ../../dist/main/assets/NewRole-PLwCIAMK.js                                                   1.33 kB │ gzip:   0.77 kB
-#19 42.85 ../../dist/main/assets/Switch-Bf1ifmdS.js                                                    1.37 kB │ gzip:   0.65 kB
-#19 42.85 ../../dist/main/assets/CreateTeamForm-gYT-DQVp.js                                            1.46 kB │ gzip:   0.82 kB
-#19 42.85 ../../dist/main/assets/Spinner-V97kPEi5.js                                                   1.49 kB │ gzip:   0.75 kB
-#19 42.85 ../../dist/main/assets/WhatsAppIcon-BIDjMXW5.js                                              1.49 kB │ gzip:   0.88 kB
-#19 42.85 ../../dist/main/assets/usePushNotifications-BEnMO-DW.js                                      1.52 kB │ gzip:   0.76 kB
-#19 42.85 ../../dist/main/assets/PriorityMarker-OvOyalXt.js                                            1.53 kB │ gzip:   0.86 kB
-#19 42.85 ../../dist/main/assets/Custom-CzHWguNK.js                                                    1.65 kB │ gzip:   0.71 kB
-#19 42.85 ../../dist/main/assets/EditRole-CIb65vEH.js                                                  1.65 kB │ gzip:   0.88 kB
-#19 42.85 ../../dist/main/assets/timezones-FVhhPPlU.js                                                 1.68 kB │ gzip:   0.57 kB
-#19 42.85 ../../dist/main/assets/RadioGroupItem-vuaOhwro.js                                            1.71 kB │ gzip:   0.70 kB
-#19 42.85 ../../dist/main/assets/SelectAgentCombobox-eq0p_Jlu.js                                       1.73 kB │ gzip:   0.86 kB
-#19 42.85 ../../dist/main/assets/SearchInput-C-NNT9Fk.js                                               1.74 kB │ gzip:   0.85 kB
-#19 42.85 ../../dist/main/assets/FormMessage-BzON1d8c.js                                               1.75 kB │ gzip:   0.85 kB
-#19 42.85 ../../dist/main/assets/EditTeamForm-BIhJofCm.js                                              1.79 kB │ gzip:   0.94 kB
-#19 42.85 ../../dist/main/assets/CreateAgent-BLlTnnB6.js                                               1.79 kB │ gzip:   0.96 kB
-#19 42.85 ../../dist/main/assets/filterConfig-BI8UEp2s.js                                              1.86 kB │ gzip:   0.86 kB
-#19 42.85 ../../dist/main/assets/TabsList-BcFvQqC4.js                                                  1.86 kB │ gzip:   0.75 kB
-#19 42.85 ../../dist/main/assets/SelectTeamCombobox-CJhL3l64.js                                        1.92 kB │ gzip:   0.99 kB
-#19 42.85 ../../dist/main/assets/permissions-C_oAHzJw.js                                               2.02 kB │ gzip:   0.70 kB
-#19 42.85 ../../dist/main/assets/SelectTagCombobox-CvLHiq6H.js                                         2.03 kB │ gzip:   0.96 kB
-#19 42.85 ../../dist/main/assets/ProfileEditView-BxoS-bdy.js                                           2.04 kB │ gzip:   1.02 kB
-#19 42.85 ../../dist/main/assets/index-DgXLcOIY.js                                                     2.08 kB │ gzip:   0.94 kB
-#19 42.85 ../../dist/main/assets/EditAgent-COvnCQ14.js                                                 2.09 kB │ gzip:   1.07 kB
-#19 42.85 ../../dist/main/assets/SimpleTable-bGdMXSYT.js                                               2.31 kB │ gzip:   1.03 kB
-#19 42.85 ../../dist/main/assets/PopoverContent-Ddtqgxak.js                                            2.32 kB │ gzip:   0.93 kB
-#19 42.85 ../../dist/main/assets/CreateSharedView-DUO-LW36.js                                          2.33 kB │ gzip:   1.17 kB
-#19 42.85 ../../dist/main/assets/TooltipTrigger-Bg7MOgWR.js                                            2.35 kB │ gzip:   0.92 kB
-#19 42.85 ../../dist/main/assets/macro-BvLDZM6N.js                                                     2.37 kB │ gzip:   1.18 kB
-#19 42.85 ../../dist/main/assets/index-D10rC3Jp.js                                                     2.50 kB │ gzip:   1.04 kB
-#19 42.85 ../../dist/main/assets/CreateMacro-CFuR38-U.js                                               2.65 kB │ gzip:   1.33 kB
-#19 42.85 ../../dist/main/assets/EditSharedView-C6_tw84F.js                                            2.65 kB │ gzip:   1.31 kB
-#19 42.85 ../../dist/main/assets/ConversationEditor-CKq53Au9.js                                        2.84 kB │ gzip:   1.31 kB
-#19 42.85 ../../dist/main/assets/AccordionTrigger-WAabWzYU.js                                          2.86 kB │ gzip:   1.15 kB
-#19 42.85 ../../dist/main/assets/AvatarUpload-BbI9PCuf.js                                              2.90 kB │ gzip:   1.44 kB
-#19 42.85 ../../dist/main/assets/EditMacro-Bo2suVc2.js                                                 2.96 kB │ gzip:   1.46 kB
-#19 42.85 ../../dist/main/assets/DropdownMenuItem-cXRpz1Ux.js                                          2.97 kB │ gzip:   1.10 kB
-#19 42.85 ../../dist/main/assets/TagsInputItemText-BLfKl_uT.js                                         3.04 kB │ gzip:   0.92 kB
-#19 42.85 ../../dist/main/assets/DialogContent-CJme51SI.js                                             3.05 kB │ gzip:   1.23 kB
-#19 42.85 ../../dist/main/assets/ResetPasswordView-Bn_Ee_uX.js                                         3.21 kB │ gzip:   1.48 kB
-#19 42.85 ../../dist/main/assets/helpCenterFormSchema-cOgN9a77.js                                      3.26 kB │ gzip:   1.16 kB
-#19 42.85 ../../dist/main/assets/useRemoteSearch-BRM_k0s_.js                                           3.60 kB │ gzip:   1.29 kB
-#19 42.85 ../../dist/main/assets/InboxView-CPbGHERw.js                                                 3.71 kB │ gzip:   1.65 kB
-#19 42.85 ../../dist/main/assets/PaginationBar-C95H3rHt.js                                             3.74 kB │ gzip:   1.51 kB
-#19 42.85 ../../dist/main/assets/AlertDialogCancel-CaCVoHfF.js                                         3.81 kB │ gzip:   1.16 kB
-#19 42.85 ../../dist/main/assets/SelectCombobox-CqXIX667.js                                            3.90 kB │ gzip:   1.56 kB
-#19 42.85 ../../dist/main/assets/SelectTag-Cf7LglDT.js                                                 4.08 kB │ gzip:   1.86 kB
-#19 42.85 ../../dist/main/assets/ResizablePanelGroup-CERpydYT.js                                       4.19 kB │ gzip:   1.66 kB
-#19 42.85 ../../dist/main/assets/BusinessHoursList-B7CIu7C9.js                                         4.24 kB │ gzip:   1.69 kB
-#19 42.85 ../../dist/main/assets/SLAList-XYAsaZ-T.js                                                   4.26 kB │ gzip:   1.75 kB
-#19 42.85 ../../dist/main/assets/whatsappLanguages-DKFOoA0x.js                                         4.39 kB │ gzip:   1.29 kB
-#19 42.85 ../../dist/main/assets/RoleList-CFBM0iUf.js                                                  4.40 kB │ gzip:   1.81 kB
-#19 42.85 ../../dist/main/assets/TeamList-C0ji06HC.js                                                  4.40 kB │ gzip:   1.77 kB
-#19 42.85 ../../dist/main/assets/SharedViewForm-BXdssb6q.js                                            4.57 kB │ gzip:   1.78 kB
-#19 42.85 ../../dist/main/assets/SharedViewList-B4O0WFLT.js                                            4.58 kB │ gzip:   1.79 kB
-#19 42.85 ../../dist/main/assets/OIDCList-DZVw5Q3D.js                                                  4.67 kB │ gzip:   1.76 kB
-#19 42.85 ../../dist/main/assets/Importer-Cz6isf7t.js                                                  4.77 kB │ gzip:   2.04 kB
-#19 42.85 ../../dist/main/assets/MacroList-CSmKUDao.js                                                 4.78 kB │ gzip:   1.83 kB
-#19 42.85 ../../dist/main/assets/SetPasswordView-XHzp9zS-.js                                           4.82 kB │ gzip:   1.81 kB
-#19 42.85 ../../dist/main/assets/CreateEditContextLink-B4Hp3SXG.js                                     4.85 kB │ gzip:   1.75 kB
-#19 42.85 ../../dist/main/assets/NotificationPreferences-9nGQhHpI.js                                   5.07 kB │ gzip:   2.00 kB
-#19 42.85 ../../dist/main/assets/AIAssistants-BYfD5Mv3.js                                              5.15 kB │ gzip:   2.00 kB
-#19 42.85 ../../dist/main/assets/DataTable-DtrnuCtZ.js                                                 5.23 kB │ gzip:   2.13 kB
-#19 42.85 ../../dist/main/assets/AITools-sW1kDVUO.js                                                   5.37 kB │ gzip:   2.04 kB
-#19 42.85 ../../dist/main/assets/ContextLinkList-BFabaJfl.js                                           5.39 kB │ gzip:   1.96 kB
-#19 42.85 ../../dist/main/assets/SelectScrollDownButton-BDF8oi7C.js                                    5.40 kB │ gzip:   1.67 kB
-#19 42.85 ../../dist/main/assets/ComboBox-D-j_mryR.js                                                  5.40 kB │ gzip:   2.21 kB
-#19 42.86 ../../dist/main/assets/NewInbox-BjF7etAo.js                                                  5.51 kB │ gzip:   2.39 kB
-#19 42.86 ../../dist/main/assets/AISuggestions-CiTGKesm.js                                             5.65 kB │ gzip:   2.11 kB
-#19 42.86 ../../dist/main/assets/EditInbox-iOoGiv1P.js                                                 5.76 kB │ gzip:   2.39 kB
-#19 42.86 ../../dist/main/assets/AgentList-CGMpzUZJ.js                                                 6.02 kB │ gzip:   2.25 kB
-#19 42.86 ../../dist/main/assets/formSchema-B_cLe6lj.js                                                6.08 kB │ gzip:   1.96 kB
-#19 42.86 ../../dist/main/assets/WebhookList-ZJvz_QeO.js                                               6.08 kB │ gzip:   2.09 kB
-#19 42.86 ../../dist/main/assets/InboxList-DhC7r9ZU.js                                                 6.12 kB │ gzip:   2.30 kB
-#19 42.86 ../../dist/main/assets/UserLoginView-Da6TFfOA.js                                             6.27 kB │ gzip:   2.63 kB
-#19 42.86 ../../dist/main/assets/TemplateList-fz3fo1du.js                                              6.28 kB │ gzip:   2.21 kB
-#19 42.86 ../../dist/main/assets/CreateEditWebhook-DrO9estD.js                                         6.38 kB │ gzip:   2.24 kB
-#19 42.86 ../../dist/main/assets/WhatsAppTemplateList-B20RwjR5.js                                      6.97 kB │ gzip:   2.76 kB
-#19 42.86 ../../dist/main/assets/RoleForm-BiaIi7sF.js                                                  7.04 kB │ gzip:   2.24 kB
-#19 42.86 ../../dist/main/assets/index-CZrQ9aBr.js                                                     7.10 kB │ gzip:   2.90 kB
-#19 42.86 ../../dist/main/assets/CreateEditOIDC-CkjXfF5n.js                                            7.12 kB │ gzip:   2.24 kB
-#19 42.86 ../../dist/main/assets/useConversationFilters-Bl78rt0f.js                                    7.18 kB │ gzip:   1.52 kB
-#19 42.86 ../../dist/main/assets/CalendarPrevButton-VV43Lk6R.js                                        7.25 kB │ gzip:   1.69 kB
-#19 42.86 ../../dist/main/assets/user-DK0h5MtZ.js                                                      7.32 kB │ gzip:   2.14 kB
-#19 42.86 ../../dist/main/assets/AIEditorPrompts-knHdbQJc.js                                           7.44 kB │ gzip:   2.66 kB
-#19 42.86 ../../dist/main/assets/ContactsView-c1__77fZ.js                                              7.46 kB │ gzip:   2.93 kB
-#19 42.86 ../../dist/main/assets/TeamForm-DOceIed4.js                                                  7.46 kB │ gzip:   2.18 kB
-#19 42.86 ../../dist/main/assets/StatusView-SrkglJpV.js                                                7.88 kB │ gzip:   2.83 kB
-#19 42.86 ../../dist/main/assets/ContactNotes-C2-mpnBz.js                                              8.11 kB │ gzip:   3.12 kB
-#19 42.86 ../../dist/main/assets/AutomationList-BP2V07SR.js                                            8.57 kB │ gzip:   2.96 kB
-#19 42.86 ../../dist/main/assets/General-KM7YE3NP.js                                                   8.85 kB │ gzip:   2.49 kB
-#19 42.86 ../../dist/main/assets/CreateOrEditBusinessHours-CBorbjvZ.js                                 9.59 kB │ gzip:   3.51 kB
-#19 42.86 ../../dist/main/assets/ContactDetailView-BcgjG3UF.js                                         9.61 kB │ gzip:   3.49 kB
-#19 42.86 ../../dist/main/assets/RuleBox-3RP0tXd3.js                                                   9.63 kB │ gzip:   2.96 kB
-#19 42.86 ../../dist/main/assets/AISnippets-C4wnyp8i.js                                                9.81 kB │ gzip:   3.26 kB
-#19 42.86 ../../dist/main/assets/DateFilterValue-eMBOpKqr.js                                           9.95 kB │ gzip:   2.56 kB
-#19 42.86 ../../dist/main/assets/MacroForm-DPqSt132.js                                                 9.96 kB │ gzip:   3.12 kB
-#19 42.86 ../../dist/main/assets/TagsView-59rtzXwz.js                                                 10.00 kB │ gzip:   3.55 kB
-#19 42.86 ../../dist/main/assets/file-Cv2R4ISR.js                                                     10.12 kB │ gzip:   3.63 kB
-#19 42.86 ../../dist/main/assets/HelpCenterList-M8P-ZRCw.js                                           10.35 kB │ gzip:   3.36 kB
-#19 42.86 ../../dist/main/assets/NotificationSetting-BHAH_Qqh.js                                      10.56 kB │ gzip:   2.65 kB
-#19 42.86 ../../dist/main/assets/AIProviders-BSttwfYt.js                                              10.96 kB │ gzip:   3.31 kB
-#19 42.86 ../../dist/main/assets/ActivityLog-DzBT_0JN.js                                              11.32 kB │ gzip:   3.76 kB
-#19 42.86 ../../dist/main/assets/FilterGroupBuilder-D_pNn8Z2.js                                       11.35 kB │ gzip:   3.79 kB
-#19 42.86 ../../dist/main/assets/CreateEditTemplate-BwAT_78S.js                                       12.04 kB │ gzip:   3.29 kB
-#19 42.86 ../../dist/main/assets/CreateOrEditTool-LLLdvB3z.js                                         12.55 kB │ gzip:   3.84 kB
-#19 42.86 ../../dist/main/assets/CreateEditSLA-CKbJSRnw.js                                            13.23 kB │ gzip:   3.86 kB
-#19 42.86 ../../dist/main/assets/CustomAttributes-DTEjr0X3.js                                         13.75 kB │ gzip:   3.87 kB
-#19 42.86 ../../dist/main/assets/AgentForm-BaMwjVwM.js                                                14.30 kB │ gzip:   3.88 kB
-#19 42.86 ../../dist/main/assets/CreateEditWhatsAppTemplate-DypGbYgh.js                               14.60 kB │ gzip:   4.23 kB
-#19 42.86 ../../dist/main/assets/CreateOrEditRule-_tXkCCf2.js                                         17.65 kB │ gzip:   5.49 kB
-#19 42.86 ../../dist/main/assets/countries-Cm7LXECM.js                                                18.12 kB │ gzip:   3.98 kB
-#19 42.86 ../../dist/main/assets/CreateOrEditAssistant-Co4QKnPU.js                                    18.46 kB │ gzip:   5.23 kB
-#19 42.86 ../../dist/main/assets/OverviewView-C2E8jlk7.js                                             19.96 kB │ gzip:   6.30 kB
-#19 42.86 ../../dist/main/assets/InboxLayout-BBGqLDoN.js                                              22.37 kB │ gzip:   7.04 kB
-#19 42.86 ../../dist/main/assets/SearchView-DXvZkNXm.js                                               23.22 kB │ gzip:   7.92 kB
-#19 42.86 ../../dist/main/assets/WhatsAppTemplatePicker-B3LPe2PD.js                                   24.87 kB │ gzip:   8.05 kB
-#19 42.86 ../../dist/main/assets/InboxView-Cwtl1cxK.js                                                25.24 kB │ gzip:   7.41 kB
-#19 42.86 ../../dist/main/assets/websocket-D5zUqYGF.js                                                32.99 kB │ gzip:  10.27 kB
-#19 42.86 ../../dist/main/assets/utils-LmGgJPoY.js                                                    35.15 kB │ gzip:  12.82 kB
-#19 42.86 ../../dist/main/assets/HelpCenterCustomize-CWTlL9j4.js                                      40.03 kB │ gzip:   8.75 kB
-#19 42.86 ../../dist/main/assets/table-DaIlOH2T.js                                                    54.18 kB │ gzip:  14.58 kB
-#19 42.86 ../../dist/main/assets/icons-Eho4i9jf.js                                                    70.74 kB │ gzip:  13.28 kB
-#19 42.86 ../../dist/main/assets/index-_VlLdCBv.js                                                    83.66 kB │ gzip:  26.33 kB
-#19 42.86 ../../dist/main/assets/HelpCenterTree-G5sV6pHz.js                                           84.05 kB │ gzip:  25.25 kB
-#19 42.86 ../../dist/main/assets/index-oXZbXuqY.js                                                    91.14 kB │ gzip:  24.16 kB
-#19 42.86 ../../dist/main/assets/forms-BJH9M-Vx.js                                                   100.02 kB │ gzip:  27.88 kB
-#19 42.86 ../../dist/main/assets/App-CD3yfV8a.js                                                     106.66 kB │ gzip:  30.51 kB
-#19 42.86 ../../dist/main/assets/WhatsAppInboxForm-kdUH_dGW.js                                       138.58 kB │ gzip:  28.17 kB
-#19 42.86 ../../dist/main/assets/ConversationDetailView-muana3Ts.js                                  141.07 kB │ gzip:  41.54 kB
-#19 42.86 ../../dist/main/assets/vue-vendor-D5d275ph.js                                              145.51 kB │ gzip:  57.77 kB
-#19 42.86 ../../dist/main/assets/emoji-picker.es-BSawdvJ6.js                                         148.93 kB │ gzip:  42.40 kB
-#19 42.86 ../../dist/main/assets/editorStyles.scss_vue_type_style_index_0_src_true_lang-CgcbqJFF.js  163.82 kB │ gzip:  48.27 kB
-#19 42.86 ../../dist/main/assets/misc-DtC7eBja.js                                                    177.45 kB │ gzip:  58.58 kB
-#19 42.86 ../../dist/main/assets/vuedraggable.umd-BtmVJeIX.js                                        177.52 kB │ gzip:  62.05 kB
-#19 42.86 ../../dist/main/assets/charts-DTyk4Hcu.js                                                  204.68 kB │ gzip:  66.31 kB
-#19 42.86 ../../dist/main/assets/radix-DgvuBXve.js                                                   357.05 kB │ gzip: 105.56 kB
-#19 42.86 ../../dist/main/assets/editor-ogfmFb07.js                                                  400.55 kB │ gzip: 128.35 kB
-#19 42.86 ../../dist/main/assets/codemirror-DsR6qm6o.js                                              547.77 kB │ gzip: 187.27 kB
-#19 42.86 ✓ built in 39.24s
-#19 44.14 
-#19 44.14 > libredesk@ build:widget /src/frontend
-#19 44.14 > vite build --mode widget
-#19 44.14 
-#19 44.68 vite v6.4.3 building for widget...
-#19 44.80 transforming...
-#19 50.23 node_modules/.pnpm/@vueuse+core@14.3.0_vue@3.5.13_typescript@5.7.3_/node_modules/@vueuse/core/dist/index.js (3362:0): A comment
-#19 50.23 
-#19 50.23 "/* #__PURE__ */"
-#19 50.23 
-#19 50.23 in "node_modules/.pnpm/@vueuse+core@14.3.0_vue@3.5.13_typescript@5.7.3_/node_modules/@vueuse/core/dist/index.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
-#19 50.23 node_modules/.pnpm/@vueuse+core@14.3.0_vue@3.5.13_typescript@5.7.3_/node_modules/@vueuse/core/dist/index.js (5780:22): A comment
-#19 50.23 
-#19 50.23 "/* #__PURE__ */"
-#19 50.23 
-#19 50.23 in "node_modules/.pnpm/@vueuse+core@14.3.0_vue@3.5.13_typescript@5.7.3_/node_modules/@vueuse/core/dist/index.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
-#19 52.37 ✓ 3097 modules transformed.
-#19 52.84 rendering chunks...
-#19 53.53 computing gzip size...
-#19 53.54 ../../dist/widget/index.html                            1.15 kB │ gzip:  0.48 kB
-#19 53.54 ../../dist/widget/assets/notification-DsESxpda.mp3     36.86 kB
-#19 53.54 ../../dist/widget/assets/style-ByXJua90.css             8.42 kB │ gzip:  1.77 kB
-#19 53.54 ../../dist/widget/assets/index-D1k6voV4.css            76.76 kB │ gzip: 12.96 kB
-#19 53.54 ../../dist/widget/assets/icons-aZMJrzd9.js             13.11 kB │ gzip:  3.20 kB
-#19 53.54 ../../dist/widget/assets/utils-DqB-uaY-.js             28.05 kB │ gzip: 10.06 kB
-#19 53.54 ../../dist/widget/assets/vue-vendor-C50aWGVL.js        83.21 kB │ gzip: 33.16 kB
-#19 53.54 ../../dist/widget/assets/forms-DFO4p3Jg.js             97.03 kB │ gzip: 26.88 kB
-#19 53.54 ../../dist/widget/assets/radix-B_nNAjCE.js            119.55 kB │ gzip: 35.50 kB
-#19 53.54 ../../dist/widget/assets/misc-BRt2OAwa.js             132.08 kB │ gzip: 43.97 kB
-#19 53.54 ../../dist/widget/assets/emoji-picker.es-DGI5OUuZ.js  148.92 kB │ gzip: 42.40 kB
-#19 53.54 ../../dist/widget/assets/index-yPRK7RKt.js            257.37 kB │ gzip: 77.29 kB
-#19 53.54 ✓ built in 8.83s
-#19 54.16 
-#19 54.16 > libredesk@ build:widget-loader /src/frontend
-#19 54.16 > esbuild ../static/widget.js --minify --target=es2020 --legal-comments=none --outfile=../static/widget.min.js
-#19 54.16 
-#19 55.42 
-#19 55.42   ../static/widget.min.js  25.4kb
-#19 55.42 
-#19 55.42 ⚡ Done in 6ms
-#19 DONE 55.5s
+#21 [backend  6/10] COPY . .
+#21 ...
 
-#21 [frontend 4/9] COPY frontend/package.json frontend/pnpm-lock.yaml ./frontend/
-#21 CACHED
+#22 [frontend 6/9] COPY frontend ./frontend
+#22 DONE 1.6s
 
-#22 [frontend 5/9] RUN cd frontend && pnpm install --frozen-lockfile
-#22 CACHED
+#23 [frontend 7/9] COPY static ./static
+#23 DONE 0.3s
 
-#23 [frontend 6/9] COPY frontend ./frontend
-#23 CACHED
+#21 [backend  6/10] COPY . .
+#21 ...
 
-#24 [frontend 7/9] COPY static ./static
-#24 CACHED
+#24 [frontend 8/9] COPY internal/countries ./internal/countries
+#24 DONE 0.2s
 
-#25 [frontend 2/9] RUN corepack enable
-#25 CACHED
+#25 [frontend 9/9] RUN cd frontend && pnpm build:main && pnpm build:widget && pnpm build:widget-loader
+#25 ...
 
-#26 [frontend 3/9] WORKDIR /src
-#26 CACHED
+#21 [backend  6/10] COPY . .
+#21 DONE 2.3s
 
-#27 [frontend 8/9] COPY internal/countries ./internal/countries
-#27 CACHED
+#25 [frontend 9/9] RUN cd frontend && pnpm build:main && pnpm build:widget && pnpm build:widget-loader
+#25 1.966 
+#25 1.966 > libredesk@ build:main /src/frontend
+#25 1.966 > vite build --mode main
+#25 1.966 
+#25 3.029 vite v6.4.3 building for main...
+#25 3.139 transforming...
+#25 18.07 node_modules/.pnpm/@vueuse+core@14.3.0_vue@3.5.13_typescript@5.7.3_/node_modules/@vueuse/core/dist/index.js (3362:0): A comment
+#25 18.07 
+#25 18.07 "/* #__PURE__ */"
+#25 18.07 
+#25 18.07 in "node_modules/.pnpm/@vueuse+core@14.3.0_vue@3.5.13_typescript@5.7.3_/node_modules/@vueuse/core/dist/index.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+#25 18.08 node_modules/.pnpm/@vueuse+core@14.3.0_vue@3.5.13_typescript@5.7.3_/node_modules/@vueuse/core/dist/index.js (5780:22): A comment
+#25 18.08 
+#25 18.08 "/* #__PURE__ */"
+#25 18.08 
+#25 18.08 in "node_modules/.pnpm/@vueuse+core@14.3.0_vue@3.5.13_typescript@5.7.3_/node_modules/@vueuse/core/dist/index.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+#25 45.04 ✓ 5589 modules transformed.
+#25 48.67 rendering chunks...
+#25 49.28 computing gzip size...
+#25 49.43 ../../dist/main/index.html                                                                   1.22 kB │ gzip:   0.53 kB
+#25 49.43 ../../dist/main/assets/notification-DsESxpda.mp3                                            36.86 kB
+#25 49.43 ../../dist/main/assets/AutomationList-DmQEl3YM.css                                           0.10 kB │ gzip:   0.08 kB
+#25 49.43 ../../dist/main/assets/InboxLayout-D74gECvk.css                                              0.18 kB │ gzip:   0.16 kB
+#25 49.43 ../../dist/main/assets/InboxView-DiXvlsJG.css                                                0.28 kB │ gzip:   0.15 kB
+#25 49.43 ../../dist/main/assets/App-qZtzi5rt.css                                                      0.35 kB │ gzip:   0.22 kB
+#25 49.43 ../../dist/main/assets/WhatsAppTemplatePicker-42_BqFzB.css                                   0.35 kB │ gzip:   0.16 kB
+#25 49.43 ../../dist/main/assets/InboxView-Dc7IsYTi.css                                                0.72 kB │ gzip:   0.35 kB
+#25 49.43 ../../dist/main/assets/OverviewView-Cm2LoPqO.css                                             0.76 kB │ gzip:   0.31 kB
+#25 49.43 ../../dist/main/assets/ResizablePanelGroup-CMHuf-78.css                                      1.25 kB │ gzip:   0.49 kB
+#25 49.43 ../../dist/main/assets/ConversationDetailView-CsTEHVld.css                                   2.87 kB │ gzip:   1.07 kB
+#25 49.43 ../../dist/main/assets/editorStyles-I1GUf9al.css                                             3.90 kB │ gzip:   1.17 kB
+#25 49.43 ../../dist/main/assets/style-ByXJua90.css                                                    8.42 kB │ gzip:   1.77 kB
+#25 49.43 ../../dist/main/assets/HelpCenterTree-bcELdu_v.css                                          10.54 kB │ gzip:   2.78 kB
+#25 49.43 ../../dist/main/assets/index-XBmzLhoM.css                                                  114.19 kB │ gzip:  19.03 kB
+#25 49.43 ../../dist/main/assets/user-Bkpevj-a.js                                                      0.06 kB │ gzip:   0.07 kB
+#25 49.43 ../../dist/main/assets/utils-x2MAyj3t.js                                                     0.09 kB │ gzip:   0.10 kB
+#25 49.43 ../../dist/main/assets/_plugin-vue_export-helper-DlAUqK2U.js                                 0.09 kB │ gzip:   0.10 kB
+#25 49.44 ../../dist/main/assets/channelIcons-KwAhTXrh.js                                              0.14 kB │ gzip:   0.13 kB
+#25 49.44 ../../dist/main/assets/contact-B6XYncpN.js                                                   0.19 kB │ gzip:   0.16 kB
+#25 49.44 ../../dist/main/assets/HelpCenter-DEse5fDL.js                                                0.24 kB │ gzip:   0.20 kB
+#25 49.44 ../../dist/main/assets/CardContent-hMDGfAzK.js                                               0.31 kB │ gzip:   0.25 kB
+#25 49.44 ../../dist/main/assets/Skeleton-5EY-CRXs.js                                                  0.31 kB │ gzip:   0.25 kB
+#25 49.44 ../../dist/main/assets/CardHeader-BKKn_HXK.js                                                0.33 kB │ gzip:   0.26 kB
+#25 49.44 ../../dist/main/assets/CardTitle-BW-im_ux.js                                                 0.34 kB │ gzip:   0.27 kB
+#25 49.44 ../../dist/main/assets/AlertTitle-czoRx1Wm.js                                                0.34 kB │ gzip:   0.28 kB
+#25 49.44 ../../dist/main/assets/Agents-DCDgne58.js                                                    0.34 kB │ gzip:   0.27 kB
+#25 49.44 ../../dist/main/assets/Macros-Cod2UjQb.js                                                    0.34 kB │ gzip:   0.27 kB
+#25 49.44 ../../dist/main/assets/SheetHeader-Bec_Msmo.js                                               0.35 kB │ gzip:   0.28 kB
+#25 49.44 ../../dist/main/assets/Card-Dqnlrmsr.js                                                      0.35 kB │ gzip:   0.28 kB
+#25 49.44 ../../dist/main/assets/DialogTrigger-k-Az0_Zg.js                                             0.35 kB │ gzip:   0.27 kB
+#25 49.44 ../../dist/main/assets/Automation-BCewVr7k.js                                                0.35 kB │ gzip:   0.27 kB
+#25 49.44 ../../dist/main/assets/SharedViews-DvYicl_9.js                                               0.35 kB │ gzip:   0.27 kB
+#25 49.44 ../../dist/main/assets/aiAssistant-CTgB3EFO.js                                               0.36 kB │ gzip:   0.26 kB
+#25 49.44 ../../dist/main/assets/DialogFooter-D6v9efn7.js                                              0.36 kB │ gzip:   0.28 kB
+#25 49.44 ../../dist/main/assets/conversation-DTuKU_io.js                                              0.37 kB │ gzip:   0.27 kB
+#25 49.44 ../../dist/main/assets/AccountLayout-BUgTy12I.js                                             0.38 kB │ gzip:   0.29 kB
+#25 49.44 ../../dist/main/assets/SLA-C9kpq75O.js                                                       0.40 kB │ gzip:   0.28 kB
+#25 49.44 ../../dist/main/assets/Teams-lHdbWQNv.js                                                     0.40 kB │ gzip:   0.28 kB
+#25 49.44 ../../dist/main/assets/sla-D483DLBa.js                                                       0.41 kB │ gzip:   0.30 kB
+#25 49.44 ../../dist/main/assets/BetaBadge-zmP-FhvJ.js                                                 0.42 kB │ gzip:   0.32 kB
+#25 49.44 ../../dist/main/assets/FormDescription-Dg6N5eW1.js                                           0.42 kB │ gzip:   0.31 kB
+#25 49.44 ../../dist/main/assets/BusinessHours-Vg0iZl6s.js                                             0.43 kB │ gzip:   0.29 kB
+#25 49.44 ../../dist/main/assets/DropdownMenuSeparator-DeTLhM6A.js                                     0.47 kB │ gzip:   0.32 kB
+#25 49.44 ../../dist/main/assets/Roles-v8MsRdJf.js                                                     0.50 kB │ gzip:   0.37 kB
+#25 49.44 ../../dist/main/assets/OIDC-CvL8uLlo.js                                                      0.50 kB │ gzip:   0.37 kB
+#25 49.44 ../../dist/main/assets/SelectGroup-BHGN6iqH.js                                               0.50 kB │ gzip:   0.34 kB
+#25 49.44 ../../dist/main/assets/Webhooks-BPYt0vh5.js                                                  0.51 kB │ gzip:   0.37 kB
+#25 49.44 ../../dist/main/assets/LoadingOverlay-FsQc7nwo.js                                            0.52 kB │ gzip:   0.35 kB
+#25 49.44 ../../dist/main/assets/Templates-poo5txZ1.js                                                 0.52 kB │ gzip:   0.38 kB
+#25 49.44 ../../dist/main/assets/SheetTitle-CIyV9ynZ.js                                                0.54 kB │ gzip:   0.36 kB
+#25 49.44 ../../dist/main/assets/DialogDescription-B-tLSMhn.js                                         0.54 kB │ gzip:   0.36 kB
+#25 49.44 ../../dist/main/assets/OuterApp-C8tK8uJu.js                                                  0.54 kB │ gzip:   0.36 kB
+#25 49.44 ../../dist/main/assets/DotLoader-DqnmPJag.js                                                 0.58 kB │ gzip:   0.31 kB
+#25 49.44 ../../dist/main/assets/AdminLayout-CJUbIn9T.js                                               0.59 kB │ gzip:   0.39 kB
+#25 49.46 ../../dist/main/assets/http-IcUvEyn5.js                                                      0.59 kB │ gzip:   0.33 kB
+#25 49.46 ../../dist/main/assets/useBulkActionPermissions-BaZI7RwH.js                                  0.59 kB │ gzip:   0.34 kB
+#25 49.46 ../../dist/main/assets/AdminSplitLayout-u0H7jMCx.js                                          0.59 kB │ gzip:   0.41 kB
+#25 49.46 ../../dist/main/assets/ContextLinks-CeXuxVcs.js                                              0.59 kB │ gzip:   0.39 kB
+#25 49.46 ../../dist/main/assets/sharedView-DtL6YtS2.js                                                0.60 kB │ gzip:   0.40 kB
+#25 49.46 ../../dist/main/assets/Label-Cekp-Sj7.js                                                     0.61 kB │ gzip:   0.39 kB
+#25 49.46 ../../dist/main/assets/datetime-BX30SWB8.js                                                  0.61 kB │ gzip:   0.38 kB
+#25 49.46 ../../dist/main/assets/Separator-VyLaCENe.js                                                 0.63 kB │ gzip:   0.38 kB
+#25 49.46 ../../dist/main/assets/CopyButton-DE50mxiF.js                                                0.65 kB │ gzip:   0.44 kB
+#25 49.46 ../../dist/main/assets/TabsContent-gNVTO04B.js                                               0.70 kB │ gzip:   0.42 kB
+#25 49.46 ../../dist/main/assets/aiPrompt-DJQW_e1V.js                                                  0.76 kB │ gzip:   0.48 kB
+#25 49.46 ../../dist/main/assets/tag-DKG-KrHY.js                                                       0.77 kB │ gzip:   0.45 kB
+#25 49.46 ../../dist/main/assets/users-B0XIezTe.js                                                     0.77 kB │ gzip:   0.49 kB
+#25 49.46 ../../dist/main/assets/SidebarTrigger-C-TIwYkW.js                                            0.78 kB │ gzip:   0.51 kB
+#25 49.46 ../../dist/main/assets/color-Cmfip38w.js                                                     0.82 kB │ gzip:   0.49 kB
+#25 49.46 ../../dist/main/assets/Textarea-CUOhnOjd.js                                                  0.86 kB │ gzip:   0.51 kB
+#25 49.46 ../../dist/main/assets/customAttributes-Clkhr7Qw.js                                          0.88 kB │ gzip:   0.49 kB
+#25 49.46 ../../dist/main/assets/SwitchField-3VkvIXPG.js                                               0.89 kB │ gzip:   0.49 kB
+#25 49.46 ../../dist/main/assets/PreviewThemeToggle-DDENWyUb.js                                        0.90 kB │ gzip:   0.46 kB
+#25 49.46 ../../dist/main/assets/inbox-CvebzPAL.js                                                     0.91 kB │ gzip:   0.46 kB
+#25 49.46 ../../dist/main/assets/Input-D71dhegP.js                                                     0.92 kB │ gzip:   0.53 kB
+#25 49.46 ../../dist/main/assets/whatsappTemplate-DHjJ4Sl4.js                                          0.93 kB │ gzip:   0.59 kB
+#25 49.46 ../../dist/main/assets/useEmitter-sKHvWqEl.js                                                0.96 kB │ gzip:   0.63 kB
+#25 49.46 ../../dist/main/assets/index-DOcsI1o8.js                                                     0.99 kB │ gzip:   0.50 kB
+#25 49.46 ../../dist/main/assets/index-p8l0RW1h.js                                                     0.99 kB │ gzip:   0.51 kB
+#25 49.46 ../../dist/main/assets/useBulkActions-IHSI4b6f.js                                            1.09 kB │ gzip:   0.62 kB
+#25 49.46 ../../dist/main/assets/remote-lookup-D6enlkdV.js                                             1.10 kB │ gzip:   0.62 kB
+#25 49.46 ../../dist/main/assets/CollapsibleTrigger-LRgQqxWv.js                                        1.12 kB │ gzip:   0.47 kB
+#25 49.46 ../../dist/main/assets/Checkbox-Dh_loEUR.js                                                  1.25 kB │ gzip:   0.62 kB
+#25 49.46 ../../dist/main/assets/CodeEditor-DPut-mQr.js                                                1.31 kB │ gzip:   0.75 kB
+#25 49.46 ../../dist/main/assets/TableRow-f8bJptKp.js                                                  1.31 kB │ gzip:   0.48 kB
+#25 49.46 ../../dist/main/assets/AuthLayout-DUqLpd2Z.js                                                1.33 kB │ gzip:   0.79 kB
+#25 49.46 ../../dist/main/assets/NewRole-CLoUCQZt.js                                                   1.33 kB │ gzip:   0.77 kB
+#25 49.46 ../../dist/main/assets/Switch-Bf1ifmdS.js                                                    1.37 kB │ gzip:   0.65 kB
+#25 49.46 ../../dist/main/assets/CreateTeamForm-BkW6xnY2.js                                            1.46 kB │ gzip:   0.82 kB
+#25 49.46 ../../dist/main/assets/Spinner-V97kPEi5.js                                                   1.49 kB │ gzip:   0.75 kB
+#25 49.46 ../../dist/main/assets/WhatsAppIcon-BIDjMXW5.js                                              1.49 kB │ gzip:   0.88 kB
+#25 49.47 ../../dist/main/assets/usePushNotifications-DKlGK68q.js                                      1.52 kB │ gzip:   0.75 kB
+#25 49.47 ../../dist/main/assets/PriorityMarker-OvOyalXt.js                                            1.53 kB │ gzip:   0.86 kB
+#25 49.47 ../../dist/main/assets/Custom-CzHWguNK.js                                                    1.65 kB │ gzip:   0.71 kB
+#25 49.47 ../../dist/main/assets/EditRole-uPodkBQx.js                                                  1.65 kB │ gzip:   0.88 kB
+#25 49.47 ../../dist/main/assets/timezones-FVhhPPlU.js                                                 1.68 kB │ gzip:   0.57 kB
+#25 49.47 ../../dist/main/assets/RadioGroupItem-vuaOhwro.js                                            1.71 kB │ gzip:   0.70 kB
+#25 49.47 ../../dist/main/assets/SelectAgentCombobox-VDPaeB6z.js                                       1.73 kB │ gzip:   0.86 kB
+#25 49.47 ../../dist/main/assets/SearchInput-C-NNT9Fk.js                                               1.74 kB │ gzip:   0.85 kB
+#25 49.47 ../../dist/main/assets/FormMessage-BzON1d8c.js                                               1.75 kB │ gzip:   0.85 kB
+#25 49.47 ../../dist/main/assets/EditTeamForm-D8J-eD3g.js                                              1.79 kB │ gzip:   0.94 kB
+#25 49.47 ../../dist/main/assets/CreateAgent-CSWr5th9.js                                               1.79 kB │ gzip:   0.96 kB
+#25 49.47 ../../dist/main/assets/filterConfig-BI8UEp2s.js                                              1.86 kB │ gzip:   0.86 kB
+#25 49.47 ../../dist/main/assets/TabsList-BcFvQqC4.js                                                  1.86 kB │ gzip:   0.75 kB
+#25 49.47 ../../dist/main/assets/SelectTeamCombobox-DqyVGzEn.js                                        1.92 kB │ gzip:   0.99 kB
+#25 49.47 ../../dist/main/assets/permissions-C_oAHzJw.js                                               2.02 kB │ gzip:   0.70 kB
+#25 49.47 ../../dist/main/assets/SelectTagCombobox-rhmKItpk.js                                         2.03 kB │ gzip:   0.95 kB
+#25 49.47 ../../dist/main/assets/ProfileEditView-DLLBXymU.js                                           2.04 kB │ gzip:   1.02 kB
+#25 49.47 ../../dist/main/assets/index-DgXLcOIY.js                                                     2.08 kB │ gzip:   0.94 kB
+#25 49.47 ../../dist/main/assets/EditAgent-CcchPyEs.js                                                 2.09 kB │ gzip:   1.07 kB
+#25 49.47 ../../dist/main/assets/SimpleTable-bGdMXSYT.js                                               2.31 kB │ gzip:   1.03 kB
+#25 49.47 ../../dist/main/assets/PopoverContent-Ddtqgxak.js                                            2.32 kB │ gzip:   0.93 kB
+#25 49.47 ../../dist/main/assets/CreateSharedView-Cq1jzXfD.js                                          2.33 kB │ gzip:   1.17 kB
+#25 49.47 ../../dist/main/assets/TooltipTrigger-Bg7MOgWR.js                                            2.35 kB │ gzip:   0.92 kB
+#25 49.47 ../../dist/main/assets/macro-Bbebhre_.js                                                     2.37 kB │ gzip:   1.18 kB
+#25 49.47 ../../dist/main/assets/index-D10rC3Jp.js                                                     2.50 kB │ gzip:   1.04 kB
+#25 49.47 ../../dist/main/assets/CreateMacro-CxUJCR58.js                                               2.65 kB │ gzip:   1.33 kB
+#25 49.47 ../../dist/main/assets/EditSharedView-DVIhmPyz.js                                            2.65 kB │ gzip:   1.30 kB
+#25 49.47 ../../dist/main/assets/ConversationEditor-DXwcJ3Mp.js                                        2.84 kB │ gzip:   1.31 kB
+#25 49.47 ../../dist/main/assets/AccordionTrigger-WAabWzYU.js                                          2.86 kB │ gzip:   1.15 kB
+#25 49.47 ../../dist/main/assets/AvatarUpload-BbI9PCuf.js                                              2.90 kB │ gzip:   1.44 kB
+#25 49.47 ../../dist/main/assets/EditMacro-D0iKXq1H.js                                                 2.96 kB │ gzip:   1.45 kB
+#25 49.47 ../../dist/main/assets/DropdownMenuItem-cXRpz1Ux.js                                          2.97 kB │ gzip:   1.10 kB
+#25 49.47 ../../dist/main/assets/TagsInputItemText-BLfKl_uT.js                                         3.04 kB │ gzip:   0.92 kB
+#25 49.47 ../../dist/main/assets/DialogContent-CJme51SI.js                                             3.05 kB │ gzip:   1.23 kB
+#25 49.47 ../../dist/main/assets/ResetPasswordView-BykIls0U.js                                         3.21 kB │ gzip:   1.48 kB
+#25 49.47 ../../dist/main/assets/helpCenterFormSchema-cOgN9a77.js                                      3.26 kB │ gzip:   1.16 kB
+#25 49.47 ../../dist/main/assets/useRemoteSearch-BRM_k0s_.js                                           3.60 kB │ gzip:   1.29 kB
+#25 49.47 ../../dist/main/assets/InboxView-rDBLV959.js                                                 3.71 kB │ gzip:   1.65 kB
+#25 49.47 ../../dist/main/assets/PaginationBar-C95H3rHt.js                                             3.74 kB │ gzip:   1.51 kB
+#25 49.47 ../../dist/main/assets/AlertDialogCancel-CaCVoHfF.js                                         3.81 kB │ gzip:   1.16 kB
+#25 49.47 ../../dist/main/assets/SelectCombobox-C67-7pcz.js                                            3.90 kB │ gzip:   1.56 kB
+#25 49.47 ../../dist/main/assets/SelectTag-Cf7LglDT.js                                                 4.08 kB │ gzip:   1.86 kB
+#25 49.47 ../../dist/main/assets/ResizablePanelGroup-CERpydYT.js                                       4.19 kB │ gzip:   1.66 kB
+#25 49.47 ../../dist/main/assets/BusinessHoursList-9No1cBU7.js                                         4.24 kB │ gzip:   1.69 kB
+#25 49.47 ../../dist/main/assets/SLAList-DeSMlkIk.js                                                   4.26 kB │ gzip:   1.75 kB
+#25 49.47 ../../dist/main/assets/whatsappLanguages-DKFOoA0x.js                                         4.39 kB │ gzip:   1.29 kB
+#25 49.47 ../../dist/main/assets/RoleList-D59rHbrY.js                                                  4.40 kB │ gzip:   1.81 kB
+#25 49.47 ../../dist/main/assets/TeamList-CEZFxgJf.js                                                  4.40 kB │ gzip:   1.77 kB
+#25 49.47 ../../dist/main/assets/SharedViewForm-yKtI0U5Y.js                                            4.57 kB │ gzip:   1.78 kB
+#25 49.47 ../../dist/main/assets/SharedViewList-C13TRRb6.js                                            4.58 kB │ gzip:   1.79 kB
+#25 49.47 ../../dist/main/assets/OIDCList-bdIaa0Az.js                                                  4.67 kB │ gzip:   1.76 kB
+#25 49.47 ../../dist/main/assets/Importer-Cz6isf7t.js                                                  4.77 kB │ gzip:   2.04 kB
+#25 49.47 ../../dist/main/assets/MacroList-BmfrRim1.js                                                 4.78 kB │ gzip:   1.83 kB
+#25 49.47 ../../dist/main/assets/SetPasswordView-C0wtIEw7.js                                           4.82 kB │ gzip:   1.81 kB
+#25 49.47 ../../dist/main/assets/CreateEditContextLink-DpGzrTBA.js                                     4.85 kB │ gzip:   1.75 kB
+#25 49.47 ../../dist/main/assets/NotificationPreferences-BmlhUZZj.js                                   5.07 kB │ gzip:   2.00 kB
+#25 49.47 ../../dist/main/assets/AIAssistants-kR30ER66.js                                              5.15 kB │ gzip:   2.00 kB
+#25 49.47 ../../dist/main/assets/DataTable-DtrnuCtZ.js                                                 5.23 kB │ gzip:   2.13 kB
+#25 49.47 ../../dist/main/assets/AITools-CaK-vhh6.js                                                   5.37 kB │ gzip:   2.04 kB
+#25 49.47 ../../dist/main/assets/ContextLinkList-owdd-BkT.js                                           5.39 kB │ gzip:   1.96 kB
+#25 49.48 ../../dist/main/assets/SelectScrollDownButton-BDF8oi7C.js                                    5.40 kB │ gzip:   1.67 kB
+#25 49.48 ../../dist/main/assets/ComboBox-D-j_mryR.js                                                  5.40 kB │ gzip:   2.21 kB
+#25 49.48 ../../dist/main/assets/NewInbox-DlUUOx_O.js                                                  5.51 kB │ gzip:   2.39 kB
+#25 49.48 ../../dist/main/assets/AISuggestions-C1jSwuaO.js                                             5.65 kB │ gzip:   2.11 kB
+#25 49.48 ../../dist/main/assets/EditInbox-COcTl5bf.js                                                 5.76 kB │ gzip:   2.39 kB
+#25 49.48 ../../dist/main/assets/AgentList-CRVKFz74.js                                                 6.02 kB │ gzip:   2.25 kB
+#25 49.48 ../../dist/main/assets/formSchema-PrBj4d3z.js                                                6.08 kB │ gzip:   1.96 kB
+#25 49.48 ../../dist/main/assets/WebhookList-C4xj_x8e.js                                               6.08 kB │ gzip:   2.09 kB
+#25 49.48 ../../dist/main/assets/InboxList-DWFjyKFz.js                                                 6.12 kB │ gzip:   2.30 kB
+#25 49.48 ../../dist/main/assets/UserLoginView-BId-NwoJ.js                                             6.27 kB │ gzip:   2.62 kB
+#25 49.48 ../../dist/main/assets/TemplateList-CvJgHwP2.js                                              6.28 kB │ gzip:   2.21 kB
+#25 49.48 ../../dist/main/assets/CreateEditWebhook-mG6wELC5.js                                         6.38 kB │ gzip:   2.24 kB
+#25 49.48 ../../dist/main/assets/WhatsAppTemplateList-T0Qz_k7r.js                                      6.97 kB │ gzip:   2.76 kB
+#25 49.48 ../../dist/main/assets/RoleForm-BiaIi7sF.js                                                  7.04 kB │ gzip:   2.24 kB
+#25 49.48 ../../dist/main/assets/index-CZrQ9aBr.js                                                     7.10 kB │ gzip:   2.90 kB
+#25 49.48 ../../dist/main/assets/CreateEditOIDC-RUHl6KK3.js                                            7.12 kB │ gzip:   2.24 kB
+#25 49.48 ../../dist/main/assets/useConversationFilters-Dmu9SmPK.js                                    7.18 kB │ gzip:   1.52 kB
+#25 49.48 ../../dist/main/assets/CalendarPrevButton-VV43Lk6R.js                                        7.25 kB │ gzip:   1.69 kB
+#25 49.48 ../../dist/main/assets/user-BuTJ2E1t.js                                                      7.32 kB │ gzip:   2.14 kB
+#25 49.48 ../../dist/main/assets/AIEditorPrompts-BBRbuLnt.js                                           7.44 kB │ gzip:   2.66 kB
+#25 49.48 ../../dist/main/assets/ContactsView-CY1J6tqK.js                                              7.46 kB │ gzip:   2.94 kB
+#25 49.48 ../../dist/main/assets/TeamForm-t6SRLqsd.js                                                  7.46 kB │ gzip:   2.18 kB
+#25 49.48 ../../dist/main/assets/StatusView-Dh-8UjzD.js                                                7.88 kB │ gzip:   2.83 kB
+#25 49.48 ../../dist/main/assets/ContactNotes-DL88lbrh.js                                              8.11 kB │ gzip:   3.12 kB
+#25 49.48 ../../dist/main/assets/AutomationList-B1Qe1a2b.js                                            8.57 kB │ gzip:   2.96 kB
+#25 49.48 ../../dist/main/assets/CreateOrEditBusinessHours-oufq6EFi.js                                 9.59 kB │ gzip:   3.51 kB
+#25 49.48 ../../dist/main/assets/ContactDetailView-D4ArBO9o.js                                         9.61 kB │ gzip:   3.49 kB
+#25 49.48 ../../dist/main/assets/RuleBox-BGGyjykj.js                                                   9.63 kB │ gzip:   2.96 kB
+#25 49.48 ../../dist/main/assets/AISnippets-CO_iPi1h.js                                                9.81 kB │ gzip:   3.27 kB
+#25 49.48 ../../dist/main/assets/DateFilterValue-eMBOpKqr.js                                           9.95 kB │ gzip:   2.56 kB
+#25 49.48 ../../dist/main/assets/MacroForm-CuW4jMhb.js                                                 9.96 kB │ gzip:   3.12 kB
+#25 49.48 ../../dist/main/assets/TagsView-BiTjF008.js                                                 10.00 kB │ gzip:   3.54 kB
+#25 49.48 ../../dist/main/assets/file-Cv2R4ISR.js                                                     10.12 kB │ gzip:   3.63 kB
+#25 49.48 ../../dist/main/assets/General-DnhZ1Wkm.js                                                  10.17 kB │ gzip:   2.68 kB
+#25 49.48 ../../dist/main/assets/HelpCenterList-yGI-y2co.js                                           10.35 kB │ gzip:   3.36 kB
+#25 49.48 ../../dist/main/assets/NotificationSetting-CzzjH6JX.js                                      10.56 kB │ gzip:   2.65 kB
+#25 49.48 ../../dist/main/assets/AIProviders-BskY6oeU.js                                              10.96 kB │ gzip:   3.31 kB
+#25 49.48 ../../dist/main/assets/ActivityLog-FBRmEnnR.js                                              11.32 kB │ gzip:   3.76 kB
+#25 49.48 ../../dist/main/assets/FilterGroupBuilder-BwkJCVrW.js                                       11.35 kB │ gzip:   3.79 kB
+#25 49.48 ../../dist/main/assets/CreateEditTemplate-C151NE5Z.js                                       12.04 kB │ gzip:   3.29 kB
+#25 49.48 ../../dist/main/assets/CreateOrEditTool-Cq0Vk5gj.js                                         12.55 kB │ gzip:   3.84 kB
+#25 49.48 ../../dist/main/assets/CreateEditSLA-D9S0-vRH.js                                            13.23 kB │ gzip:   3.86 kB
+#25 49.48 ../../dist/main/assets/CustomAttributes-DqxyEVEc.js                                         13.75 kB │ gzip:   3.87 kB
+#25 49.48 ../../dist/main/assets/AgentForm-BU87oH9N.js                                                14.30 kB │ gzip:   3.88 kB
+#25 49.48 ../../dist/main/assets/CreateEditWhatsAppTemplate-iq3DeoXT.js                               14.60 kB │ gzip:   4.23 kB
+#25 49.48 ../../dist/main/assets/CreateOrEditRule-BowJC-3F.js                                         17.65 kB │ gzip:   5.49 kB
+#25 49.48 ../../dist/main/assets/countries-Cm7LXECM.js                                                18.12 kB │ gzip:   3.98 kB
+#25 49.48 ../../dist/main/assets/CreateOrEditAssistant-DdE-A1qs.js                                    18.46 kB │ gzip:   5.23 kB
+#25 49.48 ../../dist/main/assets/OverviewView-CGDq38bX.js                                             19.96 kB │ gzip:   6.30 kB
+#25 49.48 ../../dist/main/assets/InboxLayout-D-9K8b-p.js                                              22.37 kB │ gzip:   7.04 kB
+#25 49.48 ../../dist/main/assets/SearchView-7Ze78Zxf.js                                               23.22 kB │ gzip:   7.92 kB
+#25 49.48 ../../dist/main/assets/WhatsAppTemplatePicker-BtDfqAVF.js                                   24.87 kB │ gzip:   8.05 kB
+#25 49.48 ../../dist/main/assets/InboxView-BXeddPCP.js                                                25.24 kB │ gzip:   7.41 kB
+#25 49.48 ../../dist/main/assets/websocket-Deo_2Zs1.js                                                32.99 kB │ gzip:  10.27 kB
+#25 49.48 ../../dist/main/assets/utils-LmGgJPoY.js                                                    35.15 kB │ gzip:  12.82 kB
+#25 49.48 ../../dist/main/assets/HelpCenterCustomize-DQxojTmU.js                                      40.03 kB │ gzip:   8.74 kB
+#25 49.48 ../../dist/main/assets/table-DaIlOH2T.js                                                    54.18 kB │ gzip:  14.58 kB
+#25 49.48 ../../dist/main/assets/icons-Eho4i9jf.js                                                    70.74 kB │ gzip:  13.28 kB
+#25 49.48 ../../dist/main/assets/index-_VlLdCBv.js                                                    83.66 kB │ gzip:  26.33 kB
+#25 49.48 ../../dist/main/assets/HelpCenterTree-ViVp452X.js                                           84.05 kB │ gzip:  25.25 kB
+#25 49.48 ../../dist/main/assets/index-gryx6ep6.js                                                    91.22 kB │ gzip:  24.19 kB
+#25 49.48 ../../dist/main/assets/forms-BJH9M-Vx.js                                                   100.02 kB │ gzip:  27.88 kB
+#25 49.48 ../../dist/main/assets/App-BGfdR_hS.js                                                     107.29 kB │ gzip:  30.82 kB
+#25 49.48 ../../dist/main/assets/WhatsAppInboxForm-7K6p7OBl.js                                       138.58 kB │ gzip:  28.17 kB
+#25 49.48 ../../dist/main/assets/ConversationDetailView-CGHyd2Kh.js                                  141.07 kB │ gzip:  41.53 kB
+#25 49.48 ../../dist/main/assets/vue-vendor-D5d275ph.js                                              145.51 kB │ gzip:  57.77 kB
+#25 49.48 ../../dist/main/assets/emoji-picker.es-BSawdvJ6.js                                         148.93 kB │ gzip:  42.40 kB
+#25 49.48 ../../dist/main/assets/editorStyles.scss_vue_type_style_index_0_src_true_lang-IyXTCqmx.js  163.82 kB │ gzip:  48.27 kB
+#25 49.48 ../../dist/main/assets/misc-DtC7eBja.js                                                    177.45 kB │ gzip:  58.58 kB
+#25 49.48 ../../dist/main/assets/vuedraggable.umd-BtmVJeIX.js                                        177.52 kB │ gzip:  62.05 kB
+#25 49.48 ../../dist/main/assets/charts-DTyk4Hcu.js                                                  204.68 kB │ gzip:  66.31 kB
+#25 49.48 ../../dist/main/assets/radix-DgvuBXve.js                                                   357.05 kB │ gzip: 105.56 kB
+#25 49.48 ../../dist/main/assets/editor-ogfmFb07.js                                                  400.55 kB │ gzip: 128.35 kB
+#25 49.48 ../../dist/main/assets/codemirror-DsR6qm6o.js                                              547.77 kB │ gzip: 187.27 kB
+#25 49.48 ✓ built in 46.42s
+#25 51.47 
+#25 51.47 > libredesk@ build:widget /src/frontend
+#25 51.47 > vite build --mode widget
+#25 51.47 
+#25 52.19 vite v6.4.3 building for widget...
+#25 52.28 transforming...
+#25 59.11 node_modules/.pnpm/@vueuse+core@14.3.0_vue@3.5.13_typescript@5.7.3_/node_modules/@vueuse/core/dist/index.js (3362:0): A comment
+#25 59.11 
+#25 59.11 "/* #__PURE__ */"
+#25 59.11 
+#25 59.11 in "node_modules/.pnpm/@vueuse+core@14.3.0_vue@3.5.13_typescript@5.7.3_/node_modules/@vueuse/core/dist/index.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+#25 59.11 node_modules/.pnpm/@vueuse+core@14.3.0_vue@3.5.13_typescript@5.7.3_/node_modules/@vueuse/core/dist/index.js (5780:22): A comment
+#25 59.11 
+#25 59.11 "/* #__PURE__ */"
+#25 59.11 
+#25 59.11 in "node_modules/.pnpm/@vueuse+core@14.3.0_vue@3.5.13_typescript@5.7.3_/node_modules/@vueuse/core/dist/index.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+#25 63.02 ✓ 3097 modules transformed.
+#25 66.18 rendering chunks...
+#25 67.27 computing gzip size...
+#25 67.28 ../../dist/widget/index.html                            1.15 kB │ gzip:  0.48 kB
+#25 67.28 ../../dist/widget/assets/notification-DsESxpda.mp3     36.86 kB
+#25 67.28 ../../dist/widget/assets/style-ByXJua90.css             8.42 kB │ gzip:  1.77 kB
+#25 67.28 ../../dist/widget/assets/index-D1k6voV4.css            76.76 kB │ gzip: 12.96 kB
+#25 67.28 ../../dist/widget/assets/icons-aZMJrzd9.js             13.11 kB │ gzip:  3.20 kB
+#25 67.28 ../../dist/widget/assets/utils-DqB-uaY-.js             28.05 kB │ gzip: 10.06 kB
+#25 67.28 ../../dist/widget/assets/vue-vendor-C50aWGVL.js        83.21 kB │ gzip: 33.16 kB
+#25 67.28 ../../dist/widget/assets/forms-DFO4p3Jg.js             97.03 kB │ gzip: 26.88 kB
+#25 67.28 ../../dist/widget/assets/radix-B_nNAjCE.js            119.55 kB │ gzip: 35.50 kB
+#25 67.28 ../../dist/widget/assets/misc-BRt2OAwa.js             132.08 kB │ gzip: 43.97 kB
+#25 67.28 ../../dist/widget/assets/emoji-picker.es-DGI5OUuZ.js  148.92 kB │ gzip: 42.40 kB
+#25 67.28 ../../dist/widget/assets/index-DEVAb2lo.js            257.42 kB │ gzip: 77.32 kB
+#25 67.28 ✓ built in 15.07s
+#25 67.85 
+#25 67.85 > libredesk@ build:widget-loader /src/frontend
+#25 67.85 > esbuild ../static/widget.js --minify --target=es2020 --legal-comments=none --outfile=../static/widget.min.js
+#25 67.85 
+#25 68.39 
+#25 68.39   ../static/widget.min.js  25.4kb
+#25 68.39 
+#25 68.39 ⚡ Done in 6ms
+#25 DONE 68.6s
 
-#28 [frontend 9/9] RUN cd frontend && pnpm build:main && pnpm build:widget && pnpm build:widget-loader
-#28 CACHED
+#26 [backend  7/10] COPY --from=frontend /src/frontend/dist ./frontend/dist
+#26 DONE 0.3s
 
-#29 [backend  7/10] COPY --from=frontend /src/frontend/dist ./frontend/dist
-#29 DONE 0.5s
+#27 [backend  8/10] COPY --from=frontend /src/static/widget.min.js ./static/widget.min.js
+#27 DONE 0.2s
 
-#30 [backend  8/10] COPY --from=frontend /src/static/widget.min.js ./static/widget.min.js
-#30 DONE 0.4s
+#28 [backend  9/10] RUN go install github.com/knadh/stuffbin/...@latest
+#28 DONE 19.7s
 
-#31 [backend  9/10] RUN go install github.com/knadh/stuffbin/...@latest
-#31 DONE 25.7s
+#29 [backend 10/10] RUN LAST_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo unknown) &&     VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo v0.0.0) &&     BUILDSTR="${VERSION} (#${LAST_COMMIT} $(date -u +%Y-%m-%dT%H:%M:%S%z))" &&     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build       -ldflags="-X 'main.buildString=${BUILDSTR}' -X 'main.versionString=${VERSION}' -X 'github.com/abhinavxd/libredesk/internal/version.Version=${VERSION}' -s -w"       -o libredesk cmd/*.go &&     "$(go env GOPATH)/bin/stuffbin" -a stuff -in libredesk -out libredesk       frontend/dist i18n schema.sql static/email-templates static/public static/widget.min.js:static/widget.js
+#29 24.02 stuffing complete. binary size is 36636.18 KB and stuffed zip size is 2381.52 KB.
+#29 DONE 25.8s
 
-#32 [backend 10/10] RUN LAST_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo unknown) &&     VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo v0.0.0) &&     BUILDSTR="${VERSION} (#${LAST_COMMIT} $(date -u +%Y-%m-%dT%H:%M:%S%z))" &&     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build       -ldflags="-X 'main.buildString=${BUILDSTR}' -X 'main.versionString=${VERSION}' -X 'github.com/abhinavxd/libredesk/internal/version.Version=${VERSION}' -s -w"       -o libredesk cmd/*.go &&     "$(go env GOPATH)/bin/stuffbin" -a stuff -in libredesk -out libredesk       frontend/dist i18n schema.sql static/email-templates static/public static/widget.min.js:static/widget.js
-#32 38.36 stuffing complete. binary size is 36632.18 KB and stuffed zip size is 2380.83 KB.
-#32 DONE 40.4s
+#30 [stage-2 2/5] RUN apk --no-cache add ca-certificates tzdata
+#30 CACHED
 
-#33 [stage-2 2/5] RUN apk --no-cache add ca-certificates tzdata
-#33 CACHED
+#31 [stage-2 3/5] WORKDIR /libredesk
+#31 CACHED
 
-#34 [stage-2 3/5] WORKDIR /libredesk
-#34 CACHED
+#32 [stage-2 4/5] COPY --from=backend /src/libredesk ./libredesk
+#32 DONE 0.3s
 
-#35 [stage-2 4/5] COPY --from=backend /src/libredesk ./libredesk
-#35 DONE 0.3s
+#33 [stage-2 5/5] COPY config.sample.toml config.toml
+#33 DONE 0.2s
 
-#36 [stage-2 5/5] COPY config.sample.toml config.toml
-#36 DONE 0.2s
+#34 exporting to image
+#34 exporting layers
+#34 exporting layers 0.3s done
+#34 writing image sha256:377acfde81896599f6d7ef57c6d91c537fcbd75018761f7e6039885cec15efcc 0.0s done
+#34 naming to docker.io/menezesdev12/libredesk-jamsoft:latest 0.0s done
+#34 naming to docker.io/menezesdev12/libredesk-jamsoft:v2.12.0 0.0s done
+#34 DONE 0.4s
 
-#37 exporting to image
-#37 exporting layers
-#37 exporting layers 0.4s done
-#37 writing image sha256:0cc74103885fd6c126d47447e6a5aef0a4d9270969f001d414f985426cd17563 0.0s done
-#37 naming to docker.io/menezesdev12/libredesk-jamsoft:latest 0.1s done
-#37 naming to docker.io/menezesdev12/libredesk-jamsoft:v2.11.0 0.0s done
-#37 DONE 0.6s
-
-View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/qyrmkzkq6aakf4kj7c1709qqc
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/6fr8ons66btxclr8f96cebzab
