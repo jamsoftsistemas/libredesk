@@ -183,7 +183,7 @@ func (m *Manager) sendOutgoingMessage(message models.Message) {
 	// Send message
 	err = inb.Send(outbound)
 	if err != nil && err != livechat.ErrClientNotConnected {
-		if inb.Channel() == inbox.ChannelWhatsApp {
+		if inb.Channel() == inbox.ChannelWhatsApp || inb.Channel() == inbox.ChannelUazapi {
 			m.RecordWhatsAppSendFailure(message.UUID, err.Error())
 		}
 		handleError(err, "error sending message")
@@ -315,7 +315,7 @@ func (m *Manager) RenderMessageInTemplate(channel string, message *models.Messag
 			m.lo.Error("could not render email content using template", "id", message.ID, "error", err)
 			return fmt.Errorf("could not render email content using template: %w", err)
 		}
-	case inbox.ChannelLiveChat, inbox.ChannelWhatsApp:
+	case inbox.ChannelLiveChat, inbox.ChannelWhatsApp, inbox.ChannelUazapi:
 		return nil
 	default:
 		m.lo.Warn("unknown message channel", "channel", channel)
@@ -662,6 +662,16 @@ func (m *Manager) QueueReply(media []mmodels.Media, inboxID, senderID, contactID
 		if isWhatsAppTemplate {
 			contentType = models.ContentTypeText
 		}
+	case inbox.ChannelUazapi:
+		// The gateway accepts one file per message, so a multi-attachment reply must be sent as separate messages.
+		if len(media) > 1 {
+			return models.Message{}, envelope.NewError(envelope.InputError, m.i18n.T("conversation.whatsapp.error.oneAttachment"), nil)
+		}
+		rendered, err := m.prepareUazapiOutbound(inboxRecord, conversationUUID, content, len(media) > 0, metaMap)
+		if err != nil {
+			return models.Message{}, err
+		}
+		content = rendered
 	}
 
 	// Marshal meta.

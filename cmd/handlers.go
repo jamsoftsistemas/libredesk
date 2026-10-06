@@ -412,6 +412,13 @@ func initHandlers(g *fastglue.Fastglue, hub *ws.Hub) {
 	g.DELETE("/api/v1/whatsapp/templates/{id}", perm(handleDeleteWhatsAppTemplate, "inboxes:manage"))
 	g.POST("/api/v1/whatsapp/templates/sync", perm(handleSyncWhatsAppTemplates, "inboxes:manage"))
 
+	// UAZAPI (unofficial WhatsApp gateway, connected via QR code).
+	g.POST("/webhooks/uazapi/{inbox_id}/{secret}", handleUazapiWebhookEvent)
+	g.POST("/api/v1/inboxes/{id}/uazapi/connect", perm(handleUazapiConnect, "inboxes:manage"))
+	g.GET("/api/v1/inboxes/{id}/uazapi/status", perm(handleUazapiStatus, "inboxes:manage"))
+	g.POST("/api/v1/inboxes/{id}/uazapi/disconnect", perm(handleUazapiDisconnect, "inboxes:manage"))
+	g.POST("/api/v1/inboxes/{id}/uazapi/webhook", perm(handleUazapiRegisterWebhook, "inboxes:manage"))
+
 	// getAndHead registers both methods: uptime checkers and link validators probe with HEAD.
 	getAndHead := func(path string, h fastglue.FastRequestHandler) {
 		g.GET(path, h)

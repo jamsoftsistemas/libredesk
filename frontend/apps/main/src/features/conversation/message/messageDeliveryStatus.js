@@ -1,7 +1,7 @@
 export const getMessageDeliveryStatus = (message, direction, conversation) => {
   if (direction !== 'outgoing' || message?.status !== 'sent' || message?.private) return null
 
-  if (conversation?.inbox_channel === 'whatsapp') {
+  if (conversation?.inbox_channel === 'whatsapp' || conversation?.inbox_channel === 'uazapi') {
     const providerStatus = message.meta?.provider_status
     if (providerStatus === 'read' || providerStatus === 'delivered') return providerStatus
   }

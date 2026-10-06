@@ -31,6 +31,12 @@
       :isLoading="isLoading"
       v-else-if="inbox.channel === 'whatsapp'"
     />
+    <UazapiInboxForm
+      :initialValues="inbox"
+      :submitForm="submitForm"
+      :isLoading="isLoading"
+      v-else-if="inbox.channel === 'uazapi'"
+    />
   </div>
 </template>
 
@@ -40,6 +46,7 @@ import api from '@/api'
 import EmailInboxForm from '@/features/admin/inbox/EmailInboxForm.vue'
 import LivechatInboxForm from '@/features/admin/inbox/LivechatInboxForm.vue'
 import WhatsAppInboxForm from '@/features/admin/inbox/WhatsAppInboxForm.vue'
+import UazapiInboxForm from '@/features/admin/inbox/UazapiInboxForm.vue'
 import { CustomBreadcrumb } from '@shared-ui/components/ui/breadcrumb/index.js'
 import CopyButton from '@/components/button/CopyButton.vue'
 import { Spinner } from '@shared-ui/components/ui/spinner'
@@ -126,6 +133,23 @@ const submitForm = (values) => {
     }
     if (payload.config.app_secret?.includes('•')) {
       payload.config.app_secret = ''
+    }
+  } else if (inbox.value.channel === 'uazapi') {
+    payload = {
+      name: values.name,
+      channel: inbox.value.channel,
+      enabled: values.enabled,
+      csat_enabled: values.csat_enabled,
+      prompt_tags_on_reply: values.prompt_tags_on_reply,
+      reopen_window_hours: values.reopen_window_hours,
+      config: { ...values.config }
+    }
+    // Emptying a masked secret makes the backend keep the existing encrypted value.
+    if (payload.config.instance_token?.includes('•')) {
+      payload.config.instance_token = ''
+    }
+    if (payload.config.admin_token?.includes('•')) {
+      payload.config.admin_token = ''
     }
   }
 

@@ -58,7 +58,8 @@
       <Tabs v-if="showChannelTabs" v-model="channel" class="flex flex-col flex-1 min-h-0">
         <TabsList class="w-max mx-3 mt-3 mb-2">
           <TabsTrigger value="email">{{ $t('globals.terms.email') }}</TabsTrigger>
-          <TabsTrigger value="whatsapp">{{ $t('globals.terms.whatsapp') }}</TabsTrigger>
+          <TabsTrigger v-if="inboxStore.whatsappOptions.length > 0" value="whatsapp">{{ $t('globals.terms.whatsapp') }}</TabsTrigger>
+          <TabsTrigger v-if="inboxStore.uazapiOptions.length > 0" value="uazapi">{{ $t('globals.terms.uazapi') }}</TabsTrigger>
         </TabsList>
         <EmailConversationForm
           ref="emailFormRef"
@@ -67,8 +68,16 @@
           @close="dialogOpen = false"
         />
         <WhatsAppConversationForm
+          v-if="inboxStore.whatsappOptions.length > 0"
           ref="whatsappFormRef"
           v-show="channel === 'whatsapp'"
+          :initial-contact="props.initialContact"
+          @close="dialogOpen = false"
+        />
+        <UazapiConversationForm
+          v-if="inboxStore.uazapiOptions.length > 0"
+          ref="uazapiFormRef"
+          v-show="channel === 'uazapi'"
           :initial-contact="props.initialContact"
           @close="dialogOpen = false"
         />
@@ -96,6 +105,7 @@ import { useCommandPalette } from '@main/features/command/useCommandPalette'
 import { useInboxStore } from '@main/stores/inbox'
 import EmailConversationForm from './EmailConversationForm.vue'
 import WhatsAppConversationForm from './WhatsAppConversationForm.vue'
+import UazapiConversationForm from './UazapiConversationForm.vue'
 import { useNewConversationDraft, clearNewConversationDrafts } from './useNewConversationDraft.js'
 
 const HEADER_BUTTON_CLASS = 'h-8 w-8 max-sm:h-11 max-sm:w-11 text-muted-foreground'
@@ -112,13 +122,24 @@ const props = defineProps({
 const { t } = useI18n()
 const inboxStore = useInboxStore()
 const palette = useCommandPalette()
-const drafts = { email: useNewConversationDraft('email'), whatsapp: useNewConversationDraft('whatsapp') }
-const channel = ref(!drafts.email.value && drafts.whatsapp.value ? 'whatsapp' : 'email')
+const drafts = {
+  email: useNewConversationDraft('email'),
+  whatsapp: useNewConversationDraft('whatsapp'),
+  uazapi: useNewConversationDraft('uazapi')
+}
+const channel = ref(
+  !drafts.email.value && drafts.whatsapp.value
+    ? 'whatsapp'
+    : !drafts.email.value && drafts.uazapi.value
+      ? 'uazapi'
+      : 'email'
+)
 const minimized = ref(props.startMinimized)
 const expanded = ref(false)
 
 const emailFormRef = ref(null)
 const whatsappFormRef = ref(null)
+const uazapiFormRef = ref(null)
 
 const hasDraft = computed(() => !!drafts[channel.value].value)
 
@@ -133,7 +154,9 @@ const discard = () => {
   dialogOpen.value = false
 }
 
-const showChannelTabs = computed(() => inboxStore.whatsappOptions.length > 0)
+const showChannelTabs = computed(
+  () => inboxStore.whatsappOptions.length > 0 || inboxStore.uazapiOptions.length > 0
+)
 
 watch(
   () => dialogOpen.value && !minimized.value && (!showChannelTabs.value || channel.value === 'email'),
@@ -161,7 +184,8 @@ const toggleExpanded = () => {
 
 const focusActiveForm = () => {
   if (!dialogOpen.value || minimized.value) return
-  const form = channel.value === 'whatsapp' ? whatsappFormRef.value : emailFormRef.value
+  const formRefs = { email: emailFormRef, whatsapp: whatsappFormRef, uazapi: uazapiFormRef }
+  const form = (formRefs[channel.value] || emailFormRef).value
   form?.focus()
 }
 

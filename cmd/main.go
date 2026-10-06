@@ -52,6 +52,7 @@ import (
 	"github.com/abhinavxd/libredesk/internal/tag"
 	"github.com/abhinavxd/libredesk/internal/team"
 	"github.com/abhinavxd/libredesk/internal/template"
+	"github.com/abhinavxd/libredesk/internal/uazapi"
 	"github.com/abhinavxd/libredesk/internal/user"
 	"github.com/abhinavxd/libredesk/internal/webhook"
 	whatsappapi "github.com/abhinavxd/libredesk/internal/whatsapp"
@@ -144,6 +145,9 @@ type App struct {
 	whatsappClient     *whatsappapi.Client
 	whatsappIngester   atomic.Pointer[WhatsAppIngester]
 	whatsappIngesterMu sync.Mutex
+	uazapiClient       *uazapi.Client
+	uazapiIngester     atomic.Pointer[UazapiIngester]
+	uazapiIngesterMu   sync.Mutex
 	// Inbox IDs whose provider credentials were recently rejected, keyed to the last error time.
 	inboxAuthErrors sync.Map
 	wsHub           *ws.Hub
@@ -289,6 +293,8 @@ func main() {
 	waTemplates := initWhatsAppTemplates(db, i18n, waClient, inbox)
 	conversation.SetWhatsAppTemplateStore(waTemplates)
 
+	uaClient := initUazapiClient()
+
 	go automation.Run(ctx, automationWorkers)
 	go autoassigner.Run(ctx, autoAssignInterval)
 	go conversation.RunUnsnoozer(ctx, unsnoozeInterval)
@@ -353,6 +359,7 @@ func main() {
 		userNotification: userNotification,
 		whatsappClient:   waClient,
 		whatsappTemplate: waTemplates,
+		uazapiClient:     uaClient,
 		notificationPref: notificationPreference,
 		pushNotification: pushNotification,
 		wsHub:            wsHub,
@@ -364,8 +371,11 @@ func main() {
 	if err := ensureWhatsAppIngester(app); err != nil {
 		app.lo.Error("error starting whatsapp ingester, inbound whatsapp messages will not be processed", "error", err)
 	}
+	if err := ensureUazapiIngester(app); err != nil {
+		app.lo.Error("error starting uazapi ingester, inbound uazapi messages will not be processed", "error", err)
+	}
 
-	startInboxes(ctx, inbox, conversation, user, conversation.SignAvatarURL, waClient, conversation, makeInboxAuthStatusHook(app))
+	startInboxes(ctx, inbox, conversation, user, conversation.SignAvatarURL, waClient, uaClient, conversation, makeInboxAuthStatusHook(app))
 
 	// The outgoing scanner needs the inboxes registered, else queued messages fail with "inbox not found".
 	go conversation.Run(ctx, messageIncomingQWorkers, messageOutgoingQWorkers, messageOutgoingScanInterval)
@@ -421,6 +431,10 @@ func main() {
 	cancelShutdown()
 	if ing := app.ingester(); ing != nil {
 		colorlog.Red("Shutting down whatsapp ingester...")
+		ing.Close()
+	}
+	if ing := app.uazapiIngesterInstance(); ing != nil {
+		colorlog.Red("Shutting down uazapi ingester...")
 		ing.Close()
 	}
 	colorlog.Red("Shutting down AI agent...")

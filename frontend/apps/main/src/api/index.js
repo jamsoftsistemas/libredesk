@@ -441,6 +441,11 @@ const getWhatsAppOpenConversation = (contactId, inboxId) =>
   http.get(`/api/v1/whatsapp/contacts/${contactId}/open-conversation`, {
     params: { inbox_id: inboxId }
   })
+
+const connectUazapiInbox = (id) => http.post(`/api/v1/inboxes/${id}/uazapi/connect`, {})
+const getUazapiInboxStatus = (id) => http.get(`/api/v1/inboxes/${id}/uazapi/status`)
+const disconnectUazapiInbox = (id) => http.post(`/api/v1/inboxes/${id}/uazapi/disconnect`, {})
+const registerUazapiWebhook = (id) => http.post(`/api/v1/inboxes/${id}/uazapi/webhook`, {})
 const saveDraft = (uuid, type, data) =>
   http.post(`/api/v1/conversations/${uuid}/draft`, { ...data, type }, {
     headers: {
@@ -758,6 +763,10 @@ export default {
   deleteWhatsAppTemplate,
   syncWhatsAppTemplates,
   getWhatsAppOpenConversation,
+  connectUazapiInbox,
+  getUazapiInboxStatus,
+  disconnectUazapiInbox,
+  registerUazapiWebhook,
   createTeam,
   updateTeam,
   getSettings,

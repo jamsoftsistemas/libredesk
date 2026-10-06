@@ -17,8 +17,10 @@ import (
 	"github.com/abhinavxd/libredesk/internal/inbox/channel/email"
 	"github.com/abhinavxd/libredesk/internal/inbox/channel/email/oauth"
 	"github.com/abhinavxd/libredesk/internal/inbox/channel/livechat"
+	uazapiChannel "github.com/abhinavxd/libredesk/internal/inbox/channel/uazapi"
 	whatsappChannel "github.com/abhinavxd/libredesk/internal/inbox/channel/whatsapp"
 	imodels "github.com/abhinavxd/libredesk/internal/inbox/models"
+	"github.com/abhinavxd/libredesk/internal/stringutil"
 	wtmodels "github.com/abhinavxd/libredesk/internal/whatsapp/template/models"
 	"github.com/valyala/fasthttp"
 	"github.com/zerodha/fastglue"
@@ -201,6 +203,11 @@ func handleCreateInbox(r *fastglue.Request) error {
 		return sendErrorEnvelope(r, err)
 	}
 
+	if err := ensureUazapiWebhookSecret(&inbox); err != nil {
+		app.lo.Error("error generating uazapi webhook secret", "error", err)
+		return sendErrorEnvelope(r, envelope.NewError(envelope.GeneralError, app.i18n.T("globals.messages.somethingWentWrong"), nil))
+	}
+
 	createdInbox, err := app.inbox.Create(inbox)
 	if err != nil {
 		return sendErrorEnvelope(r, err)
@@ -264,6 +271,18 @@ func handleUpdateInbox(r *fastglue.Request) error {
 		if err := validateWhatsAppCredentials(r, app, inbox); err != nil {
 			return sendErrorEnvelope(r, err)
 		}
+	}
+
+	if inbox.Channel == uazapiChannel.ChannelUazapi {
+		previous, err := app.inbox.GetDBRecord(id)
+		if err != nil {
+			return sendErrorEnvelope(r, err)
+		}
+		merged, err := app.inbox.MergeUazapiSecrets(previous.Config, inbox.Config)
+		if err != nil {
+			return sendErrorEnvelope(r, err)
+		}
+		inbox.Config = merged
 	}
 
 	updatedInbox, err := app.inbox.Update(id, inbox)
@@ -492,6 +511,21 @@ func validateInbox(app *App, inbox imodels.Inbox, isUpdate bool) error {
 			if cfg.AppSecret == "" {
 				return envelope.NewError(envelope.InputError, app.i18n.Ts("globals.messages.required", "name", "`app_secret`"), nil)
 			}
+		}
+	}
+
+	// Live credential check happens when the admin presses "Connect", not on save: the instance may not
+	// exist yet (self-created on first connect from admin_token+instance_name).
+	if inbox.Channel == uazapiChannel.ChannelUazapi {
+		var cfg uazapiChannel.Config
+		if err := json.Unmarshal(inbox.Config, &cfg); err != nil {
+			return envelope.NewError(envelope.InputError, app.i18n.T("admin.inbox.uazapi.error.invalidConfig"), nil)
+		}
+		if cfg.BaseURL == "" {
+			return envelope.NewError(envelope.InputError, app.i18n.Ts("globals.messages.required", "name", "`base_url`"), nil)
+		}
+		if cfg.InstanceToken == "" && (cfg.AdminToken == "" || cfg.InstanceName == "") {
+			return envelope.NewError(envelope.InputError, app.i18n.Ts("globals.messages.required", "name", "`instance_token` or `admin_token`+`instance_name`"), nil)
 		}
 	}
 
@@ -788,6 +822,49 @@ func trimInboxFields(inb *imodels.Inbox) error {
 		}
 		inb.Config = trimmedConfig
 	}
+
+	if inb.Channel == uazapiChannel.ChannelUazapi && len(inb.Config) > 0 {
+		var cfg uazapiChannel.Config
+		if err := json.Unmarshal(inb.Config, &cfg); err != nil {
+			return err
+		}
+		cfg.BaseURL = strings.TrimSpace(cfg.BaseURL)
+		cfg.InstanceName = strings.TrimSpace(cfg.InstanceName)
+		cfg.InstanceToken = strings.TrimSpace(cfg.InstanceToken)
+		cfg.AdminToken = strings.TrimSpace(cfg.AdminToken)
+		trimmedConfig, err := json.Marshal(cfg)
+		if err != nil {
+			return err
+		}
+		inb.Config = trimmedConfig
+	}
+	return nil
+}
+
+// ensureUazapiWebhookSecret generates the secret used to authenticate inbound gateway webhooks, once, at creation.
+// It is never shown to or editable by the admin: ClearPasswords masks it like any other credential, and
+// MergeUazapiSecrets restores it from the stored config whenever the masked value comes back on an update.
+func ensureUazapiWebhookSecret(inb *imodels.Inbox) error {
+	if inb.Channel != uazapiChannel.ChannelUazapi || len(inb.Config) == 0 {
+		return nil
+	}
+	var cfg uazapiChannel.Config
+	if err := json.Unmarshal(inb.Config, &cfg); err != nil {
+		return err
+	}
+	if cfg.WebhookSecret != "" {
+		return nil
+	}
+	secret, err := stringutil.RandomAlphanumeric(32)
+	if err != nil {
+		return err
+	}
+	cfg.WebhookSecret = secret
+	b, err := json.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	inb.Config = b
 	return nil
 }
 

@@ -29,6 +29,7 @@ const (
 	ChannelEmail    = "email"
 	ChannelLiveChat = "livechat"
 	ChannelWhatsApp = "whatsapp"
+	ChannelUazapi   = "uazapi"
 )
 
 var (
@@ -38,6 +39,15 @@ var (
 
 	// ErrInboxNotFound is returned when an inbox is not found.
 	ErrInboxNotFound = errors.New("inbox not found")
+
+	// topLevelSecretFields lists the inbox config keys that hold a secret directly (not nested under smtp/imap/oauth), across every channel that uses this flat-field style.
+	topLevelSecretFields = []string{"access_token", "app_secret", "webhook_verify_token", "instance_token", "admin_token", "webhook_secret"}
+
+	// channelSecretFields maps a channel to the subset of topLevelSecretFields an update should merge back in when masked/empty.
+	channelSecretFields = map[string][]string{
+		ChannelWhatsApp: {"access_token", "app_secret", "webhook_verify_token"},
+		ChannelUazapi:   {"instance_token", "admin_token", "webhook_secret"},
+	}
 )
 
 type initFn func(imodels.Inbox, MessageStore, UserStore) (Inbox, error)
@@ -422,8 +432,8 @@ func (m *Manager) Update(id int, inbox imodels.Inbox) (imodels.Inbox, error) {
 			}
 			inbox.Secret = null.StringFrom(encryptedSecret)
 		}
-	case ChannelWhatsApp:
-		merged, err := m.MergeWhatsAppSecrets(current.Config, inbox.Config)
+	case ChannelWhatsApp, ChannelUazapi:
+		merged, err := m.mergeSecretFields(current.Config, inbox.Config, channelSecretFields[current.Channel])
 		if err != nil {
 			return imodels.Inbox{}, err
 		}
@@ -460,19 +470,29 @@ func (m *Manager) Update(id int, inbox imodels.Inbox) (imodels.Inbox, error) {
 
 // MergeWhatsAppSecrets restores masked or empty secret fields in an update config from the currently stored config.
 func (m *Manager) MergeWhatsAppSecrets(current, update json.RawMessage) (json.RawMessage, error) {
+	return m.mergeSecretFields(current, update, channelSecretFields[ChannelWhatsApp])
+}
+
+// MergeUazapiSecrets restores masked or empty secret fields in an update config from the currently stored config.
+func (m *Manager) MergeUazapiSecrets(current, update json.RawMessage) (json.RawMessage, error) {
+	return m.mergeSecretFields(current, update, channelSecretFields[ChannelUazapi])
+}
+
+// mergeSecretFields restores masked or empty fields in an update config from the currently stored config.
+func (m *Manager) mergeSecretFields(current, update json.RawMessage, fields []string) (json.RawMessage, error) {
 	var currentCfg, updateCfg map[string]any
 	if err := json.Unmarshal(current, &currentCfg); err != nil {
-		m.lo.Error("error unmarshalling current whatsapp config", "error", err)
+		m.lo.Error("error unmarshalling current config", "error", err)
 		return nil, envelope.NewError(envelope.GeneralError, m.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}
 	if len(update) == 0 {
 		return nil, envelope.NewError(envelope.InputError, m.i18n.Ts("globals.messages.empty", "name", "{globals.terms.config}"), nil)
 	}
 	if err := json.Unmarshal(update, &updateCfg); err != nil {
-		m.lo.Error("error unmarshalling whatsapp update config", "error", err)
+		m.lo.Error("error unmarshalling update config", "error", err)
 		return nil, envelope.NewError(envelope.GeneralError, m.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}
-	for _, fieldName := range []string{"access_token", "app_secret", "webhook_verify_token"} {
+	for _, fieldName := range fields {
 		val, _ := updateCfg[fieldName].(string)
 		if val == "" || strings.Contains(val, stringutil.PasswordDummy) {
 			if existing, ok := currentCfg[fieldName].(string); ok {
@@ -482,7 +502,7 @@ func (m *Manager) MergeWhatsAppSecrets(current, update json.RawMessage) (json.Ra
 	}
 	merged, err := json.Marshal(updateCfg)
 	if err != nil {
-		m.lo.Error("error marshalling whatsapp merged config", "error", err)
+		m.lo.Error("error marshalling merged config", "error", err)
 		return nil, err
 	}
 	return merged, nil
@@ -690,11 +710,11 @@ func (m *Manager) encryptInboxConfig(config json.RawMessage) (json.RawMessage, e
 		}
 	}
 
-	for _, fieldName := range []string{"access_token", "app_secret", "webhook_verify_token"} {
+	for _, fieldName := range topLevelSecretFields {
 		if value, ok := cfg[fieldName].(string); ok && value != "" && !crypto.IsEncrypted(value) {
 			encrypted, err := crypto.Encrypt(value, m.encryptionKey)
 			if err != nil {
-				return nil, fmt.Errorf("encrypting whatsapp %s: %w", fieldName, err)
+				return nil, fmt.Errorf("encrypting %s: %w", fieldName, err)
 			}
 			cfg[fieldName] = encrypted
 		}
@@ -766,11 +786,11 @@ func (m *Manager) decryptInboxConfig(config json.RawMessage) (json.RawMessage, e
 		}
 	}
 
-	for _, fieldName := range []string{"access_token", "app_secret", "webhook_verify_token"} {
+	for _, fieldName := range topLevelSecretFields {
 		if value, ok := cfg[fieldName].(string); ok && crypto.IsEncrypted(value) {
 			decrypted, err := crypto.Decrypt(value, m.encryptionKey)
 			if err != nil {
-				m.lo.Error("error decrypting whatsapp credential, clearing field", "field", fieldName, "error", err)
+				m.lo.Error("error decrypting credential, clearing field", "field", fieldName, "error", err)
 				cfg[fieldName] = ""
 				continue
 			}

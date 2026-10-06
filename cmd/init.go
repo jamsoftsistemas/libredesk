@@ -34,6 +34,7 @@ import (
 	"github.com/abhinavxd/libredesk/internal/inbox/channel/email"
 	"github.com/abhinavxd/libredesk/internal/inbox/channel/livechat"
 	"github.com/abhinavxd/libredesk/internal/inbox/channel/livechat/proactive"
+	uazapiChannel "github.com/abhinavxd/libredesk/internal/inbox/channel/uazapi"
 	whatsappChannel "github.com/abhinavxd/libredesk/internal/inbox/channel/whatsapp"
 	imodels "github.com/abhinavxd/libredesk/internal/inbox/models"
 	"github.com/abhinavxd/libredesk/internal/macro"
@@ -54,6 +55,7 @@ import (
 	"github.com/abhinavxd/libredesk/internal/tag"
 	"github.com/abhinavxd/libredesk/internal/team"
 	tmpl "github.com/abhinavxd/libredesk/internal/template"
+	"github.com/abhinavxd/libredesk/internal/uazapi"
 	"github.com/abhinavxd/libredesk/internal/user"
 	"github.com/abhinavxd/libredesk/internal/view"
 	"github.com/abhinavxd/libredesk/internal/webhook"
@@ -817,8 +819,31 @@ func initWhatsAppInbox(inboxRecord imodels.Inbox, msgStore inbox.MessageStore, c
 	return inb, nil
 }
 
+// initUazapiInbox initializes a UAZAPI inbox.
+func initUazapiInbox(inboxRecord imodels.Inbox, msgStore inbox.MessageStore, client *uazapi.Client, sourceUpdater uazapiChannel.SourceIDUpdater) (inbox.Inbox, error) {
+	var config uazapiChannel.Config
+	if err := json.Unmarshal(inboxRecord.Config, &config); err != nil {
+		return nil, fmt.Errorf("unmarshalling uazapi config for inbox %q: %w", inboxRecord.Name, err)
+	}
+
+	inb, err := uazapiChannel.New(msgStore, uazapiChannel.Opts{
+		ID:            inboxRecord.ID,
+		Name:          inboxRecord.Name,
+		Config:        config,
+		Client:        client,
+		Lo:            initLogger("uazapi_inbox"),
+		SourceUpdater: sourceUpdater,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("initializing `%s` inbox: `%s` error: %w", inboxRecord.Channel, inboxRecord.Name, err)
+	}
+
+	log.Printf("`%s` inbox successfully initialized", inboxRecord.Name)
+	return inb, nil
+}
+
 // makeInboxInitializer creates an inbox initializer function.
-func makeInboxInitializer(mgr *inbox.Manager, signAvatarURL func(*null.String), waClient *whatsappapi.Client, sourceUpdater whatsappChannel.SourceIDUpdater, authStatusHook email.AuthStatusCallback) func(imodels.Inbox, inbox.MessageStore, inbox.UserStore) (inbox.Inbox, error) {
+func makeInboxInitializer(mgr *inbox.Manager, signAvatarURL func(*null.String), waClient *whatsappapi.Client, uaClient *uazapi.Client, sourceUpdater whatsappChannel.SourceIDUpdater, authStatusHook email.AuthStatusCallback) func(imodels.Inbox, inbox.MessageStore, inbox.UserStore) (inbox.Inbox, error) {
 	return func(inboxR imodels.Inbox, msgStore inbox.MessageStore, usrStore inbox.UserStore) (inbox.Inbox, error) {
 		switch inboxR.Channel {
 		case inbox.ChannelEmail:
@@ -827,6 +852,8 @@ func makeInboxInitializer(mgr *inbox.Manager, signAvatarURL func(*null.String), 
 			return initLiveChatInbox(inboxR, msgStore, usrStore, signAvatarURL)
 		case inbox.ChannelWhatsApp:
 			return initWhatsAppInbox(inboxR, msgStore, waClient, sourceUpdater)
+		case inbox.ChannelUazapi:
+			return initUazapiInbox(inboxR, msgStore, uaClient, sourceUpdater)
 		default:
 			return nil, fmt.Errorf("unknown inbox channel: %s", inboxR.Channel)
 		}
@@ -840,15 +867,18 @@ func reloadInbox(app *App, id int) error {
 	if err := ensureWhatsAppIngester(app); err != nil {
 		app.lo.Error("error starting whatsapp ingester after an inbox change", "id", id, "error", err)
 	}
-	return app.inbox.ReloadInbox(app.ctx, id, makeInboxInitializer(app.inbox, app.conversation.SignAvatarURL, app.whatsappClient, app.conversation, makeInboxAuthStatusHook(app)))
+	if err := ensureUazapiIngester(app); err != nil {
+		app.lo.Error("error starting uazapi ingester after an inbox change", "id", id, "error", err)
+	}
+	return app.inbox.ReloadInbox(app.ctx, id, makeInboxInitializer(app.inbox, app.conversation.SignAvatarURL, app.whatsappClient, app.uazapiClient, app.conversation, makeInboxAuthStatusHook(app)))
 }
 
 // startInboxes registers the active inboxes and starts receiver for each.
-func startInboxes(ctx context.Context, mgr *inbox.Manager, msgStore inbox.MessageStore, usrStore inbox.UserStore, signAvatarURL func(*null.String), waClient *whatsappapi.Client, sourceUpdater whatsappChannel.SourceIDUpdater, authStatusHook email.AuthStatusCallback) {
+func startInboxes(ctx context.Context, mgr *inbox.Manager, msgStore inbox.MessageStore, usrStore inbox.UserStore, signAvatarURL func(*null.String), waClient *whatsappapi.Client, uaClient *uazapi.Client, sourceUpdater whatsappChannel.SourceIDUpdater, authStatusHook email.AuthStatusCallback) {
 	mgr.SetMessageStore(msgStore)
 	mgr.SetUserStore(usrStore)
 
-	if err := mgr.InitInboxes(makeInboxInitializer(mgr, signAvatarURL, waClient, sourceUpdater, authStatusHook)); err != nil {
+	if err := mgr.InitInboxes(makeInboxInitializer(mgr, signAvatarURL, waClient, uaClient, sourceUpdater, authStatusHook)); err != nil {
 		log.Fatalf("error initializing inboxes: %v", err)
 	}
 
@@ -866,6 +896,11 @@ func initWhatsAppClient() *whatsappapi.Client {
 		client.SetBaseURL(url)
 	}
 	return client
+}
+
+// initUazapiClient constructs the shared UAZAPI HTTP client. Each inbox carries its own base_url and token.
+func initUazapiClient() *uazapi.Client {
+	return uazapi.New(initLogger("uazapi_client"))
 }
 
 // inboxAccountResolver resolves per-inbox Meta credentials for the template manager.

@@ -989,7 +989,7 @@ WHERE uuid = $2 AND NOT ($1 = 'sent' AND status = 'failed');
 -- Keeping the old wamid or provider_status would let a late webhook re-fail the retried row.
 UPDATE conversation_messages m
 SET status = 'pending',
-    source_id = CASE WHEN inb.channel = 'whatsapp' THEN NULL ELSE m.source_id END,
+    source_id = CASE WHEN inb.channel IN ('whatsapp', 'uazapi') THEN NULL ELSE m.source_id END,
     meta = COALESCE(m.meta, '{}'::jsonb)
              - 'provider_status' - 'provider_status_updated_at' - 'provider_sent_at'
              - 'provider_delivered_at' - 'provider_read_at' - 'provider_failed_at'
@@ -1045,7 +1045,7 @@ FROM conversation_messages cm
 JOIN conversations c ON c.id = cm.conversation_id
 JOIN inboxes i ON i.id = c.inbox_id
 WHERE c.uuid = $1
-  AND i.channel = 'whatsapp'
+  AND i.channel IN ('whatsapp', 'uazapi')
   AND cm.type = 'incoming'
   AND COALESCE(cm.source_id, '') != ''
   AND cm.created_at > COALESCE(

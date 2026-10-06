@@ -1899,6 +1899,14 @@ func (m *Manager) SendCSATReply(actorUserID int, conversation models.Conversatio
 		return m.sendWhatsAppCSAT(actorUserID, conversation, csatResp.UUID, m.csatStore.MakePublicURL(appRootURL, csatResp.UUID))
 	}
 
+	if inb.Channel == inbox.ChannelUazapi {
+		appRootURL, err := m.settingsStore.GetAppRootURL()
+		if err != nil {
+			return envelope.NewError(envelope.GeneralError, m.i18n.T("globals.messages.somethingWentWrong"), nil)
+		}
+		return m.sendUazapiCSAT(actorUserID, conversation, csatResp.UUID, m.csatStore.MakePublicURL(appRootURL, csatResp.UUID))
+	}
+
 	meta := map[string]any{
 		"is_csat":      true,
 		"is_automated": true,

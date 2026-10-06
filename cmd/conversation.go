@@ -16,6 +16,7 @@ import (
 	cmodels "github.com/abhinavxd/libredesk/internal/conversation/models"
 	"github.com/abhinavxd/libredesk/internal/countries"
 	"github.com/abhinavxd/libredesk/internal/envelope"
+	uazapiChannel "github.com/abhinavxd/libredesk/internal/inbox/channel/uazapi"
 	whatsappChannel "github.com/abhinavxd/libredesk/internal/inbox/channel/whatsapp"
 	"github.com/abhinavxd/libredesk/internal/stringutil"
 	umodels "github.com/abhinavxd/libredesk/internal/user/models"
@@ -456,10 +457,10 @@ func handleUpdateConversationAssigneeLastSeen(r *fastglue.Request) error {
 		readInboxID  int
 		readSourceID string
 	)
-	if conv.InboxChannel == whatsappChannel.ChannelWhatsApp {
+	if conv.InboxChannel == whatsappChannel.ChannelWhatsApp || conv.InboxChannel == uazapiChannel.ChannelUazapi {
 		readInboxID, readSourceID, err = app.conversation.WhatsAppReadReceiptTarget(uuid, auser.ID)
 		if err != nil {
-			app.lo.Error("error resolving whatsapp read receipt target", "conversation_uuid", uuid, "error", err)
+			app.lo.Error("error resolving read receipt target", "conversation_uuid", uuid, "error", err)
 		}
 	}
 
@@ -468,7 +469,11 @@ func handleUpdateConversationAssigneeLastSeen(r *fastglue.Request) error {
 	}
 
 	if readSourceID != "" {
-		go markWhatsAppMessageRead(app, readInboxID, readSourceID)
+		if conv.InboxChannel == uazapiChannel.ChannelUazapi {
+			go markUazapiMessageRead(app, readInboxID, readSourceID)
+		} else {
+			go markWhatsAppMessageRead(app, readInboxID, readSourceID)
+		}
 	}
 	return r.SendEnvelope(true)
 }
@@ -877,7 +882,7 @@ func handleCreateConversation(r *fastglue.Request) error {
 		to        = []string{req.Email}
 	)
 	switch channel {
-	case whatsappChannel.ChannelWhatsApp:
+	case whatsappChannel.ChannelWhatsApp, uazapiChannel.ChannelUazapi:
 		if req.ContactID <= 0 {
 			canWriteContacts, err := app.authz.Enforce(user, "contacts", "write")
 			if err != nil {
@@ -888,7 +893,7 @@ func handleCreateConversation(r *fastglue.Request) error {
 				return sendErrorEnvelope(r, envelope.NewError(envelope.PermissionError, app.i18n.T("status.deniedPermission"), nil))
 			}
 		}
-		contactID, err = resolveWhatsAppContact(app, req)
+		contactID, err = resolvePhoneContact(app, req, channel)
 		if err != nil {
 			return sendErrorEnvelope(r, err)
 		}
@@ -920,10 +925,15 @@ func handleCreateConversation(r *fastglue.Request) error {
 	}
 
 	subject, appendRefNum := req.Subject, true
-	if channel == whatsappChannel.ChannelWhatsApp {
+	if channel == whatsappChannel.ChannelWhatsApp || channel == uazapiChannel.ChannelUazapi {
 		subject, appendRefNum = "", false
-		// A contact gets one open WhatsApp conversation per inbox. The lock keeps an incoming message from creating one between this check and the create below.
-		defer lockWhatsAppConversation(contactID, req.InboxID)()
+		// A contact gets one open conversation per inbox on these channels. The lock keeps an incoming
+		// message from creating one between this check and the create below.
+		if channel == whatsappChannel.ChannelWhatsApp {
+			defer lockWhatsAppConversation(contactID, req.InboxID)()
+		} else {
+			defer lockUazapiConversation(contactID, req.InboxID)()
+		}
 		_, openUUID, lookupErr := app.conversation.GetLatestOpenConversationForContact(contactID, req.InboxID)
 		switch {
 		case lookupErr == nil:
@@ -984,6 +994,8 @@ func handleCreateConversation(r *fastglue.Request) error {
 			meta["whatsapp_template_params"] = req.WhatsAppTemplateParams
 		}
 		_, sendErr = app.conversation.QueueReply(media, req.InboxID, auser.ID, contactID, conversationUUID, "" /** content **/, nil /** to **/, nil /** cc **/, nil /** bcc **/, meta)
+	case channel == uazapiChannel.ChannelUazapi:
+		_, sendErr = app.conversation.QueueReply(media, req.InboxID, auser.ID, contactID, conversationUUID, req.Content, nil /** to **/, nil /** cc **/, nil /** bcc **/, map[string]any{})
 	case req.Initiator == umodels.UserTypeAgent:
 		_, sendErr = app.conversation.QueueReply(media, req.InboxID, auser.ID, contactID, conversationUUID, req.Content, to, req.CC, req.BCC, map[string]any{})
 	case req.Initiator == umodels.UserTypeContact:
@@ -1077,6 +1089,22 @@ func validateCreateConversationRequest(req createConversationRequest, app *App) 
 				return "", envelope.NewError(envelope.InputError, app.i18n.Ts("globals.messages.required", "name", "`first_name`"), nil)
 			}
 		}
+	case uazapiChannel.ChannelUazapi:
+		// No template requirement: uazapi sends free-form text at any time.
+		if req.Content == "" {
+			return "", envelope.NewError(envelope.InputError, app.i18n.Ts("globals.messages.required", "name", "`content`"), nil)
+		}
+		if req.ContactID <= 0 {
+			if req.PhoneNumber == "" {
+				return "", envelope.NewError(envelope.InputError, app.i18n.Ts("globals.messages.required", "name", "`phone_number`"), nil)
+			}
+			if req.PhoneNumberCountryCode == "" {
+				return "", envelope.NewError(envelope.InputError, app.i18n.Ts("globals.messages.required", "name", "`phone_number_country_code`"), nil)
+			}
+			if req.FirstName == "" {
+				return "", envelope.NewError(envelope.InputError, app.i18n.Ts("globals.messages.required", "name", "`first_name`"), nil)
+			}
+		}
 	case "email":
 		if req.Content == "" {
 			return "", envelope.NewError(envelope.InputError, app.i18n.Ts("globals.messages.required", "name", "`content`"), nil)
@@ -1122,8 +1150,9 @@ func validateCreateConversationRequest(req createConversationRequest, app *App) 
 	return inbox.Channel, nil
 }
 
-// resolveWhatsAppContact returns the outbound contact, creating one keyed by the wa_id when none is selected.
-func resolveWhatsAppContact(app *App, req createConversationRequest) (int, error) {
+// resolvePhoneContact returns the outbound contact, creating one keyed by its channel identity (phone number
+// in the channel's own format) when none is selected. Shared by whatsapp and uazapi, both phone-addressed channels.
+func resolvePhoneContact(app *App, req createConversationRequest, channel string) (int, error) {
 	if req.ContactID > 0 {
 		if _, err := app.user.GetContactOrVisitor(req.ContactID, ""); err != nil {
 			return 0, err
@@ -1138,19 +1167,19 @@ func resolveWhatsAppContact(app *App, req createConversationRequest) (int, error
 	if err != nil {
 		return 0, err
 	}
-	waID := dialCode + local
+	identity := dialCode + local
 	contact := umodels.User{
 		Type:             umodels.UserTypeContact,
 		FirstName:        req.FirstName,
 		LastName:         req.LastName,
 		CustomAttributes: json.RawMessage(`{}`),
 	}
-	id, err := app.user.UpsertContactByChannelIdentity(whatsappChannel.ChannelWhatsApp, waID, &contact)
+	id, err := app.user.UpsertContactByChannelIdentity(channel, identity, &contact)
 	if err != nil {
 		return 0, err
 	}
 	if err := app.user.SetContactPhoneIfMissing(id, local, req.PhoneNumberCountryCode); err != nil {
-		app.lo.Error("error setting whatsapp contact phone", "user_id", id, "error", err)
+		app.lo.Error("error setting contact phone", "channel", channel, "user_id", id, "error", err)
 	}
 	return id, nil
 }

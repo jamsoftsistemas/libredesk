@@ -100,7 +100,8 @@ const getInboxes = async () => {
 const CHANNEL_LABEL_KEYS = {
   email: 'globals.terms.email',
   livechat: 'globals.terms.liveChat',
-  whatsapp: 'globals.terms.whatsapp'
+  whatsapp: 'globals.terms.whatsapp',
+  uazapi: 'globals.terms.uazapi'
 }
 
 const columns = [

@@ -162,6 +162,22 @@ func (m *Inbox) ClearPasswords() error {
 			return err
 		}
 		m.Config = cleared
+	case "uazapi":
+		var cfg map[string]any
+		if err := json.Unmarshal(m.Config, &cfg); err != nil {
+			return err
+		}
+		dummy := strings.Repeat(stringutil.PasswordDummy, 10)
+		for _, field := range []string{"instance_token", "admin_token", "webhook_secret"} {
+			if v, ok := cfg[field].(string); ok && v != "" {
+				cfg[field] = dummy
+			}
+		}
+		cleared, err := json.Marshal(cfg)
+		if err != nil {
+			return err
+		}
+		m.Config = cleared
 	default:
 		return nil
 	}
