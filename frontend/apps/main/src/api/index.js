@@ -271,6 +271,11 @@ const setPassword = (data) => http.post('/api/v1/agents/set-password', data, {
     'Content-Type': 'application/json'
   }
 })
+const changeCurrentUserPassword = (data) => http.put('/api/v1/agents/me/password', data, {
+  headers: {
+    'Content-Type': 'application/json'
+  }
+})
 const deleteUser = (id) => http.delete(`/api/v1/agents/${id}`)
 const importAgents = (data) =>
   http.post('/api/v1/agents/import', data, {
@@ -670,6 +675,7 @@ export default {
   getTagImportStatus,
   resetPassword,
   setPassword,
+  changeCurrentUserPassword,
   getTags,
   getTeam,
   getUser,

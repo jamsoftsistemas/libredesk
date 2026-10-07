@@ -6,12 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"mime"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
 	amodels "github.com/abhinavxd/libredesk/internal/auth/models"
 	"github.com/abhinavxd/libredesk/internal/automation/models"
+	authzModels "github.com/abhinavxd/libredesk/internal/authz/models"
 	"github.com/abhinavxd/libredesk/internal/conversation"
 	cmodels "github.com/abhinavxd/libredesk/internal/conversation/models"
 	"github.com/abhinavxd/libredesk/internal/countries"
@@ -340,7 +342,17 @@ func handleGetTeamUnassignedConversations(r *fastglue.Request) error {
 		return sendErrorEnvelope(r, envelope.NewError(envelope.PermissionError, app.i18n.T("conversation.notMemberOfTeam"), nil))
 	}
 
-	conversations, err := app.conversation.GetTeamUnassignedConversationsList(auser.ID, teamID, order, orderBy, filters, page, pageSize)
+	user, err := app.user.GetAgentCachedOrLoad(auser.ID)
+	if err != nil {
+		return sendErrorEnvelope(r, err)
+	}
+
+	var conversations []cmodels.ConversationListItem
+	if slices.Contains(user.Permissions, authzModels.PermConversationsReadTeamAll) {
+		conversations, err = app.conversation.GetTeamAllConversationsList(auser.ID, teamID, order, orderBy, filters, page, pageSize)
+	} else {
+		conversations, err = app.conversation.GetTeamUnassignedConversationsList(auser.ID, teamID, order, orderBy, filters, page, pageSize)
+	}
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}

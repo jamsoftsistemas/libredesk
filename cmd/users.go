@@ -36,6 +36,11 @@ type setPasswordRequest struct {
 	Password string `json:"password"`
 }
 
+type changePasswordRequest struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}
+
 type availabilityRequest struct {
 	Status string `json:"status"`
 	Source string `json:"source"`
@@ -202,6 +207,34 @@ func handleUpdateCurrentAgent(r *fastglue.Request) error {
 	}
 
 	return r.SendEnvelope(agent)
+}
+
+// handleChangeCurrentPassword changes the current agent's own password after verifying their current one.
+func handleChangeCurrentPassword(r *fastglue.Request) error {
+	var (
+		app   = r.Context.(*App)
+		auser = r.RequestCtx.UserValue("user").(amodels.User)
+		req   = changePasswordRequest{}
+		ip    = realip.FromRequest(r.RequestCtx)
+	)
+
+	if err := r.Decode(&req, "json"); err != nil {
+		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, app.i18n.T("errors.parsingRequest"), nil, envelope.InputError)
+	}
+
+	if req.CurrentPassword == "" || req.NewPassword == "" {
+		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, app.i18n.Ts("globals.messages.empty", "name", app.i18n.T("globals.terms.password")), nil, envelope.InputError)
+	}
+
+	if err := app.user.ChangePassword(auser.ID, req.CurrentPassword, req.NewPassword); err != nil {
+		return sendErrorEnvelope(r, err)
+	}
+
+	if err := app.activityLog.PasswordSet(auser.ID, auser.Email, ip, auser.ID, auser.Email); err != nil {
+		app.lo.Error("error creating activity log", "error", err)
+	}
+
+	return r.SendEnvelope(true)
 }
 
 // handleCreateAgent creates a new agent.
