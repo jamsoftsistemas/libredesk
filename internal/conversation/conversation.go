@@ -701,9 +701,16 @@ func (c *Manager) GetUnassignedConversationsList(viewingUserID int, order, order
 	return c.GetConversations(viewingUserID, 0, []int{}, []string{models.UnassignedConversations}, order, orderBy, filters, page, pageSize)
 }
 
-// GetTeamUnassignedConversationsList retrieves conversations assigned to a team with optional filtering, ordering, and pagination.
+// GetTeamUnassignedConversationsList retrieves conversations assigned to a team that are either unassigned
+// or assigned to the viewing user, with optional filtering, ordering, and pagination.
 func (c *Manager) GetTeamUnassignedConversationsList(viewingUserID, teamID int, order, orderBy, filters string, page, pageSize int) ([]models.ConversationListItem, error) {
 	return c.GetConversations(viewingUserID, 0, []int{teamID}, []string{models.TeamUnassignedConversations}, order, orderBy, filters, page, pageSize)
+}
+
+// GetTeamAllConversationsList retrieves all conversations assigned to a team, regardless of who they're
+// assigned to, with optional filtering, ordering, and pagination.
+func (c *Manager) GetTeamAllConversationsList(viewingUserID, teamID int, order, orderBy, filters string, page, pageSize int) ([]models.ConversationListItem, error) {
+	return c.GetConversations(viewingUserID, 0, []int{teamID}, []string{models.TeamAllConversations}, order, orderBy, filters, page, pageSize)
 }
 
 // GetMentionedConversationsList retrieves conversations where the user is mentioned (directly or via team).
@@ -2468,7 +2475,9 @@ func appendListTypeConditions(listTypes []string, viewingUserID, userID int, tea
 		case models.UnassignedConversations:
 			conditions = append(conditions, "conversations.assigned_user_id IS NULL AND conversations.assigned_team_id IS NULL")
 		case models.TeamUnassignedConversations:
-			conditions = append(conditions, fmt.Sprintf("(conversations.assigned_team_id IN (%s) AND conversations.assigned_user_id IS NULL)", appendTeamIDArgs(teamIDs, args)))
+			teamPlaceholders := appendTeamIDArgs(teamIDs, args)
+			*args = append(*args, viewingUserID)
+			conditions = append(conditions, fmt.Sprintf("(conversations.assigned_team_id IN (%s) AND (conversations.assigned_user_id IS NULL OR conversations.assigned_user_id = $%d))", teamPlaceholders, len(*args)))
 		case models.TeamAllConversations:
 			conditions = append(conditions, fmt.Sprintf("(conversations.assigned_team_id IN (%s))", appendTeamIDArgs(teamIDs, args)))
 		case models.AllConversations:
