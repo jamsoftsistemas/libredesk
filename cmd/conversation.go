@@ -79,11 +79,13 @@ type whatsAppOpenConversationResponse struct {
 	UUID   string `json:"uuid"`
 }
 
-// handleGetAllConversations retrieves all conversations.
+// handleGetAllConversations retrieves conversations the user has access to. Users with the
+// `conversations:read_all` permission see every conversation in the system; everyone else sees the
+// union of what they're allowed to see across their own assignments and every team they belong to.
 func handleGetAllConversations(r *fastglue.Request) error {
 	var (
 		app     = r.Context.(*App)
-		user    = r.RequestCtx.UserValue("user").(amodels.User)
+		auser   = r.RequestCtx.UserValue("user").(amodels.User)
 		order   = string(r.RequestCtx.QueryArgs().Peek("order"))
 		orderBy = string(r.RequestCtx.QueryArgs().Peek("order_by"))
 		filters = string(r.RequestCtx.QueryArgs().Peek("filters"))
@@ -91,7 +93,21 @@ func handleGetAllConversations(r *fastglue.Request) error {
 	)
 	page, pageSize := getPagination(r)
 
-	conversations, err := app.conversation.GetAllConversationsList(user.ID, order, orderBy, filters, page, pageSize)
+	user, err := app.user.GetAgentCachedOrLoad(auser.ID)
+	if err != nil {
+		return sendErrorEnvelope(r, err)
+	}
+
+	var conversations []cmodels.ConversationListItem
+	if slices.Contains(user.Permissions, authzModels.PermConversationsReadAll) {
+		conversations, err = app.conversation.GetAllConversationsList(user.ID, order, orderBy, filters, page, pageSize)
+	} else {
+		lists := conversation.ListsForUserPermissions(user.Permissions)
+		if len(lists) == 0 {
+			return r.SendErrorEnvelope(fasthttp.StatusForbidden, app.i18n.T("status.deniedPermission"), nil, envelope.PermissionError)
+		}
+		conversations, err = app.conversation.GetViewConversationsList(user.ID, user.ID, user.Teams.IDs(), lists, order, orderBy, filters, page, pageSize)
+	}
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}

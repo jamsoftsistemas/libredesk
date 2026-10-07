@@ -12,6 +12,7 @@ import { playNotificationSound } from '@shared-ui/composables/useNotificationSou
 import MessageCache from '@main/utils/conversation-message-cache'
 import { getI18n } from '@main/i18n'
 import { CONVERSATION_LIST_TYPE, CONVERSATION_DEFAULT_STATUSES, TAG_ACTION } from '@/constants/conversation'
+import { permissions as PERMISSIONS } from '@/constants/permissions'
 import { useThrottleFn, useStorage } from '@vueuse/core'
 import { useUserStore } from '@/stores/user'
 import { useNotificationStore } from '@/stores/notification'
@@ -349,7 +350,9 @@ export const useConversationStore = defineStore('conversation', () => {
       case CONVERSATION_LIST_TYPE.UNASSIGNED:
         return !conv.assigned_user_id && !conv.assigned_team_id
       case CONVERSATION_LIST_TYPE.TEAM_UNASSIGNED:
-        return Number(conv.assigned_team_id) === Number(conversations.teamID) && !conv.assigned_user_id
+        if (Number(conv.assigned_team_id) !== Number(conversations.teamID)) return false
+        if (userStore.can(PERMISSIONS.CONVERSATIONS_READ_TEAM_ALL)) return true
+        return !conv.assigned_user_id || conv.assigned_user_id === userStore.userID
       default:
         return null
     }

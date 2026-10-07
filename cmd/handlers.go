@@ -52,7 +52,7 @@ func initHandlers(g *fastglue.Fastglue, hub *ws.Hub) {
 	g.DELETE("/api/v1/oidc/{id}", perm(handleDeleteOIDC, "oidc:manage"))
 
 	// Conversations.
-	g.GET("/api/v1/conversations/all", perm(handleGetAllConversations, "conversations:read_all"))
+	g.GET("/api/v1/conversations/all", perm(handleGetAllConversations, "conversations:read"))
 	g.GET("/api/v1/conversations/unassigned", perm(handleGetUnassignedConversations, "conversations:read_unassigned"))
 	g.GET("/api/v1/conversations/assigned", perm(handleGetAssignedConversations, "conversations:read_assigned"))
 	g.GET("/api/v1/conversations/mentioned", perm(handleGetMentionedConversations, "conversations:read"))

@@ -44,6 +44,17 @@ func (c *Manager) GetSidebarCounts(viewingUserID int, permissions []string, team
 		return out, nil
 	}
 
+	// Non-admins get an "all" count that mirrors what the "All" tab actually lists for them: the union
+	// of their own assignments and every team they belong to. Admins already have the exact, uncapped
+	// count from fillStandardSidebarCounts above.
+	if !slices.Contains(permissions, authzModels.PermConversationsReadAll) {
+		count, err := c.getAccessibleConversationsCount(ctx, viewingUserID, teamIDs, lists)
+		if err != nil {
+			return out, err
+		}
+		out.All = count
+	}
+
 	accessible := make([]vmodels.View, 0, len(views))
 	for _, view := range views {
 		if UserCanAccessView(view, viewingUserID, teamIDs) {
@@ -173,6 +184,23 @@ func (c *Manager) makeViewCountsQuery(userID int, teamIDs []int, listTypes []str
 	}
 
 	return strings.Join(parts, " UNION ALL "), args, nil
+}
+
+// getAccessibleConversationsCount returns the capped open count across the given list types combined
+// (OR'd), e.g. the union of a user's own assignments and every team they belong to.
+func (c *Manager) getAccessibleConversationsCount(ctx context.Context, userID int, teamIDs []int, listTypes []string) (int, error) {
+	countQuery, qArgs, err := c.makeConversationsCountQuery(nil, userID, teamIDs, listTypes, "", c.FilterLocation())
+	if err != nil {
+		return 0, err
+	}
+
+	var count int
+	query := fmt.Sprintf("SELECT COUNT(*) FROM (%s LIMIT %d) capped", countQuery, sidebarCountsScanCap)
+	if err := c.db.GetContext(ctx, &count, query, qArgs...); err != nil {
+		c.lo.Error("error fetching accessible conversations count", "error", err)
+		return 0, envelope.NewError(envelope.GeneralError, c.i18n.T("globals.messages.somethingWentWrong"), nil)
+	}
+	return count, nil
 }
 
 // makeConversationsCountQuery builds a query selecting matching conversations, with placeholders continuing after existingArgs.
