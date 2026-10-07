@@ -22,6 +22,71 @@
       >
         {{ $t('globals.messages.saveChanges') }}
       </Button>
+
+      <div class="space-y-1 pt-5">
+        <span class="sub-title">{{ $t('account.changePassword') }}</span>
+        <p class="text-muted-foreground text-xs">{{ $t('account.changePasswordDescription') }}</p>
+      </div>
+
+      <form @submit.prevent="changePassword" class="space-y-3 max-w-sm">
+        <div class="space-y-2">
+          <Label for="currentPassword">{{ $t('account.currentPassword') }}</Label>
+          <div class="relative">
+            <Input
+              id="currentPassword"
+              :type="showCurrentPassword ? 'text' : 'password'"
+              autocomplete="current-password"
+              v-model="passwordForm.currentPassword"
+              class="pr-10"
+            />
+            <button
+              type="button"
+              :aria-label="showCurrentPassword ? $t('auth.hidePassword') : $t('auth.showPassword')"
+              class="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+              @click="showCurrentPassword = !showCurrentPassword"
+            >
+              <Eye v-if="!showCurrentPassword" class="w-5 h-5" />
+              <EyeOff v-else class="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <Label for="newPassword">{{ $t('auth.newPassword') }}</Label>
+          <div class="relative">
+            <Input
+              id="newPassword"
+              :type="showNewPassword ? 'text' : 'password'"
+              autocomplete="new-password"
+              v-model="passwordForm.newPassword"
+              class="pr-10"
+            />
+            <button
+              type="button"
+              :aria-label="showNewPassword ? $t('auth.hidePassword') : $t('auth.showPassword')"
+              class="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+              @click="showNewPassword = !showNewPassword"
+            >
+              <Eye v-if="!showNewPassword" class="w-5 h-5" />
+              <EyeOff v-else class="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <Label for="confirmNewPassword">{{ $t('auth.confirmPassword') }}</Label>
+          <Input
+            id="confirmNewPassword"
+            type="password"
+            autocomplete="new-password"
+            v-model="passwordForm.confirmNewPassword"
+          />
+        </div>
+
+        <Button type="submit" :isLoading="isChangingPassword" :disabled="!canSubmitPasswordForm">
+          {{ $t('account.changePassword') }}
+        </Button>
+      </form>
     </div>
   </div>
 </template>
@@ -30,7 +95,10 @@
 import { useUserStore } from '../../../stores/user'
 import { Button } from '@shared-ui/components/ui/button'
 import { AvatarUpload } from '@shared-ui/components/ui/avatar'
-import { ref } from 'vue'
+import { Input } from '@shared-ui/components/ui/input'
+import { Label } from '@shared-ui/components/ui/label'
+import { Eye, EyeOff } from 'lucide-vue-next'
+import { computed, ref } from 'vue'
 import { useEmitter } from '../../../composables/useEmitter'
 import { handleHTTPError } from '@shared-ui/utils/http.js'
 import { EMITTER_EVENTS } from '../../../constants/emitterEvents.js'
@@ -42,6 +110,52 @@ const { t } = useI18n()
 const isSaving = ref(false)
 const userStore = useUserStore()
 const pendingFile = ref(null)
+
+const isChangingPassword = ref(false)
+const showCurrentPassword = ref(false)
+const showNewPassword = ref(false)
+const passwordForm = ref({
+  currentPassword: '',
+  newPassword: '',
+  confirmNewPassword: ''
+})
+
+const canSubmitPasswordForm = computed(() => {
+  return (
+    passwordForm.value.currentPassword &&
+    passwordForm.value.newPassword &&
+    passwordForm.value.confirmNewPassword
+  )
+})
+
+const changePassword = async () => {
+  if (isChangingPassword.value || !canSubmitPasswordForm.value) return
+  if (passwordForm.value.newPassword !== passwordForm.value.confirmNewPassword) {
+    emitter.emit(EMITTER_EVENTS.SHOW_TOAST, {
+      variant: 'destructive',
+      description: t('auth.passwordsDoNotMatch')
+    })
+    return
+  }
+  try {
+    isChangingPassword.value = true
+    await api.changeCurrentUserPassword({
+      current_password: passwordForm.value.currentPassword,
+      new_password: passwordForm.value.newPassword
+    })
+    passwordForm.value = { currentPassword: '', newPassword: '', confirmNewPassword: '' }
+    emitter.emit(EMITTER_EVENTS.SHOW_TOAST, {
+      description: t('account.passwordChanged')
+    })
+  } catch (error) {
+    emitter.emit(EMITTER_EVENTS.SHOW_TOAST, {
+      variant: 'destructive',
+      description: handleHTTPError(error).message
+    })
+  } finally {
+    isChangingPassword.value = false
+  }
+}
 
 const onCropped = (file) => {
   if (isSaving.value) return

@@ -362,6 +362,30 @@ func (u *Manager) ResetPassword(token, password string) (int, error) {
 	return id, nil
 }
 
+// ChangePassword changes a user's own password after verifying their current password.
+func (u *Manager) ChangePassword(id int, currentPassword, newPassword string) error {
+	user, err := u.Get(id, "", []string{models.UserTypeAgent})
+	if err != nil {
+		return err
+	}
+	if err := u.verifyPassword([]byte(currentPassword), user.Password.String); err != nil {
+		return envelope.NewError(envelope.InputError, u.i18n.T("user.invalidCurrentPassword"), nil)
+	}
+	if !IsStrongPassword(newPassword) {
+		return envelope.NewError(envelope.InputError, "Password is not strong enough, "+PasswordHint, nil)
+	}
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		u.lo.Error("error generating bcrypt password", "error", err)
+		return envelope.NewError(envelope.GeneralError, u.i18n.T("globals.messages.somethingWentWrong"), nil)
+	}
+	if _, err := u.q.SetUserPassword.Exec(passwordHash, id); err != nil {
+		u.lo.Error("error setting new password", "error", err)
+		return envelope.NewError(envelope.GeneralError, u.i18n.T("globals.messages.somethingWentWrong"), nil)
+	}
+	return nil
+}
+
 // UpdateAvailability updates the availability status of an user.
 func (u *Manager) UpdateAvailability(id int, status string) error {
 	if _, err := u.q.UpdateAvailability.Exec(id, status); err != nil {
