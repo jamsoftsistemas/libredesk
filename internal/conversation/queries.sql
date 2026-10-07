@@ -565,6 +565,16 @@ SELECT
 FROM conversations
 WHERE conversations.status_id IN (SELECT id FROM conversation_statuses WHERE category = 'open');
 
+-- name: get-sidebar-team-counts
+SELECT
+    assigned_team_id AS team_id,
+    COUNT(*) FILTER (WHERE assigned_user_id IS NOT NULL) AS assigned,
+    COUNT(*) FILTER (WHERE assigned_user_id IS NULL) AS unassigned
+FROM conversations
+WHERE status_id IN (SELECT id FROM conversation_statuses WHERE category = 'open')
+  AND assigned_team_id = ANY($1)
+GROUP BY assigned_team_id;
+
 -- name: get-conversations-count-base
 -- The list-type WHERE clause is appended at %s; view filters are added by BuildFilterQuery.
 SELECT 1

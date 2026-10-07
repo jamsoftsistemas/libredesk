@@ -151,6 +151,14 @@ const viewSidebarCount = (viewID) => {
   return conversationStore.sidebarCounts.views?.[viewID] ?? 0
 }
 
+const teamAssignedCount = (teamID) => {
+  return conversationStore.sidebarCounts.teams?.[teamID]?.assigned ?? 0
+}
+
+const teamUnassignedCount = (teamID) => {
+  return conversationStore.sidebarCounts.teams?.[teamID]?.unassigned ?? 0
+}
+
 onMounted(() => {
   conversationStore.fetchSidebarCounts({ force: true })
 })
@@ -450,6 +458,16 @@ onMounted(() => {
                           @click="navigateToTeamInbox(team.id)"
                         >
                           {{ team.emoji }}<span class="flex-1 truncate" :title="team.name">{{ team.name }}</span>
+                          <SidebarCountBadge
+                            :count="teamUnassignedCount(team.id)"
+                            :ariaLabel="t('conversation.sidebarCounts.teamUnassigned', teamUnassignedCount(team.id))"
+                            :title="t('globals.terms.unassigned')"
+                          />
+                          <SidebarCountBadge
+                            :count="teamAssignedCount(team.id)"
+                            :ariaLabel="t('conversation.sidebarCounts.teamAssigned', teamAssignedCount(team.id))"
+                            :title="t('globals.terms.assigned')"
+                          />
                         </SidebarMenuButton>
                       </SidebarMenuSubItem>
                     </SidebarMenuSub>

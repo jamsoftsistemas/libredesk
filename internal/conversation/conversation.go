@@ -346,6 +346,7 @@ type queries struct {
 	GetConversationParticipantAgents    *sqlx.Stmt `query:"get-conversation-participant-agents"`
 	GetUserActiveConversationsCount     *sqlx.Stmt `query:"get-user-active-conversations-count"`
 	GetSidebarStandardCounts            *sqlx.Stmt `query:"get-sidebar-standard-counts"`
+	GetSidebarTeamCounts                *sqlx.Stmt `query:"get-sidebar-team-counts"`
 	GetConversationsCountBase           string     `query:"get-conversations-count-base"`
 	StartConversationWaitingSince       *sqlx.Stmt `query:"start-conversation-waiting-since"`
 	UpdateConversationReplyTimestamps   *sqlx.Stmt `query:"update-conversation-reply-timestamps"`

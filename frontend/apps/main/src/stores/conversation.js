@@ -44,7 +44,8 @@ export const useConversationStore = defineStore('conversation', () => {
     mentioned: 0,
     unassigned: 0,
     all: 0,
-    views: {}
+    views: {},
+    teams: {}
   })
 
   // Route changes reuse a count younger than the TTL; mutations and WS events pass force.
@@ -71,6 +72,7 @@ export const useConversationStore = defineStore('conversation', () => {
         sidebarCounts.unassigned = data.unassigned || 0
         sidebarCounts.all = data.all || 0
         sidebarCounts.views = data.views || {}
+        sidebarCounts.teams = data.teams || {}
         sidebarCountsFetchedAt = Date.now()
       } catch {
         // The sidebar works without counts.

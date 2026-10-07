@@ -13,6 +13,7 @@ import (
 	"github.com/abhinavxd/libredesk/internal/dbutil"
 	"github.com/abhinavxd/libredesk/internal/envelope"
 	vmodels "github.com/abhinavxd/libredesk/internal/view/models"
+	"github.com/lib/pq"
 )
 
 const sidebarCountsViewBatchSize = 50
@@ -23,12 +24,19 @@ const sidebarCountsScanCap = 100
 
 // GetSidebarCounts returns open counts for the standard inboxes and a count per accessible view.
 func (c *Manager) GetSidebarCounts(viewingUserID int, permissions []string, teamIDs []int, views []vmodels.View) (models.SidebarCounts, error) {
-	out := models.SidebarCounts{Views: map[int]int{}}
+	out := models.SidebarCounts{Views: map[int]int{}, Teams: map[int]models.TeamCounts{}}
 	ctx, cancel := context.WithTimeout(context.Background(), sidebarCountsQueryTimeout)
 	defer cancel()
 
 	if err := c.fillStandardSidebarCounts(ctx, &out, viewingUserID, permissions); err != nil {
 		return out, err
+	}
+
+	if slices.Contains(permissions, authzModels.PermConversationsReadTeamInbox) ||
+		slices.Contains(permissions, authzModels.PermConversationsReadTeamAll) {
+		if err := c.fillTeamSidebarCounts(ctx, &out, teamIDs); err != nil {
+			return out, err
+		}
 	}
 
 	lists := ListsForUserPermissions(permissions)
@@ -93,6 +101,28 @@ func (c *Manager) fillStandardSidebarCounts(ctx context.Context, out *models.Sid
 	}
 	if slices.Contains(permissions, authzModels.PermConversationsReadAll) {
 		out.All = row.All
+	}
+	return nil
+}
+
+// fillTeamSidebarCounts fills per-team open-conversation counts, split into assigned (to an agent) and unassigned.
+func (c *Manager) fillTeamSidebarCounts(ctx context.Context, out *models.SidebarCounts, teamIDs []int) error {
+	if len(teamIDs) == 0 {
+		return nil
+	}
+
+	var rows []struct {
+		TeamID     int `db:"team_id"`
+		Assigned   int `db:"assigned"`
+		Unassigned int `db:"unassigned"`
+	}
+	if err := c.q.GetSidebarTeamCounts.SelectContext(ctx, &rows, pq.Array(teamIDs)); err != nil {
+		c.lo.Error("error fetching sidebar team counts", "error", err)
+		return envelope.NewError(envelope.GeneralError, c.i18n.T("globals.messages.somethingWentWrong"), nil)
+	}
+
+	for _, row := range rows {
+		out.Teams[row.TeamID] = models.TeamCounts{Assigned: row.Assigned, Unassigned: row.Unassigned}
 	}
 	return nil
 }
