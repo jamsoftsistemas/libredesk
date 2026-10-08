@@ -247,6 +247,10 @@
 
             this.defaultIcon = document.createElement('img');
             this.defaultIcon.src = branding.launcher?.logo_url || (this.config.baseURL + DEFAULT_LAUNCHER_LOGO_PATH);
+            // Stop the browser's native image drag from hijacking the launcher drag.
+            this.defaultIcon.draggable = false;
+            this.defaultIcon.style.pointerEvents = 'none';
+            this.defaultIcon.style.userSelect = 'none';
             this.styleLauncherIcon();
             this.iconContainer.appendChild(this.defaultIcon);
 
@@ -326,6 +330,14 @@
                 transition: ${iframeTransition};
                 display: none;
             `;
+
+            this.widgetButtonWrapper.classList.add('libredesk-widget-el');
+            this.iframe.classList.add('libredesk-widget-el');
+
+            // Never include the widget in printed output or PDF exports.
+            this.printStyle = document.createElement('style');
+            this.printStyle.textContent = '@media print{.libredesk-widget-el{display:none !important;visibility:hidden !important}}';
+            document.head.appendChild(this.printStyle);
 
             document.body.appendChild(this.widgetButtonWrapper);
             document.body.appendChild(this.iframe);
@@ -419,6 +431,99 @@
             const side = this.widgetSettings.launcher.position === 'right' ? 'right' : 'left';
             this.widgetButtonWrapper.style.bottom = `${spacing.bottom}px`;
             this.widgetButtonWrapper.style[side] = `${spacing.side}px`;
+            this.restoreLauncherPosition();
+        }
+
+        // While the chat is open the launcher sits at its configured spot (next to the
+        // window); the dragged position is kept in launcherPos and restored on close.
+        applyDefaultLauncherPosition () {
+            const spacing = this.widgetSettings.launcher.spacing;
+            const side = this.widgetSettings.launcher.position === 'right' ? 'right' : 'left';
+            const style = this.widgetButtonWrapper.style;
+            style.top = '';
+            style.left = '';
+            style.right = '';
+            style.bottom = `${spacing.bottom}px`;
+            style[side] = `${spacing.side}px`;
+        }
+
+        launcherStorageKey () {
+            return `libredesk-launcher-pos-${this.config.inboxID}`;
+        }
+
+        // Moves the launcher to a free (left, top) position, clamped to the viewport.
+        // The chat window is unaffected: it always opens on the configured side.
+        placeLauncher (left, top) {
+            const size = this.launcherSize();
+            left = Math.min(Math.max(left, 0), Math.max(window.innerWidth - size, 0));
+            top = Math.min(Math.max(top, 0), Math.max(window.innerHeight - size, 0));
+            const style = this.widgetButtonWrapper.style;
+            style.left = `${left}px`;
+            style.top = `${top}px`;
+            style.right = 'auto';
+            style.bottom = 'auto';
+            this.launcherPos = { left, top };
+        }
+
+        restoreLauncherPosition () {
+            let saved = null;
+            try { saved = JSON.parse(localStorage.getItem(this.launcherStorageKey()) || 'null'); } catch {}
+            if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) {
+                // Stored as viewport ratios so it survives window size changes.
+                this.placeLauncher(saved.x * window.innerWidth, saved.y * window.innerHeight);
+            }
+        }
+
+        setupLauncherDrag () {
+            const DRAG_THRESHOLD = 5;
+            const el = this.toggleButton;
+            el.style.touchAction = 'none';
+            el.style.userSelect = 'none';
+            el.addEventListener('dragstart', (e) => e.preventDefault());
+            let start = null;
+
+            el.addEventListener('pointerdown', (e) => {
+                if (e.button !== undefined && e.button !== 0) return;
+                const rect = this.widgetButtonWrapper.getBoundingClientRect();
+                start = { x: e.clientX, y: e.clientY, left: rect.left, top: rect.top, dragging: false, id: e.pointerId };
+            });
+
+            el.addEventListener('pointermove', (e) => {
+                if (!start || e.pointerId !== start.id) return;
+                const dx = e.clientX - start.x;
+                const dy = e.clientY - start.y;
+                if (!start.dragging) {
+                    if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+                    start.dragging = true;
+                    try { el.setPointerCapture(e.pointerId); } catch {}
+                    el.style.cursor = 'grabbing';
+                    this.toggleButton.style.transition = 'none';
+                }
+                this.placeLauncher(start.left + dx, start.top + dy);
+                if (this.previewHost) this.previewHost.style.display = 'none';
+            });
+
+            const end = (e) => {
+                if (!start || e.pointerId !== start.id) return;
+                const wasDragging = start.dragging;
+                start = null;
+                if (!wasDragging) return;
+                el.style.cursor = 'pointer';
+                el.style.transition = 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                // Swallow the click that follows a drag so it doesn't toggle the chat.
+                this._suppressClick = true;
+                setTimeout(() => { this._suppressClick = false; }, 0);
+                try {
+                    localStorage.setItem(this.launcherStorageKey(), JSON.stringify({
+                        x: this.launcherPos.left / window.innerWidth,
+                        y: this.launcherPos.top / window.innerHeight
+                    }));
+                } catch {}
+                this.previewSignature = '';
+                this.renderPreviews();
+            };
+            el.addEventListener('pointerup', end);
+            el.addEventListener('pointercancel', end);
         }
 
         applyIframeLayout () {
@@ -530,7 +635,11 @@
         }
 
         setupEventListeners () {
-            this.toggleButton.addEventListener('click', () => this.toggle());
+            this.setupLauncherDrag();
+            this.toggleButton.addEventListener('click', () => {
+                if (this._suppressClick) return;
+                this.toggle();
+            });
             this.toggleButton.addEventListener('mouseenter', () => {
                 this.isLauncherHovered = true;
                 this.applyLauncherScale();
@@ -545,6 +654,7 @@
         handleResize () {
             const wasMobile = this.isMobile;
             this.sendMobileState();
+            if (this.launcherPos && !this.isChatVisible) this.placeLauncher(this.launcherPos.left, this.launcherPos.top);
             this.renderPreviews();
             if (this.isChatVisible && wasMobile !== this.isMobile) {
                 this.applyIframeLayout();
@@ -605,6 +715,7 @@
             this.isChatVisible = true;
             this.renderPreviews();
 
+            if (this.launcherPos) this.applyDefaultLauncherPosition();
             this.iframe.style.display = 'block';
             this.applyIframeLayout();
             this.updateLauncherVisibility();
@@ -625,6 +736,7 @@
 
             this.iframe.style.display = 'none';
             this.isChatVisible = false;
+            if (this.launcherPos) this.placeLauncher(this.launcherPos.left, this.launcherPos.top);
             this.renderPreviews();
             this.applyLauncherScale();
             this.updateLauncherVisibility();
@@ -767,10 +879,26 @@
             this.previewHost = null;
             if (!previews.length) return;
             const host = document.createElement('div');
+            host.classList.add('libredesk-widget-el');
             const side = this.widgetSettings.launcher.position === 'left' ? 'left' : 'right';
             const spacing = this.widgetSettings.launcher.spacing;
             Object.assign(host.style, { position: 'fixed', zIndex: '9998', bottom: `${spacing.bottom + this.launcherSize() + 12}px`, [side]: `${spacing.side}px`, width: `min(340px, calc(100vw - ${spacing.side * 2}px))` });
-            host.style.setProperty('--align', side === 'left' ? 'flex-start' : 'flex-end');
+            let align = side === 'left' ? 'flex-start' : 'flex-end';
+            if (this.launcherPos) {
+                // Anchor previews to the dragged launcher, above it, aligned to its nearer screen edge.
+                const { left, top } = this.launcherPos;
+                const size = this.launcherSize();
+                const onLeftHalf = left + size / 2 < window.innerWidth / 2;
+                host.style.top = '';
+                host.style.left = onLeftHalf ? `${Math.max(left, 8)}px` : '';
+                host.style.right = onLeftHalf ? '' : `${Math.max(window.innerWidth - left - size, 8)}px`;
+                host.style.bottom = `${window.innerHeight - top + 12}px`;
+                host.style.maxHeight = `${Math.max(top - 20, 0)}px`;
+                host.style.overflow = 'hidden';
+                host.style.width = 'min(340px, calc(100vw - 16px))';
+                align = onLeftHalf ? 'flex-start' : 'flex-end';
+            }
+            host.style.setProperty('--align', align);
             host.style.setProperty('--muted', data.theme.muted || data.theme.foreground);
             const root = host.attachShadow({ mode: 'open' });
             const style = document.createElement('style');
@@ -913,6 +1041,8 @@
                 document.body.removeChild(this.iframe);
                 this.iframe = null;
             }
+            this.printStyle?.remove();
+            this.printStyle = null;
             this.isChatVisible = false;
             this._onShowCallback = null;
             this._onHideCallback = null;
