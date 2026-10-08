@@ -106,7 +106,10 @@ func (t *searchArticlesTool) Execute(ctx context.Context, args string) (string, 
 		return "No query provided.", nil
 	}
 
-	results, err := t.m.Search(ctx, in.Query, 5)
+	// A wider top-k gives the model more candidates to weigh instead of forcing an answer out of
+	// whichever 5 chunks happened to score highest, which goes shallow on questions a single
+	// chunk only partially answers.
+	results, err := t.m.Search(ctx, in.Query, 10)
 	if err != nil {
 		return "", err
 	}
@@ -116,7 +119,7 @@ func (t *searchArticlesTool) Execute(ctx context.Context, args string) (string, 
 
 	var b strings.Builder
 	for i, r := range results {
-		fmt.Fprintf(&b, "[%d] (relevance %.2f)\n%s\n\n", i+1, r.Score, r.ChunkText)
+		fmt.Fprintf(&b, "[%d] (source: %s #%d, relevance %.2f)\n%s\n\n", i+1, r.SourceType, r.SourceID, r.Score, r.ChunkText)
 	}
 	return b.String(), nil
 }

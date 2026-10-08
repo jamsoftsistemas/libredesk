@@ -772,6 +772,7 @@
   "conversation.bulkActions.failedToast": "Some conversations couldn't be updated",
   "conversation.bulkActions.selectAll": "Select all conversations",
   "conversation.bulkActions.selectConversation": "Select conversation",
+  "conversation.closedReadOnly": "This conversation is closed and can no longer be edited",
   "conversation.bulkActions.selected": "No conversations selected | 1 selected | {count} selected",
   "conversation.bulkActions.successToast": "Conversations updated",
   "conversation.bulkActions.toolbar": "Bulk actions toolbar",

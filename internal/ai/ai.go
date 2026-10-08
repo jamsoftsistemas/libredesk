@@ -70,7 +70,9 @@ type Manager struct {
 	// tagGen is bumped on every tag vector purge; an in-flight tag reindex only commits if its gen is still current.
 	tagGen atomic.Uint64
 	// embedSem caps concurrent background embed jobs.
-	embedSem           chan struct{}
+	embedSem chan struct{}
+	// queryCache caches single-text query embeddings (RAG search, tag shortlisting); cleared on embedding provider config changes.
+	queryCache         *queryEmbedCache
 	httpClient         *http.Client
 	toolHTTPClient     *http.Client
 	providerHTTPClient *http.Client
@@ -156,6 +158,7 @@ func New(opts Opts) (*Manager, error) {
 		gen:           make(map[genKey]uint64),
 		pendingRuns:   make(map[string]*pendingAgentRun),
 		embedSem:      make(chan struct{}, maxConcurrentEmbeds),
+		queryCache:    newQueryEmbedCache(queryEmbedCacheSize, queryEmbedCacheTTL),
 		httpClient: &http.Client{
 			Timeout:   20 * time.Second,
 			Transport: transport,
@@ -215,16 +218,24 @@ func (m *Manager) CompletionRaw(ctx context.Context, systemPrompt, userPrompt st
 	return response, nil
 }
 
-// GetEmbeddings returns the embedding vector for text using the embedding provider.
+// GetEmbeddings returns the embedding vector for text using the embedding provider, serving
+// repeated query text (RAG search, tag shortlisting) from an in-process cache instead of
+// re-calling the provider.
 func (m *Manager) GetEmbeddings(ctx context.Context, text string) ([]float32, error) {
-	client, err := m.getProviderClient(models.ProviderTypeEmbedding)
+	cfg, err := m.getProviderConfig(models.ProviderTypeEmbedding)
 	if err != nil {
 		return nil, err
 	}
+	key := embedCacheKey(cfg.BaseURL, cfg.Model, cfg.Dimensions, text)
+	if vec, ok := m.queryCache.get(key); ok {
+		return vec, nil
+	}
+	client := NewOpenAIClient(cfg, m.lo, m.providerHTTPClient)
 	vec, err := client.GetEmbeddings(ctx, text)
 	if err != nil {
 		return nil, m.providerError(err)
 	}
+	m.queryCache.put(key, vec)
 	return vec, nil
 }
 
@@ -368,11 +379,17 @@ func (m *Manager) UpdateProviderConfig(providerType string, in models.ProviderCo
 		return envelope.NewError(envelope.GeneralError, m.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}
 
-	// A changed embedding model, dimension count, or backend URL produces vectors incomparable to the stored ones.
-	if providerType == models.ProviderTypeEmbedding && (existing.Model != cfg.Model || existing.Dimensions != cfg.Dimensions || existing.BaseURL != cfg.BaseURL) {
-		m.lo.Info("embedding provider changed, reindexing knowledge base", "old_model", existing.Model, "new_model", cfg.Model, "old_base_url", existing.BaseURL, "new_base_url", cfg.BaseURL)
-		m.purgeTagEmbeddings()
-		m.ReindexAll()
+	if providerType == models.ProviderTypeEmbedding {
+		// The cache key already scopes to base URL/model/dimensions, so a stale vector can never be
+		// served under a reused key; clearing here just frees it promptly instead of waiting out the TTL.
+		m.queryCache.clear()
+
+		// A changed embedding model, dimension count, or backend URL produces vectors incomparable to the stored ones.
+		if existing.Model != cfg.Model || existing.Dimensions != cfg.Dimensions || existing.BaseURL != cfg.BaseURL {
+			m.lo.Info("embedding provider changed, reindexing knowledge base", "old_model", existing.Model, "new_model", cfg.Model, "old_base_url", existing.BaseURL, "new_base_url", cfg.BaseURL)
+			m.purgeTagEmbeddings()
+			m.ReindexAll()
+		}
 	}
 	return nil
 }

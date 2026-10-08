@@ -767,6 +767,7 @@
   "conversation.bulkActions.failedToast": "Não foi possível atualizar algumas conversas",
   "conversation.bulkActions.selectAll": "Ver todas as conversas",
   "conversation.bulkActions.selectConversation": "Selecionar conversas",
+  "conversation.closedReadOnly": "Esta conversa está fechada e não pode mais ser editada",
   "conversation.bulkActions.selected": "Nenhuma conversa selecionada | 1 selecionado | {count} Selecionado",
   "conversation.bulkActions.successToast": "Conversas atualizadas",
   "conversation.bulkActions.toolbar": "Barra de ferramentas de ações em massa",

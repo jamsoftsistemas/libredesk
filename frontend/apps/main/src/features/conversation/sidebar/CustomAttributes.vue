@@ -22,7 +22,7 @@
       <div class="sidebar-label flex items-center gap-2" v-else>
         <Checkbox
           v-if="attribute.data_type === 'checkbox'"
-          :disabled="loading"
+          :disabled="loading || readOnly"
           @update:checked="
             (value) => {
               editingValue = value
@@ -53,7 +53,10 @@
           <span class="sidebar-value break-all" v-if="attribute.data_type !== 'checkbox'">
             {{ customAttributes?.[attribute.key] ?? '-' }}
           </span>
-          <div class="flex items-center gap-0.5 transition-opacity duration-200 flex-shrink-0 can-hover:opacity-0 can-hover:group-hover/item:opacity-100">
+          <div
+            v-if="!readOnly"
+            class="flex items-center gap-0.5 transition-opacity duration-200 flex-shrink-0 can-hover:opacity-0 can-hover:group-hover/item:opacity-100"
+          >
             <button
               class="p-1 rounded-md hover:bg-muted cursor-pointer transition-colors"
               @click="startEditing(attribute)"
@@ -157,6 +160,10 @@ const props = defineProps({
   loading: {
     type: Boolean,
     default: false
+  },
+  readOnly: {
+    type: Boolean,
+    default: false
   }
 })
 const emit = defineEmits(['update:setattributes'])
@@ -166,6 +173,7 @@ const editingAttributeKey = ref(null)
 const editingValue = ref(null)
 
 const startEditing = (attribute) => {
+  if (props.readOnly) return
   errorMessage.value = ''
   editingAttributeKey.value = attribute.key
   const currentValue = props.customAttributes?.[attribute.key]
@@ -233,6 +241,7 @@ const getValidationSchema = (attribute) => {
 }
 
 const saveAttribute = (key) => {
+  if (props.readOnly) return
   const attribute = props.attributes.find((attr) => attr.key === key)
   if (!attribute) return
 
@@ -255,6 +264,7 @@ const saveAttribute = (key) => {
 }
 
 const deleteAttribute = (attribute) => {
+  if (props.readOnly) return
   const updatedAttributes = { ...(props.customAttributes || {}) }
   delete updatedAttributes[attribute.key]
   emit('update:setattributes', updatedAttributes)

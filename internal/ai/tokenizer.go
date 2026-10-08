@@ -64,6 +64,30 @@ func capToTokens(s string, maxTokens int) string {
 	return strings.ToValidUTF8(encoder.Decode(toks[:maxTokens]), "")
 }
 
+// lastTokens returns the final maxTokens tokens of s. A long transcript's most recent messages
+// define its current topic; capToTokens keeps the head instead and would anchor retrieval to
+// whatever was said first, which drifts from the issue actually being discussed as a thread grows.
+func lastTokens(s string, maxTokens int) string {
+	if maxTokens <= 0 {
+		return ""
+	}
+	if encoder == nil {
+		if len(s) <= maxTokens {
+			return s
+		}
+		start := len(s) - maxTokens
+		for start < len(s) && !utf8.RuneStart(s[start]) {
+			start++
+		}
+		return s[start:]
+	}
+	toks := encoder.Encode(s, nil, nil)
+	if len(toks) <= maxTokens {
+		return s
+	}
+	return strings.ToValidUTF8(encoder.Decode(toks[len(toks)-maxTokens:]), "")
+}
+
 func trimToRuneBoundary(s string, n int) string {
 	if len(s) <= n {
 		return s

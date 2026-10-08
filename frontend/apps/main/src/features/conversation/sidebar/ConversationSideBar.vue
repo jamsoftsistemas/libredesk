@@ -15,11 +15,16 @@
 
           <!-- Agent, team, priority, and tags assignment -->
           <AccordionContent class="accordion-content--actions">
+            <p v-if="isReadOnly" class="flex items-center gap-1.5 text-xs text-muted-foreground -mt-1 mb-1">
+              <Lock class="h-3 w-3 flex-shrink-0" />
+              {{ t('conversation.closedReadOnly') }}
+            </p>
             <div>
               <SelectAgentCombobox
                 v-model="conversationStore.current.assigned_user_id"
                 include-none
                 current-user-first
+                :disabled="isReadOnly"
                 @select="selectAgent"
               />
             </div>
@@ -28,6 +33,7 @@
               <SelectTeamCombobox
                 :model-value="conversationStore.current.assigned_team_id"
                 include-none
+                :disabled="isReadOnly"
                 @select="selectTeam"
               />
             </div>
@@ -37,12 +43,13 @@
                 v-model="conversationStore.current.priority_id"
                 :items="priorityOptions"
                 :placeholder="t('placeholders.selectPriority')"
+                :disabled="isReadOnly"
                 @select="selectPriority"
                 type="priority"
               />
             </div>
 
-            <div v-if="conversationStore.current">
+            <div v-if="conversationStore.current" :class="{ 'pointer-events-none opacity-60': isReadOnly }">
               <SelectTagCombobox
                 multiple
                 keep-open-on-select
@@ -57,7 +64,7 @@
                   variant="ghost"
                   size="sm"
                   class="h-6 gap-1 px-2 text-xs text-muted-foreground"
-                  :disabled="isSuggestingTags"
+                  :disabled="isSuggestingTags || isReadOnly"
                   @click="suggestTags"
                 >
                   <Loader2 v-if="isSuggestingTags" class="h-3 w-3 animate-spin" />
@@ -103,6 +110,7 @@
               :loading="conversationStore.current.loading"
               :attributes="customAttributeStore.contactAttributeOptions"
               :customAttributes="conversationStore.current?.contact?.custom_attributes || {}"
+              :read-only="isReadOnly"
               @update:setattributes="updateContactCustomAttributes"
             />
           </AccordionContent>
@@ -156,7 +164,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { Sparkles, Loader2, Plus } from 'lucide-vue-next'
+import { Sparkles, Loader2, Plus, Lock } from 'lucide-vue-next'
 import { Button } from '@shared-ui/components/ui/button'
 import { useConversationStore } from '@/stores/conversation'
 import { useUserStore } from '@/stores/user'
@@ -185,7 +193,7 @@ import SelectComboBox from '@main/components/combobox/SelectCombobox.vue'
 import SelectAgentCombobox from '@main/components/combobox/SelectAgentCombobox.vue'
 import SelectTeamCombobox from '@main/components/combobox/SelectTeamCombobox.vue'
 import SelectTagCombobox from '@main/components/combobox/SelectTagCombobox.vue'
-import { TAG_ACTION } from '@/constants/conversation'
+import { TAG_ACTION, CONVERSATION_DEFAULT_STATUSES } from '@/constants/conversation'
 import api from '@/api'
 
 const customAttributeStore = useCustomAttributeStore()
@@ -197,7 +205,14 @@ const activeTab = useStorage('conversation-sidebar-tab', 'details')
 const { t } = useI18n()
 customAttributeStore.fetchCustomAttributes()
 
+const isReadOnly = computed(
+  () =>
+    conversationStore.current?.status === CONVERSATION_DEFAULT_STATUSES.CLOSED &&
+    !userStore.hasAdminRole
+)
+
 const onTagsChange = (newTags) => {
+  if (isReadOnly.value) return
   const conv = conversationStore.current
   if (!conv) return
   const current = conv.tags || []
@@ -217,6 +232,7 @@ watch(
 )
 
 const suggestTags = async () => {
+  if (isReadOnly.value) return
   const conv = conversationStore.current
   if (!conv || isSuggestingTags.value) return
   const uuid = conv.uuid
@@ -252,6 +268,7 @@ onMounted(() => emitter.on(EMITTER_EVENTS.CONVERSATION_ACTION, onPaletteAction))
 onUnmounted(() => emitter.off(EMITTER_EVENTS.CONVERSATION_ACTION, onPaletteAction))
 
 const applySuggestedTag = (tag) => {
+  if (isReadOnly.value) return
   const conv = conversationStore.current
   if (!conv) return
   const current = conv.tags || []
@@ -282,6 +299,7 @@ const handlePriorityChange = (priority) => {
 }
 
 const selectAgent = (agent) => {
+  if (isReadOnly.value) return
   if (agent.value === 'none') {
     handleRemoveAssignee('user')
     return
@@ -291,6 +309,7 @@ const selectAgent = (agent) => {
 }
 
 const selectTeam = (team) => {
+  if (isReadOnly.value) return
   if (team.value === 'none') {
     handleRemoveAssignee('team')
     return
@@ -299,12 +318,14 @@ const selectTeam = (team) => {
 }
 
 const selectPriority = (priority) => {
+  if (isReadOnly.value) return
   conversationStore.current.priority = priority.label
   conversationStore.current.priority_id = priority.value
   handlePriorityChange(priority.label)
 }
 
 const updateContactCustomAttributes = async (attributes) => {
+  if (isReadOnly.value) return
   let previousAttributes = conversationStore.current.contact.custom_attributes
   try {
     conversationStore.current.contact.custom_attributes = attributes

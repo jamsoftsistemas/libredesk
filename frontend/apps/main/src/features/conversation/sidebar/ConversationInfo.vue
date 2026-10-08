@@ -100,6 +100,7 @@
       :loading="conversationStore.conversation.loading"
       :attributes="customAttributeStore.conversationAttributeOptions"
       :custom-attributes="conversation.custom_attributes || {}"
+      :read-only="isReadOnly"
       @update:setattributes="updateCustomAttributes"
     />
 
@@ -146,6 +147,8 @@ import { useEmitter } from '@main/composables/useEmitter'
 import { handleHTTPError } from '@shared-ui/utils/http.js'
 import { csatRatingEmoji, csatRatingLabel } from '@shared-ui/utils/csat.js'
 import { useInboxStore } from '@main/stores/inbox'
+import { useUserStore } from '@main/stores/user'
+import { CONVERSATION_DEFAULT_STATUSES } from '@main/constants/conversation'
 import api from '@main/api'
 import { useI18n } from 'vue-i18n'
 
@@ -154,7 +157,11 @@ const { t } = useI18n()
 const customAttributeStore = useCustomAttributeStore()
 const conversationStore = useConversationStore()
 const inboxStore = useInboxStore()
+const userStore = useUserStore()
 const conversation = computed(() => conversationStore.current)
+const isReadOnly = computed(
+  () => conversation.value?.status === CONVERSATION_DEFAULT_STATUSES.CLOSED && !userStore.hasAdminRole
+)
 
 const channelIcon = computed(() => CHANNEL_ICONS[conversation.value?.inbox_channel] || Mail)
 const csatRatingOverrides = computed(() => {
@@ -167,6 +174,7 @@ const feedbackExpanded = ref(false)
 const isFeedbackLong = computed(() => (conversation.value?.csat_feedback?.length || 0) > 160)
 
 const updateCustomAttributes = async (attributes) => {
+  if (isReadOnly.value) return
   let previousAttributes = conversationStore.current.custom_attributes
   try {
     conversationStore.current.custom_attributes = attributes

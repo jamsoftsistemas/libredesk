@@ -564,7 +564,7 @@ func handleUpdateUserAssignee(r *fastglue.Request) error {
 		return sendErrorEnvelope(r, err)
 	}
 
-	conversation, err := enforceConversationAccess(app, uuid, user)
+	conversation, err := enforceConversationEditAccess(app, uuid, user)
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}
@@ -607,7 +607,7 @@ func handleUpdateTeamAssignee(r *fastglue.Request) error {
 		return sendErrorEnvelope(r, err)
 	}
 
-	conversation, err := enforceConversationAccess(app, uuid, user)
+	conversation, err := enforceConversationEditAccess(app, uuid, user)
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}
@@ -646,7 +646,7 @@ func handleUpdateConversationPriority(r *fastglue.Request) error {
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}
-	_, err = enforceConversationAccess(app, uuid, user)
+	_, err = enforceConversationEditAccess(app, uuid, user)
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}
@@ -736,7 +736,7 @@ func handleUpdateConversationtags(r *fastglue.Request) error {
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}
-	_, err = enforceConversationAccess(app, uuid, user)
+	_, err = enforceConversationEditAccess(app, uuid, user)
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}
@@ -765,7 +765,7 @@ func handleUpdateConversationCustomAttributes(r *fastglue.Request) error {
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}
-	_, err = enforceConversationAccess(app, uuid, user)
+	_, err = enforceConversationEditAccess(app, uuid, user)
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}
@@ -795,7 +795,7 @@ func handleUpdateContactCustomAttributes(r *fastglue.Request) error {
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}
-	conversation, err := enforceConversationAccess(app, uuid, user)
+	conversation, err := enforceConversationEditAccess(app, uuid, user)
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}
@@ -823,6 +823,19 @@ func enforceConversationAccess(app *App, uuid string, user umodels.User) (*cmode
 	return &conversation, nil
 }
 
+// enforceConversationEditAccess enforces conversation access and additionally blocks non-admins
+// from editing a closed conversation (assignees, priority, tags, custom attributes).
+func enforceConversationEditAccess(app *App, uuid string, user umodels.User) (*cmodels.Conversation, error) {
+	conversation, err := enforceConversationAccess(app, uuid, user)
+	if err != nil {
+		return nil, err
+	}
+	if conversation.Status.String == cmodels.StatusClosed && !user.HasAdminRole() {
+		return nil, envelope.NewError(envelope.PermissionError, app.i18n.T("conversation.closedReadOnly"), nil)
+	}
+	return conversation, nil
+}
+
 // handleRemoveUserAssignee removes the user assigned to a conversation.
 func handleRemoveUserAssignee(r *fastglue.Request) error {
 	var (
@@ -834,7 +847,7 @@ func handleRemoveUserAssignee(r *fastglue.Request) error {
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}
-	_, err = enforceConversationAccess(app, uuid, user)
+	_, err = enforceConversationEditAccess(app, uuid, user)
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}
@@ -855,7 +868,7 @@ func handleRemoveTeamAssignee(r *fastglue.Request) error {
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}
-	_, err = enforceConversationAccess(app, uuid, user)
+	_, err = enforceConversationEditAccess(app, uuid, user)
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}
