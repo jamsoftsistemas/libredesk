@@ -50,10 +50,15 @@ const (
 	deadlineRecomputeBatchSize = 500
 )
 
-var metricLabels = map[string]string{
-	MetricFirstResponse: "First response",
-	MetricResolution:    "Resolution",
-	MetricNextResponse:  "Next response",
+var metricLabelI18nKeys = map[string]string{
+	MetricFirstResponse: "sla.metric.firstResponse",
+	MetricResolution:    "sla.metric.resolution",
+	MetricNextResponse:  "sla.metric.nextResponse",
+}
+
+var notificationTypeI18nKeys = map[string]string{
+	NotificationTypeWarning: "globals.terms.warning",
+	NotificationTypeBreach:  "globals.terms.breach",
 }
 
 var metricNotificationTypes = map[string]struct{ warning, breach nmodels.NotificationType }{
@@ -723,8 +728,8 @@ func (m *Manager) SendNotification(scheduledNotification models.ScheduledSLANoti
 
 		// Set the metric label.
 		var metricLabel string
-		if label, ok := metricLabels[scheduledNotification.Metric]; ok {
-			metricLabel = label
+		if key, ok := metricLabelI18nKeys[scheduledNotification.Metric]; ok {
+			metricLabel = m.i18n.T(key)
 		}
 
 		// Render the email template.
@@ -766,8 +771,13 @@ func (m *Manager) SendNotification(scheduledNotification models.ScheduledSLANoti
 			notifType = metricNotificationTypes[scheduledNotification.Metric].breach
 		}
 
+		notificationTypeLabel := scheduledNotification.NotificationType
+		if key, ok := notificationTypeI18nKeys[scheduledNotification.NotificationType]; ok {
+			notificationTypeLabel = m.i18n.T(key)
+		}
+
 		notificationTitle := m.i18n.Ts("notification.slaAlert",
-			"type", scheduledNotification.NotificationType,
+			"type", notificationTypeLabel,
 			"metric", metricLabel,
 			"referenceNumber", appliedSLA.ConversationReferenceNumber)
 

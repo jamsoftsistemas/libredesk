@@ -20,6 +20,7 @@ import (
 	"github.com/abhinavxd/libredesk/internal/attachment"
 	bhmodels "github.com/abhinavxd/libredesk/internal/business_hours/models"
 	cmodels "github.com/abhinavxd/libredesk/internal/conversation/models"
+	cstatusmodels "github.com/abhinavxd/libredesk/internal/conversation/status/models"
 	"github.com/abhinavxd/libredesk/internal/envelope"
 	"github.com/abhinavxd/libredesk/internal/inbox/channel/livechat"
 	"github.com/abhinavxd/libredesk/internal/inbox/channel/livechat/proactive"
@@ -946,8 +947,14 @@ func checkConversationPermissions(app *App, config livechat.Config, isVisitor bo
 			app.lo.Error("error fetching "+userTypeLabel(isVisitor)+" conversations", "contact_id", contactID, "error", err)
 			return envelope.NewError(envelope.GeneralError, "Error checking existing conversations", nil)
 		}
-		if len(conversations) > 0 {
-			app.lo.Info(userTypeLabel(isVisitor)+" attempted to start new conversation but already has one", "contact_id", contactID, "conversations_count", len(conversations))
+		openConversationsCount := 0
+		for _, conversation := range conversations {
+			if conversation.StatusCategory != cstatusmodels.CategoryResolved {
+				openConversationsCount++
+			}
+		}
+		if openConversationsCount > 0 {
+			app.lo.Info(userTypeLabel(isVisitor)+" attempted to start new conversation but already has one", "contact_id", contactID, "conversations_count", openConversationsCount)
 			return envelope.NewError(envelope.PermissionError, "Multiple conversations are not allowed", nil)
 		}
 	}

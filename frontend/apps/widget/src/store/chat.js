@@ -31,6 +31,9 @@ export const useChatStore = defineStore('chat', () => {
     () => getCurrentConversationMessages.value.at(-1) || null
   )
   const hasConversations = computed(() => conversations.value?.length > 0)
+  const hasOpenConversations = computed(() =>
+    (conversations.value || []).some((conversation) => conversation.status_category !== 'resolved')
+  )
   const getConversations = computed(() => {
     if (conversations.value) {
       return conversations.value.sort(
@@ -279,6 +282,7 @@ export const useChatStore = defineStore('chat', () => {
     getCurrentConversationMessages,
     getCurrentConversationLastMessage,
     hasConversations,
+    hasOpenConversations,
     getConversations,
 
     addMessageToConversation,

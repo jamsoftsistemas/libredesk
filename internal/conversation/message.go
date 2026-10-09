@@ -902,6 +902,25 @@ func (m *Manager) getConversationUUIDFromMessageUUID(uuid string) (string, error
 	return conversationUUID, nil
 }
 
+// defaultStatusI18nKeys maps the known default conversation statuses to their i18n keys.
+// Custom statuses an admin creates have no key here and are shown as stored.
+var defaultStatusI18nKeys = map[string]string{
+	models.StatusOpen:     "conversationStatus.open",
+	models.StatusSnoozed:  "conversationStatus.snoozed",
+	models.StatusResolved: "conversationStatus.resolved",
+	models.StatusClosed:   "conversationStatus.closed",
+}
+
+// translateStatusLabel returns the translated display label for a default conversation
+// status, or the value itself if it isn't one of the known defaults.
+func (m *Manager) translateStatusLabel(status string) string {
+	key, ok := defaultStatusI18nKeys[status]
+	if !ok {
+		return status
+	}
+	return m.i18n.T(key)
+}
+
 // getMessageActivityContent generates activity content based on the activity type.
 func (m *Manager) getMessageActivityContent(activityType, newValue, actorName string) (string, error) {
 	var content = ""
@@ -919,7 +938,7 @@ func (m *Manager) getMessageActivityContent(activityType, newValue, actorName st
 	case models.ActivityPriorityChange:
 		content = m.i18n.Ts("conversation.activity.priorityChange", "actor", actorName, "priority", newValue)
 	case models.ActivityStatusChange:
-		content = m.i18n.Ts("conversation.activity.statusChange", "actor", actorName, "status", newValue)
+		content = m.i18n.Ts("conversation.activity.statusChange", "actor", actorName, "status", m.translateStatusLabel(newValue))
 	case models.ActivityTagAdded:
 		content = m.i18n.Ts("conversation.activity.tagAdded", "actor", actorName, "tag", newValue)
 	case models.ActivityTagRemoved:

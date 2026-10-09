@@ -18,7 +18,8 @@ export function useStartConversation () {
   const canStartNewConversation = computed(() => {
     if (!audienceConfig.value?.allow_start_conversation) return false
     return (
-      audienceConfig.value?.prevent_multiple_conversations !== true || !chatStore.hasConversations
+      audienceConfig.value?.prevent_multiple_conversations !== true ||
+      !chatStore.hasOpenConversations
     )
   })
 
