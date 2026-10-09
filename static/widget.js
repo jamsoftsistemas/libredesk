@@ -304,6 +304,7 @@
             widgetButtonWrapper.style.cssText = `
                 position: fixed;
                 z-index: 9999;
+                transition: left 0.25s ease, top 0.25s ease, right 0.25s ease, bottom 0.25s ease;
             `;
 
             widgetButtonWrapper.appendChild(this.toggleButton);
@@ -468,10 +469,32 @@
         restoreLauncherPosition () {
             let saved = null;
             try { saved = JSON.parse(localStorage.getItem(this.launcherStorageKey()) || 'null'); } catch {}
-            if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) {
-                // Stored as viewport ratios so it survives window size changes.
-                this.placeLauncher(saved.x * window.innerWidth, saved.y * window.innerHeight);
+            if (saved && (saved.h === 'left' || saved.h === 'right') && (saved.v === 'top' || saved.v === 'bottom')) {
+                this.placeLauncherAtCorner(saved);
             }
+        }
+
+        // Which corner (h: left/right, v: top/bottom) the launcher is closest to,
+        // based on its center point relative to the viewport center.
+        nearestCorner (left, top) {
+            const size = this.launcherSize();
+            const centerX = left + size / 2;
+            const centerY = top + size / 2;
+            return {
+                h: centerX < window.innerWidth / 2 ? 'left' : 'right',
+                v: centerY < window.innerHeight / 2 ? 'top' : 'bottom'
+            };
+        }
+
+        // Snaps the launcher flush into the given corner, so it never ends up
+        // stranded mid-screen after the viewport is resized.
+        placeLauncherAtCorner (corner) {
+            const spacing = this.widgetSettings.launcher.spacing;
+            const size = this.launcherSize();
+            const left = corner.h === 'left' ? spacing.side : window.innerWidth - size - spacing.side;
+            const top = corner.v === 'top' ? spacing.side : window.innerHeight - size - spacing.bottom;
+            this.placeLauncher(left, top);
+            this.launcherCorner = corner;
         }
 
         setupLauncherDrag () {
@@ -498,6 +521,7 @@
                     try { el.setPointerCapture(e.pointerId); } catch {}
                     el.style.cursor = 'grabbing';
                     this.toggleButton.style.transition = 'none';
+                    this.widgetButtonWrapper.style.transition = 'none';
                 }
                 this.placeLauncher(start.left + dx, start.top + dy);
                 if (this.previewHost) this.previewHost.style.display = 'none';
@@ -510,14 +534,15 @@
                 if (!wasDragging) return;
                 el.style.cursor = 'pointer';
                 el.style.transition = 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                this.widgetButtonWrapper.style.transition = 'left 0.25s ease, top 0.25s ease, right 0.25s ease, bottom 0.25s ease';
                 // Swallow the click that follows a drag so it doesn't toggle the chat.
                 this._suppressClick = true;
                 setTimeout(() => { this._suppressClick = false; }, 0);
+                // Snap to whichever corner the launcher was dropped nearest to, so it
+                // always rests in a predictable spot instead of floating mid-screen.
+                this.placeLauncherAtCorner(this.nearestCorner(this.launcherPos.left, this.launcherPos.top));
                 try {
-                    localStorage.setItem(this.launcherStorageKey(), JSON.stringify({
-                        x: this.launcherPos.left / window.innerWidth,
-                        y: this.launcherPos.top / window.innerHeight
-                    }));
+                    localStorage.setItem(this.launcherStorageKey(), JSON.stringify(this.launcherCorner));
                 } catch {}
                 this.previewSignature = '';
                 this.renderPreviews();
@@ -654,7 +679,7 @@
         handleResize () {
             const wasMobile = this.isMobile;
             this.sendMobileState();
-            if (this.launcherPos && !this.isChatVisible) this.placeLauncher(this.launcherPos.left, this.launcherPos.top);
+            if (this.launcherCorner && !this.isChatVisible) this.placeLauncherAtCorner(this.launcherCorner);
             this.renderPreviews();
             if (this.isChatVisible && wasMobile !== this.isMobile) {
                 this.applyIframeLayout();
