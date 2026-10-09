@@ -367,7 +367,9 @@ export const useConversationStore = defineStore('conversation', () => {
       case CONVERSATION_LIST_TYPE.ASSIGNED:
         return conv.assigned_user_id === userStore.userID
       case CONVERSATION_LIST_TYPE.UNASSIGNED:
-        return !conv.assigned_user_id || !conv.assigned_team_id
+        if (conv.assigned_user_id) return false
+        if (!conv.assigned_team_id) return true
+        return userStore.teams.some((team) => Number(team.id) === Number(conv.assigned_team_id))
       case CONVERSATION_LIST_TYPE.TEAM_UNASSIGNED:
         if (Number(conv.assigned_team_id) !== Number(conversations.teamID)) return false
         if (userStore.can(PERMISSIONS.CONVERSATIONS_READ_TEAM_ALL)) return true

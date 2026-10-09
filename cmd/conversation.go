@@ -157,7 +157,7 @@ func handleGetAssignedConversations(r *fastglue.Request) error {
 func handleGetUnassignedConversations(r *fastglue.Request) error {
 	var (
 		app     = r.Context.(*App)
-		user    = r.RequestCtx.UserValue("user").(amodels.User)
+		auser   = r.RequestCtx.UserValue("user").(amodels.User)
 		order   = string(r.RequestCtx.QueryArgs().Peek("order"))
 		orderBy = string(r.RequestCtx.QueryArgs().Peek("order_by"))
 		filters = string(r.RequestCtx.QueryArgs().Peek("filters"))
@@ -165,7 +165,12 @@ func handleGetUnassignedConversations(r *fastglue.Request) error {
 	)
 	page, pageSize := getPagination(r)
 
-	conversations, err := app.conversation.GetUnassignedConversationsList(user.ID, order, orderBy, filters, page, pageSize)
+	user, err := app.user.GetAgentCachedOrLoad(auser.ID)
+	if err != nil {
+		return sendErrorEnvelope(r, err)
+	}
+
+	conversations, err := app.conversation.GetUnassignedConversationsList(user.ID, user.Teams.IDs(), order, orderBy, filters, page, pageSize)
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}

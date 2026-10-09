@@ -28,7 +28,7 @@ func (c *Manager) GetSidebarCounts(viewingUserID int, permissions []string, team
 	ctx, cancel := context.WithTimeout(context.Background(), sidebarCountsQueryTimeout)
 	defer cancel()
 
-	if err := c.fillStandardSidebarCounts(ctx, &out, viewingUserID, permissions); err != nil {
+	if err := c.fillStandardSidebarCounts(ctx, &out, viewingUserID, teamIDs, permissions); err != nil {
 		return out, err
 	}
 
@@ -88,7 +88,7 @@ func (c *Manager) GetViewCount(viewingUserID int, permissions []string, teamIDs 
 	return counts[view.ID], nil
 }
 
-func (c *Manager) fillStandardSidebarCounts(ctx context.Context, out *models.SidebarCounts, userID int, permissions []string) error {
+func (c *Manager) fillStandardSidebarCounts(ctx context.Context, out *models.SidebarCounts, userID int, teamIDs []int, permissions []string) error {
 	var row struct {
 		Assigned   int `db:"assigned"`
 		Unassigned int `db:"unassigned"`
@@ -96,7 +96,7 @@ func (c *Manager) fillStandardSidebarCounts(ctx context.Context, out *models.Sid
 		All        int `db:"all"`
 	}
 
-	if err := c.q.GetSidebarStandardCounts.GetContext(ctx, &row, userID); err != nil {
+	if err := c.q.GetSidebarStandardCounts.GetContext(ctx, &row, userID, pq.Array(teamIDs)); err != nil {
 		c.lo.Error("error fetching sidebar standard counts", "error", err)
 		return envelope.NewError(envelope.GeneralError, c.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}

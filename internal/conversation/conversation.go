@@ -697,9 +697,10 @@ func (c *Manager) GetAssignedConversationsList(viewingUserID, userID int, order,
 	return c.GetConversations(viewingUserID, userID, []int{}, []string{models.AssignedConversations}, order, orderBy, filters, page, pageSize)
 }
 
-// GetUnassignedConversationsList retrieves conversations assigned to a team the user is part of with optional filtering, ordering, and pagination.
-func (c *Manager) GetUnassignedConversationsList(viewingUserID int, order, orderBy, filters string, page, pageSize int) ([]models.ConversationListItem, error) {
-	return c.GetConversations(viewingUserID, 0, []int{}, []string{models.UnassignedConversations}, order, orderBy, filters, page, pageSize)
+// GetUnassignedConversationsList retrieves conversations with no user assigned, that are either
+// not assigned to any team or assigned to a team the viewing user is part of, with optional filtering, ordering, and pagination.
+func (c *Manager) GetUnassignedConversationsList(viewingUserID int, teamIDs []int, order, orderBy, filters string, page, pageSize int) ([]models.ConversationListItem, error) {
+	return c.GetConversations(viewingUserID, 0, teamIDs, []string{models.UnassignedConversations}, order, orderBy, filters, page, pageSize)
 }
 
 // GetTeamUnassignedConversationsList retrieves conversations assigned to a team that are either unassigned
@@ -2474,7 +2475,8 @@ func appendListTypeConditions(listTypes []string, viewingUserID, userID int, tea
 			*args = append(*args, userID)
 			conditions = append(conditions, fmt.Sprintf("conversations.assigned_user_id = $%d", len(*args)))
 		case models.UnassignedConversations:
-			conditions = append(conditions, "(conversations.assigned_user_id IS NULL OR conversations.assigned_team_id IS NULL)")
+			teamPlaceholders := appendTeamIDArgs(teamIDs, args)
+			conditions = append(conditions, fmt.Sprintf("(conversations.assigned_user_id IS NULL AND (conversations.assigned_team_id IS NULL OR conversations.assigned_team_id IN (%s)))", teamPlaceholders))
 		case models.TeamUnassignedConversations:
 			teamPlaceholders := appendTeamIDArgs(teamIDs, args)
 			*args = append(*args, viewingUserID)

@@ -52,7 +52,7 @@ WHERE conversations.id IN (SELECT id FROM matched_conversations)
     OR ($5 AND conversations.assigned_user_id = $2)
     OR ($6 AND conversations.assigned_team_id = ANY($9::int[]))
     OR ($7 AND conversations.assigned_team_id = ANY($9::int[]) AND conversations.assigned_user_id IS NULL)
-    OR ($8 AND (conversations.assigned_user_id IS NULL OR conversations.assigned_team_id IS NULL))
+    OR ($8 AND conversations.assigned_user_id IS NULL AND (conversations.assigned_team_id IS NULL OR conversations.assigned_team_id = ANY($9::int[])))
   )
 
 -- name: search-messages
@@ -106,7 +106,7 @@ WHERE conversation_messages.type != 'activity'
     OR ($5 AND conversations.assigned_user_id = $2)
     OR ($6 AND conversations.assigned_team_id = ANY($9::int[]))
     OR ($7 AND conversations.assigned_team_id = ANY($9::int[]) AND conversations.assigned_user_id IS NULL)
-    OR ($8 AND (conversations.assigned_user_id IS NULL OR conversations.assigned_team_id IS NULL))
+    OR ($8 AND conversations.assigned_user_id IS NULL AND (conversations.assigned_team_id IS NULL OR conversations.assigned_team_id = ANY($9::int[])))
   )
 
 -- name: search-contacts

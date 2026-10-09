@@ -31,7 +31,8 @@ func (e *Enforcer) Enforce(user umodels.User, obj, act string) (bool, error) {
 // 1. User has the "read_all" permission, allowing access to all conversations.
 // 2. User has the "read_assigned" permission and is the assigned user.
 // 3. User has the "read_team_inbox" permission and is part of the assigned team, with the conversation NOT assigned to any user.
-// 4. User has the "read_unassigned" permission and the conversation is not assigned to any user or team.
+// 4. User has the "read_unassigned" permission, the conversation is not assigned to any user, and is either
+//    not assigned to any team or assigned to a team the user is part of.
 // Returns true if access is granted, false otherwise. In case of an error while checking permissions returns false and the error.
 func (e *Enforcer) EnforceConversationAccess(user umodels.User, conversation cmodels.Conversation) (bool, error) {
 	return CanReadAssignment(user, conversation.AssignedUserID, conversation.AssignedTeamID), nil
@@ -56,7 +57,8 @@ func CanReadAssignment(user umodels.User, assignedUserID, assignedTeamID null.In
 			return true
 		}
 	}
-	if !assignedUserID.Valid && !assignedTeamID.Valid &&
+	if !assignedUserID.Valid &&
+		(!assignedTeamID.Valid || slices.Contains(user.Teams.IDs(), assignedTeamID.Int)) &&
 		slices.Contains(user.Permissions, authzmodels.PermConversationsReadUnassigned) {
 		return true
 	}

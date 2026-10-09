@@ -252,7 +252,7 @@ func referenceAllow(perms []string, userID, assignedUser, assignedTeam int, user
 	if inTeam && assignedUser == 0 && has("read_team_inbox") {
 		return true
 	}
-	if assignedUser == 0 && assignedTeam == 0 && has("read_unassigned") {
+	if assignedUser == 0 && (assignedTeam == 0 || inTeam) && has("read_unassigned") {
 		return true
 	}
 	return false
