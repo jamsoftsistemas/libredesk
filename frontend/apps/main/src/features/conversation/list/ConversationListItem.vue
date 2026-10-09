@@ -124,7 +124,7 @@
                 v-show="frdStatus === 'overdue' || frdStatus === 'remaining'"
                 :dueAt="conversation.first_response_deadline_at"
                 :actualAt="conversation.first_reply_at"
-                :label="'FRD'"
+                :label="$t('conversation.frd')"
                 :showExtra="false"
                 @status="frdStatus = $event"
               />
@@ -132,7 +132,7 @@
                 v-show="rdStatus === 'overdue' || rdStatus === 'remaining'"
                 :dueAt="conversation.resolution_deadline_at"
                 :actualAt="conversation.resolved_at"
-                :label="'RD'"
+                :label="$t('conversation.rd')"
                 :showExtra="false"
                 @status="rdStatus = $event"
               />
@@ -140,7 +140,7 @@
                 v-show="nrdStatus === 'overdue' || nrdStatus === 'remaining'"
                 :dueAt="conversation.next_response_deadline_at"
                 :actualAt="conversation.next_response_met_at"
-                :label="'NRD'"
+                :label="$t('conversation.nrd')"
                 :showExtra="false"
                 @status="nrdStatus = $event"
               />

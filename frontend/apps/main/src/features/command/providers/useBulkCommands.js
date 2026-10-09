@@ -33,7 +33,7 @@ export function useBulkCommands() {
       },
       ...conversationStore.statusOptionsNoSnooze.map((status) => ({
         id: `bulk.status.${status.value}`,
-        label: status.label,
+        label: conversationStore.translateStatusLabel(status.label),
         parent: 'bulk.status',
         icon: CircleDot,
         run: () => bulkUpdateStatus(status.label)

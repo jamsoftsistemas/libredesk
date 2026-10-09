@@ -113,7 +113,7 @@
             :key="status.value"
             @click="handleSendAndSetStatus(status.label)"
           >
-            {{ status.label }}
+            {{ conversationStore.translateStatusLabel(status.label) }}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

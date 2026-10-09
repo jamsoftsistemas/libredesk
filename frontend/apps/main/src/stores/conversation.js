@@ -109,6 +109,25 @@ export const useConversationStore = defineStore('conversation', () => {
   const priorityOptions = computed(() => {
     return priorities.value.map(p => ({ label: p.name, value: p.id }))
   })
+
+  // Status names are admin-editable DB rows also used as literal identifiers elsewhere
+  // (snooze detection, shortcuts, automation), so only the known defaults get a translated
+  // display label; custom statuses an admin creates are shown as typed.
+  const DEFAULT_STATUS_I18N_KEYS = {
+    [CONVERSATION_DEFAULT_STATUSES.OPEN]: 'conversationStatus.open',
+    [CONVERSATION_DEFAULT_STATUSES.SNOOZED]: 'conversationStatus.snoozed',
+    [CONVERSATION_DEFAULT_STATUSES.RESOLVED]: 'conversationStatus.resolved',
+    [CONVERSATION_DEFAULT_STATUSES.CLOSED]: 'conversationStatus.closed'
+  }
+  const translateStatusLabel = (name) => {
+    const i18n = getI18n()
+    const t = i18n?.global?.t || ((key) => key.split('.').pop())
+    const key = DEFAULT_STATUS_I18N_KEYS[name]
+    return key ? t(key) : name
+  }
+
+  // label stays the raw status name: it's used as the literal value in filters,
+  // comparisons and API calls elsewhere, not just for display.
   const statusOptions = computed(() => {
     return statuses.value.map(s => ({ label: s.name, value: s.id }))
   })
@@ -348,7 +367,7 @@ export const useConversationStore = defineStore('conversation', () => {
       case CONVERSATION_LIST_TYPE.ASSIGNED:
         return conv.assigned_user_id === userStore.userID
       case CONVERSATION_LIST_TYPE.UNASSIGNED:
-        return !conv.assigned_user_id && !conv.assigned_team_id
+        return !conv.assigned_user_id || !conv.assigned_team_id
       case CONVERSATION_LIST_TYPE.TEAM_UNASSIGNED:
         if (Number(conv.assigned_team_id) !== Number(conversations.teamID)) return false
         if (userStore.can(PERMISSIONS.CONVERSATIONS_READ_TEAM_ALL)) return true
@@ -1327,6 +1346,7 @@ export const useConversationStore = defineStore('conversation', () => {
     priorityOptions,
     statusOptionsNoSnooze,
     statusOptions,
+    translateStatusLabel,
     updateTypingStatus,
     typingByUUID,
     sendTyping,

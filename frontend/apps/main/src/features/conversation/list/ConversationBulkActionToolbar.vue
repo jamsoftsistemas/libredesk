@@ -95,7 +95,7 @@
           :key="status.value"
           @click="bulkUpdateStatus(status.label)"
         >
-          {{ status.label }}
+          {{ conversationStore.translateStatusLabel(status.label) }}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

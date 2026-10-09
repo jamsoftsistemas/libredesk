@@ -104,7 +104,14 @@ const emit = defineEmits(['update:filters'])
 
 const { t } = useI18n()
 const conversationStore = useConversationStore()
-const statusItems = computed(() => asStringValues(conversationStore.statusOptions))
+const statusItems = computed(() =>
+  asStringValues(
+    conversationStore.statusOptions.map((status) => ({
+      ...status,
+      label: conversationStore.translateStatusLabel(status.label)
+    }))
+  )
+)
 const priorityItems = computed(() => asStringValues(conversationStore.priorityOptions))
 const inboxStore = useInboxStore()
 const tagStore = useTagStore()

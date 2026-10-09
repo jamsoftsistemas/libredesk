@@ -140,7 +140,7 @@ export function useConversationCommands({ openSnoozeDatePicker }) {
       const isSnooze = status.label === CONVERSATION_DEFAULT_STATUSES.SNOOZED
       commands.push({
         id: `conv.status.${status.value}`,
-        label: status.label,
+        label: conversationStore.translateStatusLabel(status.label),
         parent: 'conv.status',
         icon: isSnooze ? CalendarClock : CircleDot,
         navigateTo: isSnooze ? SNOOZE_COMMAND : undefined,

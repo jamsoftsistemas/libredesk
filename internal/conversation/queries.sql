@@ -552,7 +552,7 @@ SELECT COUNT(*) FROM conversations WHERE status_id IN (SELECT id FROM conversati
 -- name: get-sidebar-standard-counts
 SELECT
     COUNT(*) FILTER (WHERE conversations.assigned_user_id = $1) AS assigned,
-    COUNT(*) FILTER (WHERE conversations.assigned_user_id IS NULL AND conversations.assigned_team_id IS NULL) AS unassigned,
+    COUNT(*) FILTER (WHERE conversations.assigned_user_id IS NULL OR conversations.assigned_team_id IS NULL) AS unassigned,
     COUNT(*) FILTER (WHERE EXISTS (
         SELECT 1 FROM conversation_mentions cm
         WHERE cm.conversation_id = conversations.id
@@ -1256,7 +1256,7 @@ WHERE uuid = ANY($1::uuid[])
     OR ($6 AND assigned_user_id = $2)
     OR ($7 AND assigned_team_id = ANY($3::int[]))
     OR ($8 AND assigned_team_id = ANY($3::int[]) AND assigned_user_id IS NULL)
-    OR ($9 AND assigned_user_id IS NULL AND assigned_team_id IS NULL)
+    OR ($9 AND (assigned_user_id IS NULL OR assigned_team_id IS NULL))
   );
 
 -- name: get-conversation-uuids-by-contact

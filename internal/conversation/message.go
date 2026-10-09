@@ -907,27 +907,27 @@ func (m *Manager) getMessageActivityContent(activityType, newValue, actorName st
 	var content = ""
 	switch activityType {
 	case models.ActivityAssignedUserChange:
-		content = fmt.Sprintf("Assigned to %s by %s", newValue, actorName)
+		content = m.i18n.Ts("conversation.activity.assignedUserChange", "assignee", newValue, "actor", actorName)
 	case models.ActivityAssignedTeamChange:
-		content = fmt.Sprintf("Assigned to %s team by %s", newValue, actorName)
+		content = m.i18n.Ts("conversation.activity.assignedTeamChange", "team", newValue, "actor", actorName)
 	case models.ActivityAssigneeUserRemoved:
-		content = fmt.Sprintf("%s removed %s as assignee", actorName, newValue)
+		content = m.i18n.Ts("conversation.activity.assigneeUserRemoved", "actor", actorName, "assignee", newValue)
 	case models.ActivitySelfAssign:
-		content = fmt.Sprintf("%s self-assigned this conversation", actorName)
+		content = m.i18n.Ts("conversation.activity.selfAssign", "actor", actorName)
 	case models.ActivitySelfUnassign:
-		content = fmt.Sprintf("%s unassigned themselves", actorName)
+		content = m.i18n.Ts("conversation.activity.selfUnassign", "actor", actorName)
 	case models.ActivityPriorityChange:
-		content = fmt.Sprintf("%s set priority to %s", actorName, newValue)
+		content = m.i18n.Ts("conversation.activity.priorityChange", "actor", actorName, "priority", newValue)
 	case models.ActivityStatusChange:
-		content = fmt.Sprintf("%s marked the conversation as %s", actorName, newValue)
+		content = m.i18n.Ts("conversation.activity.statusChange", "actor", actorName, "status", newValue)
 	case models.ActivityTagAdded:
-		content = fmt.Sprintf("%s added tag %s", actorName, newValue)
+		content = m.i18n.Ts("conversation.activity.tagAdded", "actor", actorName, "tag", newValue)
 	case models.ActivityTagRemoved:
-		content = fmt.Sprintf("%s removed tag %s", actorName, newValue)
+		content = m.i18n.Ts("conversation.activity.tagRemoved", "actor", actorName, "tag", newValue)
 	case models.ActivitySLASet:
-		content = fmt.Sprintf("%s set %s SLA policy", actorName, newValue)
+		content = m.i18n.Ts("conversation.activity.slaSet", "actor", actorName, "sla", newValue)
 	case models.ActivityParticipantAdded:
-		content = fmt.Sprintf("%s joined the conversation", newValue)
+		content = m.i18n.Ts("conversation.activity.participantAdded", "participant", newValue)
 	case models.ActivityCSATNotSent:
 		content = m.i18n.T("conversation.whatsapp.csatNotSent")
 	default:

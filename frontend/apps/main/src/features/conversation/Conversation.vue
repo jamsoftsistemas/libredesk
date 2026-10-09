@@ -165,19 +165,7 @@ const assignToSelf = () => {
   conversationStore.updateAssignee('user', { assignee_id: userStore.userID })
 }
 
-// Status names are admin-editable DB rows also used as literal identifiers elsewhere
-// (snooze detection, shortcuts, automation), so only the known defaults get a translated
-// display label here; custom statuses an admin creates are shown as typed.
-const DEFAULT_STATUS_I18N_KEYS = {
-  [CONVERSATION_DEFAULT_STATUSES.OPEN]: 'conversationStatus.open',
-  [CONVERSATION_DEFAULT_STATUSES.SNOOZED]: 'conversationStatus.snoozed',
-  [CONVERSATION_DEFAULT_STATUSES.RESOLVED]: 'conversationStatus.resolved',
-  [CONVERSATION_DEFAULT_STATUSES.CLOSED]: 'conversationStatus.closed'
-}
-const translateStatusLabel = (name) => {
-  const key = DEFAULT_STATUS_I18N_KEYS[name]
-  return key ? t(key) : name
-}
+const translateStatusLabel = conversationStore.translateStatusLabel
 
 const isSnoozed = computed(
   () => conversationStore.current?.status === CONVERSATION_DEFAULT_STATUSES.SNOOZED

@@ -46,7 +46,7 @@ export function useListCommands() {
           .filter((status) => status.label !== conversationStore.getListStatus)
           .map((status) => ({
             id: `list.status.${status.value}`,
-            label: status.label,
+            label: conversationStore.translateStatusLabel(status.label),
             parent: 'list.status',
             icon: CircleDot,
             run: () => conversationStore.setListStatus(status.label)

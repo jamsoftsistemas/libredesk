@@ -17,7 +17,7 @@
           <Button variant="ghost" class="w-30">
             <div>
               <span class="mr-1">{{ conversationStore.conversations.total }}</span>
-              <span>{{ conversationStore.getListStatus }}</span>
+              <span>{{ conversationStore.translateStatusLabel(conversationStore.getListStatus) }}</span>
             </div>
             <ChevronDown class="w-4 h-4 ml-2 opacity-50" />
           </Button>
@@ -28,7 +28,7 @@
             :key="status.value"
             @click="handleStatusChange(status)"
           >
-            {{ status.label }}
+            {{ conversationStore.translateStatusLabel(status.label) }}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
