@@ -27,6 +27,7 @@ import { useHelpStore } from '@widget/store/help.js'
 import { useI18n } from 'vue-i18n'
 import { useProactiveStore } from '@widget/store/proactive.js'
 import { useReplyPreviews } from '@widget/composables/useReplyPreviews.js'
+import { useStartConversation } from '@widget/composables/useStartConversation.js'
 
 const widgetStore = useWidgetStore()
 const chatStore = useChatStore()
@@ -35,6 +36,7 @@ const help = useHelpStore()
 const proactive = useProactiveStore()
 const { locale } = useI18n()
 useReplyPreviews()
+const { canStartNewConversation } = useStartConversation()
 
 // Register stores for the global 401 response interceptor.
 registerStores({ userStore, chatStore, widgetStore })
@@ -81,18 +83,54 @@ const signalWidgetLoaded = async () => {
   )
 }
 
+// True when the conversation has a CSAT request the customer hasn't answered yet.
+// Relies on the conversation being the current one so its messages are loaded.
+const hasPendingCSAT = () =>
+  chatStore.getCurrentConversationMessages.some(
+    (message) => message.meta?.is_csat && !message.meta?.csat_submitted
+  )
+
+// direct_to_conversation priority:
+// 1. most recent open conversation,
+// 2. latest conversation, if its CSAT is still pending,
+// 3. a new conversation (everything closed and rated).
+const openDirectToConversation = async () => {
+  const conversations = chatStore.getConversations
+  const latest = conversations[0]
+  const openConversation = conversations.find(
+    (conversation) => conversation.status_category !== 'resolved'
+  )
+  let target = openConversation || null
+  if (!target && latest) {
+    try {
+      await chatStore.loadConversation(latest.uuid)
+    } catch { /* non-blocking */ }
+    if (hasPendingCSAT() || !canStartNewConversation.value) target = latest
+  }
+  if (target) {
+    try {
+      await chatStore.loadConversation(target.uuid)
+    } catch { /* non-blocking */ }
+  } else {
+    chatStore.setCurrentConversation(null)
+    chatStore.clearMessages()
+  }
+  widgetStore.navigateToChat()
+}
+
 const fetchInitialConversations = async () => {
   const success = await chatStore.fetchConversations()
-  if (success && chatStore.hasConversations) {
-    try {
-      await chatStore.loadConversation(chatStore.getConversations[0].uuid)
-    } catch { /* non-blocking */ }
-  }
   const audience = userStore.isVisitor ? widgetStore.config?.visitors : widgetStore.config?.users
   const directToConversation =
     audience?.direct_to_conversation ?? widgetStore.config?.direct_to_conversation
   if (directToConversation && success) {
-    widgetStore.navigateToChat()
+    await openDirectToConversation()
+    return
+  }
+  if (success && chatStore.hasConversations) {
+    try {
+      await chatStore.loadConversation(chatStore.getConversations[0].uuid)
+    } catch { /* non-blocking */ }
   }
 }
 
