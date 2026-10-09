@@ -381,7 +381,7 @@ func initHandlers(g *fastglue.Fastglue, hub *ws.Hub) {
 	g.GET("/widget/ws", rateLimit(handleWidgetWS, "widget"))
 
 	// Widget APIs.
-	g.GET("/api/v1/widget/chat/settings/launcher", rateLimit(validateWidgetInbox(handleGetChatLauncherSettings), "widget"))
+	g.GET("/api/v1/widget/chat/settings/launcher", corsAllowAll(rateLimit(validateWidgetInbox(handleGetChatLauncherSettings), "widget")))
 	g.GET("/api/v1/widget/chat/settings", rateLimit(validateWidgetInbox(handleGetChatSettings), "widget"))
 	g.POST("/api/v1/widget/chat/campaigns/next", rateLimit(optionalWidgetAuth(handleWidgetCampaign), "widget"))
 	g.POST("/api/v1/widget/chat/campaigns/event", rateLimit(optionalWidgetAuth(handleWidgetCampaignEvent), "widget"))

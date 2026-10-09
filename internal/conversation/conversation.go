@@ -2474,7 +2474,7 @@ func appendListTypeConditions(listTypes []string, viewingUserID, userID int, tea
 			*args = append(*args, userID)
 			conditions = append(conditions, fmt.Sprintf("conversations.assigned_user_id = $%d", len(*args)))
 		case models.UnassignedConversations:
-			conditions = append(conditions, "conversations.assigned_user_id IS NULL AND conversations.assigned_team_id IS NULL")
+			conditions = append(conditions, "(conversations.assigned_user_id IS NULL OR conversations.assigned_team_id IS NULL)")
 		case models.TeamUnassignedConversations:
 			teamPlaceholders := appendTeamIDArgs(teamIDs, args)
 			*args = append(*args, viewingUserID)

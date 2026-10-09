@@ -238,6 +238,17 @@ func notAuthPage(handler fastglue.FastRequestHandler) fastglue.FastRequestHandle
 	}
 }
 
+// corsAllowAll sets the CORS header before the wrapped chain runs, so it's present even when an
+// inner middleware (rate limit, validation) short-circuits with an error response. Only for
+// endpoints fetched directly from a third-party page's origin (e.g. the widget launcher), not
+// session-cookie-authenticated routes.
+func corsAllowAll(handler fastglue.FastRequestHandler) fastglue.FastRequestHandler {
+	return func(r *fastglue.Request) error {
+		r.RequestCtx.Response.Header.Set("Access-Control-Allow-Origin", "*")
+		return handler(r)
+	}
+}
+
 // rateLimit applies rate limiting for the given rule name.
 func rateLimit(handler fastglue.FastRequestHandler, ruleName string) fastglue.FastRequestHandler {
 	return func(r *fastglue.Request) error {
