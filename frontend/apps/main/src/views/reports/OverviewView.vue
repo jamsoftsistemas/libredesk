@@ -94,6 +94,33 @@
                 <span class="metric-label">{{ $t('report.csat.responses') }}</span>
               </div>
             </div>
+
+            <!-- Rating distribution -->
+            <div class="mt-5 pt-4 border-t space-y-2">
+              <div
+                v-for="item in csatRatingRows"
+                :key="item.rating"
+                class="flex items-center gap-3"
+              >
+                <span class="text-base w-6 text-center">{{ item.emoji }}</span>
+                <span class="text-sm text-muted-foreground w-20 shrink-0">{{ item.label }}</span>
+                <div class="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    class="h-full rounded-full bg-primary"
+                    :style="{ width: item.percent + '%' }"
+                  ></div>
+                </div>
+                <span class="text-sm font-medium tabular-nums w-8 text-right">{{
+                  item.count
+                }}</span>
+              </div>
+              <p
+                v-if="!csatData.total_responses"
+                class="text-sm text-muted-foreground text-center pt-1"
+              >
+                {{ $t('report.csat.noResponses') }}
+              </p>
+            </div>
           </div>
 
           <!-- Message Volume Card -->
@@ -281,6 +308,7 @@ import { useEmitter } from '../../composables/useEmitter'
 import { EMITTER_EVENTS } from '../../constants/emitterEvents.js'
 import { handleHTTPError } from '@shared-ui/utils/http.js'
 import { formatDuration } from '@shared-ui/utils/datetime.js'
+import { CSAT_RATING_VALUES, csatRatingEmoji, csatRatingLabel } from '@shared-ui/utils/csat.js'
 import Card from '@/features/reports/OverviewCard.vue'
 import LineChart from '@/features/reports/OverviewLineChart.vue'
 import Spinner from '@shared-ui/components/ui/spinner/Spinner.vue'
@@ -330,7 +358,8 @@ const csatData = ref({
   average_rating: 0,
   response_rate: 0,
   total_responses: 0,
-  total_sent: 0
+  total_sent: 0,
+  rating_distribution: []
 })
 
 const messageVolumeData = ref({
@@ -390,6 +419,23 @@ const formatCompactNumber = (value) => {
     value
   )
 }
+
+const csatRatingRows = computed(() => {
+  const counts = new Map(
+    (csatData.value.rating_distribution || []).map((item) => [item.rating, item.count])
+  )
+  const maxCount = Math.max(1, ...Array.from(counts.values(), (v) => v || 0))
+  return CSAT_RATING_VALUES.map((rating) => {
+    const count = counts.get(rating) || 0
+    return {
+      rating,
+      count,
+      emoji: csatRatingEmoji(rating),
+      label: csatRatingLabel(rating, null, t),
+      percent: Math.round((count / maxCount) * 100)
+    }
+  }).reverse()
+})
 
 const formattedSlaCounts = computed(() => ({
   ...slaCounts.value,

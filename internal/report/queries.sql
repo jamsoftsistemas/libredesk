@@ -244,28 +244,49 @@ SELECT
     ) AS result;
 
 -- name: get-overview-csat
+WITH filtered AS (
+    SELECT rating
+    FROM csat_responses
+    WHERE created_at >= CASE
+        WHEN %d = 0 THEN CURRENT_DATE
+        ELSE NOW() - INTERVAL '%d days'
+    END
+),
+distribution AS (
+    SELECT
+        json_agg(
+            json_build_object('rating', r.rating, 'count', COALESCE(f.count, 0))
+            ORDER BY r.rating
+        ) AS data
+    FROM
+        generate_series(1, 5) AS r(rating)
+        LEFT JOIN (
+            SELECT rating, COUNT(*) AS count
+            FROM filtered
+            WHERE rating > 0
+            GROUP BY rating
+        ) f ON f.rating = r.rating
+)
 SELECT
     json_build_object(
         'average_rating',
-        COALESCE(AVG(rating) FILTER (WHERE rating > 0), 0),
+        COALESCE((SELECT AVG(rating) FROM filtered WHERE rating > 0), 0),
         'total_responses',
-        COUNT(*) FILTER (WHERE rating > 0),
+        (SELECT COUNT(*) FROM filtered WHERE rating > 0),
         'total_sent',
-        COUNT(*),
+        (SELECT COUNT(*) FROM filtered),
         'response_rate',
         CASE
-            WHEN COUNT(*) > 0
-            THEN ROUND((COUNT(*) FILTER (WHERE rating > 0)::numeric / COUNT(*)::numeric) * 100, 1)
+            WHEN (SELECT COUNT(*) FROM filtered) > 0
+            THEN ROUND(
+                (SELECT COUNT(*) FROM filtered WHERE rating > 0)::numeric
+                / (SELECT COUNT(*) FROM filtered)::numeric * 100, 1
+            )
             ELSE 0
-        END
-    ) AS result
-FROM
-    csat_responses
-WHERE
-    created_at >= CASE
-        WHEN %d = 0 THEN CURRENT_DATE
-        ELSE NOW() - INTERVAL '%d days'
-    END;
+        END,
+        'rating_distribution',
+        COALESCE((SELECT data FROM distribution), '[]'::json)
+    ) AS result;
 
 -- name: get-overview-message-volume
 WITH per_conversation AS (

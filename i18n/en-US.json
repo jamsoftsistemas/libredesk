@@ -1678,6 +1678,7 @@
   "report.chart.title": "Conversation trends",
   "report.csat.avgRating": "Avg Rating",
   "report.csat.cardTitle": "Customer satisfaction",
+  "report.csat.noResponses": "No responses yet",
   "report.csat.responseRate": "Response Rate",
   "report.csat.responses": "Responses",
   "report.customRangeDays": "Custom range in days",

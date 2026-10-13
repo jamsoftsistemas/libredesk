@@ -23,7 +23,7 @@ var (
 
 const (
 	ChannelLiveChat       = "livechat"
-	MaxConnectionsPerUser = 10
+	MaxConnectionsPerUser = 30
 
 	HomeAppAnnouncement = "announcement"
 	HomeAppExternalLink = "external_link"
