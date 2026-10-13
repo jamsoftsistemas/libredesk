@@ -146,8 +146,8 @@ func (e *Engine) Run(ctx context.Context, workerCount int) {
 		go e.worker(ctx)
 	}
 
-	// Hourly ticker for timed triggers.
-	ticker := time.NewTicker(1 * time.Hour)
+	// Ticker for timed triggers.
+	ticker := time.NewTicker(5 * time.Minute)
 	defer func() {
 		ticker.Stop()
 	}()

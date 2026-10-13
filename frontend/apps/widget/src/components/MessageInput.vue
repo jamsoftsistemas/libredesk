@@ -18,6 +18,7 @@
             v-model="newMessage"
             @keydown="handleKeydown"
             @input="handleTyping"
+            @paste="handlePaste"
             :aria-label="$t('globals.terms.typeMessage')"
             :placeholder="$t('globals.terms.typeMessage')"
             :disabled="isSending"
@@ -275,6 +276,24 @@ const handleFileUpload = async (files) => {
   } finally {
     isUploading.value = false
   }
+}
+
+// Paste image/file from clipboard (e.g. a screenshot) as an attachment.
+const handlePaste = (event) => {
+  if (!config.value.features?.file_upload || !chatStore.currentConversation?.uuid) return
+
+  const items = event.clipboardData?.items
+  if (!items) return
+
+  const files = Array.from(items)
+    .filter((item) => item.kind === 'file')
+    .map((item) => item.getAsFile())
+    .filter(Boolean)
+
+  if (files.length === 0) return
+
+  event.preventDefault()
+  handleFileUpload(files)
 }
 
 // Handle emoji selection.
