@@ -34,7 +34,7 @@ func (c *Manager) GetSidebarCounts(viewingUserID int, permissions []string, team
 
 	if slices.Contains(permissions, authzModels.PermConversationsReadTeamInbox) ||
 		slices.Contains(permissions, authzModels.PermConversationsReadTeamAll) {
-		if err := c.fillTeamSidebarCounts(ctx, &out, teamIDs); err != nil {
+		if err := c.fillTeamSidebarCounts(ctx, &out, viewingUserID, teamIDs); err != nil {
 			return out, err
 		}
 	}
@@ -116,8 +116,9 @@ func (c *Manager) fillStandardSidebarCounts(ctx context.Context, out *models.Sid
 	return nil
 }
 
-// fillTeamSidebarCounts fills per-team open-conversation counts, split into assigned (to an agent) and unassigned.
-func (c *Manager) fillTeamSidebarCounts(ctx context.Context, out *models.SidebarCounts, teamIDs []int) error {
+// fillTeamSidebarCounts fills per-team open-conversation counts: unassigned (team-wide) and
+// assigned to the viewing user specifically, not the whole team.
+func (c *Manager) fillTeamSidebarCounts(ctx context.Context, out *models.SidebarCounts, userID int, teamIDs []int) error {
 	if len(teamIDs) == 0 {
 		return nil
 	}
@@ -127,7 +128,7 @@ func (c *Manager) fillTeamSidebarCounts(ctx context.Context, out *models.Sidebar
 		Assigned   int `db:"assigned"`
 		Unassigned int `db:"unassigned"`
 	}
-	if err := c.q.GetSidebarTeamCounts.SelectContext(ctx, &rows, pq.Array(teamIDs)); err != nil {
+	if err := c.q.GetSidebarTeamCounts.SelectContext(ctx, &rows, pq.Array(teamIDs), userID); err != nil {
 		c.lo.Error("error fetching sidebar team counts", "error", err)
 		return envelope.NewError(envelope.GeneralError, c.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}
@@ -193,6 +194,7 @@ func (c *Manager) getAccessibleConversationsCount(ctx context.Context, userID in
 	if err != nil {
 		return 0, err
 	}
+	countQuery += " AND conversation_statuses.category = 'open'"
 
 	var count int
 	query := fmt.Sprintf("SELECT COUNT(*) FROM (%s LIMIT %d) capped", countQuery, sidebarCountsScanCap)

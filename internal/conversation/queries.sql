@@ -568,9 +568,11 @@ FROM conversations
 WHERE conversations.status_id IN (SELECT id FROM conversation_statuses WHERE category = 'open');
 
 -- name: get-sidebar-team-counts
+-- $1: team_ids (int[])
+-- $2: user_id (the viewing user; "assigned" only counts conversations assigned to them, not the whole team)
 SELECT
     assigned_team_id AS team_id,
-    COUNT(*) FILTER (WHERE assigned_user_id IS NOT NULL) AS assigned,
+    COUNT(*) FILTER (WHERE assigned_user_id = $2) AS assigned,
     COUNT(*) FILTER (WHERE assigned_user_id IS NULL) AS unassigned
 FROM conversations
 WHERE status_id IN (SELECT id FROM conversation_statuses WHERE category = 'open')
