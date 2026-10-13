@@ -64,9 +64,11 @@
                 }
               ]"
             >
-              <span v-if="message.content_type === 'text'" class="whitespace-pre-wrap">{{
-                message.content
-              }}</span>
+              <span
+                v-if="message.content_type === 'text'"
+                class="whitespace-pre-wrap"
+                v-html="linkifyText(message.content)"
+              ></span>
               <Letter
                 v-else
                 :html="message.content"
@@ -186,6 +188,7 @@ import ReplyButtons from './ReplyButtons.vue'
 import { TypingIndicator } from '@shared-ui/components/TypingIndicator'
 import { Spinner } from '@shared-ui/components/ui/spinner'
 import { containsQuoteMarkers } from '@shared-ui/utils/quotedContent.js'
+import { linkifyText } from '@shared-ui/utils/linkify.js'
 import { useStickyScroll } from '@shared-ui/composables'
 
 const extendedCssProperties = [...allowedCssProperties, 'transform', 'transform-origin']

@@ -115,9 +115,8 @@
                 v-if="message.content_type === 'text' && sanitizedContent"
                 class="mb-1 native-html whitespace-pre-wrap"
                 :class="{ 'mb-3': message.attachments.length > 0 }"
-              >
-                {{ sanitizedContent }}
-              </div>
+                v-html="linkifyText(sanitizedContent)"
+              ></div>
               <div
                 v-else-if="message.content_type !== 'text' && sanitizedContent"
                 ref="messageContentEl"
@@ -347,6 +346,7 @@ import MessageEnvelope from './MessageEnvelope.vue'
 import CSATResponseDisplay from './CSATResponseDisplay.vue'
 import api from '@main/api'
 import { containsQuoteMarkers } from '@shared-ui/utils/quotedContent.js'
+import { linkifyText } from '@shared-ui/utils/linkify.js'
 import { getMessageDeliveryStatus } from './messageDeliveryStatus.js'
 
 const extendedCssProperties = [...allowedCssProperties, 'transform', 'transform-origin']

@@ -415,13 +415,13 @@ func (m *Message) ExtractCSATUUID() string {
 }
 
 // CensorCSATContentWithStatus redacts the content and adds submission status for CSAT messages.
-func (m *Message) CensorCSATContentWithStatus(csatSubmitted bool, csatUUID string, rating int, feedback string) {
+func (m *Message) CensorCSATContentWithStatus(content string, csatSubmitted bool, csatUUID string, rating int, feedback string) {
 	meta, isCsat := m.csatMeta()
 	if !isCsat {
 		return
 	}
 
-	m.Content = "Please rate this conversation"
+	m.Content = content
 	m.TextContent = m.Content
 
 	meta["csat_submitted"] = csatSubmitted

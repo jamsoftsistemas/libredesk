@@ -2121,7 +2121,7 @@ func (m *Manager) ProcessCSATStatus(messages []models.Message) {
 				feedback = csat.Feedback.String
 			}
 		}
-		msg.CensorCSATContentWithStatus(isSubmitted, csatUUID, rating, feedback)
+		msg.CensorCSATContentWithStatus(m.i18n.T("globals.messages.pleaseRateConversation"), isSubmitted, csatUUID, rating, feedback)
 	}
 }
 
