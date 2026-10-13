@@ -374,9 +374,36 @@ export const useConversationStore = defineStore('conversation', () => {
         if (Number(conv.assigned_team_id) !== Number(conversations.teamID)) return false
         if (userStore.can(PERMISSIONS.CONVERSATIONS_READ_TEAM_ALL)) return true
         return !conv.assigned_user_id || conv.assigned_user_id === userStore.userID
+      case CONVERSATION_LIST_TYPE.ALL:
+        return matchesAccessibleScope(conv)
       default:
         return null
     }
+  }
+
+  // matchesAccessibleScope mirrors the backend's "all" visibility rule for non-admins: the union of a
+  // user's own assignments and every team they belong to (see getAccessibleConversationsCount on the backend).
+  function matchesAccessibleScope (conv) {
+    if (userStore.can(PERMISSIONS.CONVERSATIONS_READ_ALL)) return true
+
+    const inUserTeam = conv.assigned_team_id &&
+      userStore.teams.some((team) => Number(team.id) === Number(conv.assigned_team_id))
+
+    if (userStore.can(PERMISSIONS.CONVERSATIONS_READ_ASSIGNED) && conv.assigned_user_id === userStore.userID) {
+      return true
+    }
+    if (userStore.can(PERMISSIONS.CONVERSATIONS_READ_UNASSIGNED) && !conv.assigned_user_id &&
+      (!conv.assigned_team_id || inUserTeam)) {
+      return true
+    }
+    if (userStore.can(PERMISSIONS.CONVERSATIONS_READ_TEAM_ALL) && inUserTeam) {
+      return true
+    }
+    if (userStore.can(PERMISSIONS.CONVERSATIONS_READ_TEAM_INBOX) && inUserTeam &&
+      (!conv.assigned_user_id || conv.assigned_user_id === userStore.userID)) {
+      return true
+    }
+    return false
   }
 
   function belongsToList (conv) {
