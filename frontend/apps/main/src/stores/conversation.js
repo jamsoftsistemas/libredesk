@@ -1126,13 +1126,17 @@ export const useConversationStore = defineStore('conversation', () => {
     return existing
   }
 
+  // Returns 'updated' for a change to a conversation already loaded locally (e.g. someone else
+  // claimed it), 'inserted' for a newly loaded row, or undefined for a no-op. Callers use this to
+  // tell a single reassignment (worth an immediate sidebar count refresh) apart from a burst of
+  // brand-new conversations (where the throttled refresh is enough and avoids hammering the API).
   function handleConvPush (payload) {
     if (!payload || !payload.uuid) return
     if (mergeLiveUpdate(payload.uuid, payload)) {
       if (conversation.data?.uuid === payload.uuid) {
         deepMerge(conversation.data, payload)
       }
-      return
+      return 'updated'
     }
     if (!canPushInsert(payload)) return
     if (conversations.status !== '' && payload.status !== conversations.status) return
@@ -1140,6 +1144,7 @@ export const useConversationStore = defineStore('conversation', () => {
     conversations.data.unshift(payload)
     conversations.total += 1
     trimListToCurrentPage()
+    return 'inserted'
   }
 
   function mergeConversationUpdate (update) {

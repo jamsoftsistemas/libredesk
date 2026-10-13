@@ -114,11 +114,19 @@ export class WebSocketClient {
         },
         [WS_EVENT.NEW_CONVERSATION]: () => {
           if (data.data && data.data.uuid) {
-            this.convStore.handleConvPush(data.data)
+            const result = this.convStore.handleConvPush(data.data)
+            // A reassignment of a conversation we already had loaded (e.g. a teammate claimed it) is a
+            // single, rare event - refresh the sidebar badges right away instead of waiting on the
+            // throttled refresh meant to absorb bursts of brand-new conversations.
+            if (result === 'updated') {
+              this.convStore.fetchSidebarCounts({ force: true })
+            } else {
+              this.convStore.refreshSidebarCounts()
+            }
           } else {
             this.convStore.refreshConversationList()
+            this.convStore.refreshSidebarCounts()
           }
-          this.convStore.refreshSidebarCounts()
         },
         // Property updates for conversation and message.
         [WS_EVENT.MESSAGE_UPDATE]: () => this.convStore.mergeMessageUpdate(data.data),

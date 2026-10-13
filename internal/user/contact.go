@@ -8,6 +8,7 @@ import (
 	"github.com/abhinavxd/libredesk/internal/dbutil"
 	"github.com/abhinavxd/libredesk/internal/envelope"
 	"github.com/abhinavxd/libredesk/internal/user/models"
+	"github.com/lib/pq"
 	"github.com/volatiletech/null/v9"
 )
 
@@ -91,6 +92,26 @@ func (u *Manager) ExportContactData(id int) ([]byte, error) {
 		return nil, envelope.NewError(envelope.GeneralError, u.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}
 	return data, nil
+}
+
+// GetContactsCompact returns contacts matching search, all of them when pageSize is 0.
+func (u *Manager) GetContactsCompact(search string, page, pageSize int) ([]models.UserCompact, error) {
+	var contacts = make([]models.UserCompact, 0)
+	if err := u.q.GetContactsCompact.Select(&contacts, search, pageSize, dbutil.PageOffset(page, pageSize), dbutil.ContainsPattern(search)); err != nil {
+		u.lo.Error("error fetching contacts compact", "error", err)
+		return contacts, envelope.NewError(envelope.GeneralError, u.i18n.T("globals.messages.somethingWentWrong"), nil)
+	}
+	return contacts, nil
+}
+
+// GetContactsCompactByIDs returns the contacts with the given IDs.
+func (u *Manager) GetContactsCompactByIDs(ids []int) ([]models.UserCompact, error) {
+	var contacts = make([]models.UserCompact, 0)
+	if err := u.q.GetContactsCompactByIDs.Select(&contacts, pq.Array(ids)); err != nil {
+		u.lo.Error("error fetching contacts compact by ids", "error", err)
+		return contacts, envelope.NewError(envelope.GeneralError, u.i18n.T("globals.messages.somethingWentWrong"), nil)
+	}
+	return contacts, nil
 }
 
 func (u *Manager) GetContacts(page, pageSize int, order, orderBy string, filtersJSON, location string) ([]models.UserCompact, error) {

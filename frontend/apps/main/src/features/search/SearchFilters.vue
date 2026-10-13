@@ -46,6 +46,14 @@
           @update:model-value="set('team', $event)"
         />
       </div>
+      <div :class="FILTER_CLASS">
+        <SelectContactCombobox
+          :model-value="filters.contact"
+          :placeholder="t('globals.terms.contact')"
+          align="start"
+          @update:model-value="set('contact', $event)"
+        />
+      </div>
       <div class="w-36 shrink-0">
         <SearchTagFilter :model-value="filters.tags" @update:model-value="set('tags', $event)" />
       </div>
@@ -85,6 +93,7 @@ import { useI18n } from 'vue-i18n'
 import SelectComboBox from '@main/components/combobox/SelectCombobox.vue'
 import SelectAgentCombobox from '@main/components/combobox/SelectAgentCombobox.vue'
 import SelectTeamCombobox from '@main/components/combobox/SelectTeamCombobox.vue'
+import SelectContactCombobox from '@main/components/combobox/SelectContactCombobox.vue'
 import DateFilterValue from '@main/components/filter/DateFilterValue.vue'
 import { useConversationStore } from '@main/stores/conversation'
 import { useInboxStore } from '@main/stores/inbox'

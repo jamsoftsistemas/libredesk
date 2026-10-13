@@ -196,6 +196,8 @@ CREATE TABLE users (
 );
 CREATE INDEX index_tgrm_users_on_email ON users USING GIN (email gin_trgm_ops);
 CREATE INDEX index_tgrm_users_on_phone_number ON users USING GIN (phone_number gin_trgm_ops);
+CREATE INDEX index_tgrm_users_on_first_name ON users USING GIN (first_name gin_trgm_ops);
+CREATE INDEX index_tgrm_users_on_last_name ON users USING GIN (last_name gin_trgm_ops);
 CREATE INDEX index_users_on_api_key ON users(api_key);
 CREATE INDEX index_users_on_availability_status_when_agent ON users(availability_status) WHERE type = 'agent' AND deleted_at IS NULL;
 CREATE UNIQUE INDEX index_unique_users_on_email_when_type_is_agent
@@ -303,6 +305,7 @@ CREATE INDEX index_conversations_on_next_sla_deadline_at ON conversations (next_
 CREATE INDEX index_conversations_on_waiting_since ON conversations (waiting_since);
 CREATE INDEX index_conversations_on_last_continuity_email_sent_at ON conversations (last_continuity_email_sent_at);
 CREATE INDEX index_conversations_on_last_inbound_at ON conversations (last_inbound_at);
+CREATE INDEX index_tgrm_conversations_on_subject ON conversations USING GIN (subject gin_trgm_ops);
 
 DROP TABLE IF EXISTS conversation_messages CASCADE;
 CREATE TABLE conversation_messages (

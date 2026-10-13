@@ -6,10 +6,19 @@ WITH matched_conversations AS (
 
     UNION ALL
 
+    SELECT id
+    FROM conversations
+    WHERE subject ILIKE $10 ESCAPE '\'
+
+    UNION ALL
+
     SELECT conversations.id
     FROM users
     JOIN conversations ON conversations.contact_id = users.id
     WHERE users.email ILIKE $10 ESCAPE '\'
+       OR users.first_name ILIKE $10 ESCAPE '\'
+       OR users.last_name ILIKE $10 ESCAPE '\'
+       OR (users.first_name || ' ' || users.last_name) ILIKE $10 ESCAPE '\'
 )
 SELECT
     conversations.id,

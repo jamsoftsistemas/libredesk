@@ -199,10 +199,10 @@ func TestConversationSearchFieldsAndRanking(t *testing.T) {
 
 	results, hasMore, cursor, err = manager.Conversations(models.Query{Term: "Needle", PageSize: 10}, scope)
 	if err != nil {
-		t.Fatalf("searching unsupported fields: %v", err)
+		t.Fatalf("searching subject and name: %v", err)
 	}
-	if len(results) != 0 || hasMore || cursor != "" {
-		t.Fatalf("subject or name matched: results %d, has_more %t, cursor %q", len(results), hasMore, cursor)
+	if len(results) != 1 || hasMore || cursor != "" || results[0].ReferenceNumber != "999" {
+		t.Fatalf("subject or name did not match: results %+v, has_more %t, cursor %q", results, hasMore, cursor)
 	}
 
 	messages, hasMore, cursor, err := manager.Messages(models.Query{Term: "ordinary", PageSize: 10}, scope)

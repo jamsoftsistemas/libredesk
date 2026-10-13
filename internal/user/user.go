@@ -86,6 +86,8 @@ type queries struct {
 	GetUsersCompact                  string     `query:"get-users-compact"`
 	GetAgentsCompact                 *sqlx.Stmt `query:"get-agents-compact"`
 	GetAgentsCompactByIDs            *sqlx.Stmt `query:"get-agents-compact-by-ids"`
+	GetContactsCompact               *sqlx.Stmt `query:"get-contacts-compact"`
+	GetContactsCompactByIDs          *sqlx.Stmt `query:"get-contacts-compact-by-ids"`
 	UpdateContact                    *sqlx.Stmt `query:"update-contact"`
 	UpdateContactBasicInfo           *sqlx.Stmt `query:"update-contact-basic-info"`
 	UpdateAgent                      *sqlx.Stmt `query:"update-agent"`

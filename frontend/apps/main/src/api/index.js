@@ -204,6 +204,7 @@ const updateRole = (id, data) =>
   })
 const deleteRole = (id) => http.delete(`/api/v1/roles/${id}`)
 const getContacts = (params) => http.get('/api/v1/contacts', { params })
+const getContactsCompact = (params) => http.get('/api/v1/contacts/compact', { params })
 const getContact = (id) => http.get(`/api/v1/contacts/${id}`)
 const createContact = (data) =>
   http.post('/api/v1/contacts', data, {
@@ -877,6 +878,7 @@ export default {
   searchContacts,
   removeAssignee,
   getContacts,
+  getContactsCompact,
   getContact,
   createContact,
   updateContact,

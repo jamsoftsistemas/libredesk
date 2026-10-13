@@ -42,6 +42,27 @@ func handleCreateContact(r *fastglue.Request) error {
 	return r.SendEnvelope(created)
 }
 
+// handleGetContactsCompact returns contacts in a compact format, for use in search and filters.
+func handleGetContactsCompact(r *fastglue.Request) error {
+	var (
+		app   = r.Context.(*App)
+		query = string(r.RequestCtx.QueryArgs().Peek("q"))
+	)
+	if ids := getIDsParam(r, "ids"); len(ids) > 0 {
+		contacts, err := app.user.GetContactsCompactByIDs(ids)
+		if err != nil {
+			return sendErrorEnvelope(r, err)
+		}
+		return r.SendEnvelope(contacts)
+	}
+	page, pageSize := getOptionalPagination(r)
+	contacts, err := app.user.GetContactsCompact(query, page, pageSize)
+	if err != nil {
+		return sendErrorEnvelope(r, err)
+	}
+	return r.SendEnvelope(contacts)
+}
+
 // handleGetContacts returns a list of contacts from the database.
 func handleGetContacts(r *fastglue.Request) error {
 	var (

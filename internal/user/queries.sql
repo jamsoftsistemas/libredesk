@@ -20,6 +20,20 @@ FROM users
 WHERE (users.email != 'System' OR users.type = 'ai_assistant') AND users.deleted_at IS NULL AND users.type = ANY($1) AND users.id = ANY($2)
 ORDER BY users.first_name, users.last_name, users.id;
 
+-- name: get-contacts-compact
+SELECT users.id, users.avatar_url, users.type, users.created_at, users.updated_at, users.first_name, users.last_name, users.email, users.enabled, users.external_user_id, users.availability_status
+FROM users
+WHERE users.type = 'contact' AND users.deleted_at IS NULL
+    AND ($1 = '' OR CONCAT(users.first_name, ' ', COALESCE(users.last_name, '')) ILIKE $4 ESCAPE '\' OR users.email ILIKE $4 ESCAPE '\')
+ORDER BY users.first_name, users.last_name, users.id
+LIMIT NULLIF($2, 0) OFFSET $3;
+
+-- name: get-contacts-compact-by-ids
+SELECT users.id, users.avatar_url, users.type, users.created_at, users.updated_at, users.first_name, users.last_name, users.email, users.enabled, users.external_user_id, users.availability_status
+FROM users
+WHERE users.type = 'contact' AND users.deleted_at IS NULL AND users.id = ANY($1)
+ORDER BY users.first_name, users.last_name, users.id;
+
 -- name: soft-delete-agent
 WITH soft_delete AS (
     UPDATE users

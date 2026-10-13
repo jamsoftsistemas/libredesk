@@ -1,4 +1,4 @@
-export const FILTER_KEYS = ['status', 'priority', 'inbox', 'assignee', 'team', 'tags', 'created']
+export const FILTER_KEYS = ['status', 'priority', 'inbox', 'assignee', 'team', 'contact', 'tags', 'created']
 
 export const UNASSIGNED = 'none'
 
@@ -8,6 +8,7 @@ export const emptyFilters = () => ({
   inbox: '',
   assignee: '',
   team: '',
+  contact: '',
   tags: [],
   created: ''
 })
@@ -61,6 +62,7 @@ export const toFiltersJSON = (filters) => {
   if (filters.inbox) rules.push(leaf('inbox_id', 'equals', filters.inbox))
   if (filters.assignee) rules.push(assignmentLeaf('assigned_user_id', filters.assignee))
   if (filters.team) rules.push(assignmentLeaf('assigned_team_id', filters.team))
+  if (filters.contact) rules.push(leaf('contact_id', 'equals', filters.contact))
   if (filters.tags?.length) rules.push(leaf('tags', 'contains', JSON.stringify(filters.tags.map(Number))))
   if (filters.created) rules.push(leaf('created_at', 'between', filters.created))
   return rules.length ? JSON.stringify(rules) : ''
