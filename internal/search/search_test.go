@@ -2,6 +2,7 @@ package search
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -203,6 +204,14 @@ func TestConversationSearchFieldsAndRanking(t *testing.T) {
 	}
 	if len(results) != 1 || hasMore || cursor != "" || results[0].ReferenceNumber != "999" {
 		t.Fatalf("subject or name did not match: results %+v, has_more %t, cursor %q", results, hasMore, cursor)
+	}
+
+	results, hasMore, cursor, err = manager.Conversations(models.Query{Term: strconv.Itoa(senderID), PageSize: 10}, scope)
+	if err != nil {
+		t.Fatalf("searching contact id: %v", err)
+	}
+	if len(results) != 1 || hasMore || cursor != "" || results[0].ReferenceNumber != "999" {
+		t.Fatalf("contact id did not match: results %+v, has_more %t, cursor %q", results, hasMore, cursor)
 	}
 
 	messages, hasMore, cursor, err := manager.Messages(models.Query{Term: "ordinary", PageSize: 10}, scope)

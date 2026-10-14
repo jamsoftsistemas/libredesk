@@ -22,6 +22,14 @@
           </div>
           <div class="flex flex-wrap items-center gap-1">
             <Button
+              size="sm"
+              :variant="!isCustom && range === TODAY_RANGE ? 'default' : 'outline'"
+              :disabled="isLoading"
+              @click="selectRange(TODAY_RANGE)"
+            >
+              {{ $t('globals.terms.today') }}
+            </Button>
+            <Button
               v-for="option in rangeOptions"
               :key="option"
               size="sm"
@@ -322,6 +330,8 @@ const emitter = useEmitter()
 const { t } = useI18n()
 const isLoading = ref(false)
 const lastUpdate = ref(new Date())
+// days=0 is a dedicated backend case meaning "since the start of today" (CURRENT_DATE), not a 0-day range.
+const TODAY_RANGE = 0
 const rangeOptions = [7, 30, 90]
 const range = ref(7)
 const isCustom = ref(false)

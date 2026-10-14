@@ -54,7 +54,7 @@
 import { ref, computed } from 'vue'
 import { Calendar as CalendarIcon } from 'lucide-vue-next'
 import { parseDate } from '@internationalized/date'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { useI18n } from 'vue-i18n'
 import { cn } from '@shared-ui/lib/utils.js'
 import { Button } from '@shared-ui/components/ui/button'
@@ -84,7 +84,7 @@ const toCalendarDate = (v) => {
 
 const formatDisplay = (v) => {
   try {
-    return format(new Date(v), 'MMM dd, yyyy')
+    return format(parseISO(v), 'MMM dd, yyyy')
   } catch {
     return v
   }

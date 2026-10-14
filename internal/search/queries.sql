@@ -19,6 +19,7 @@ WITH matched_conversations AS (
        OR users.first_name ILIKE $10 ESCAPE '\'
        OR users.last_name ILIKE $10 ESCAPE '\'
        OR (users.first_name || ' ' || users.last_name) ILIKE $10 ESCAPE '\'
+       OR users.id::text = $1
 )
 SELECT
     conversations.id,
