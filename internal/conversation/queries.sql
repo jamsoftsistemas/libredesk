@@ -244,6 +244,8 @@ SELECT
    ct.last_active_at as "contact.last_active_at",
    ct.last_login_at as "contact.last_login_at",
    ct.external_user_id as "contact.external_user_id",
+   ct.company_id as "contact.company_id",
+   comp.name as "contact.company_name",
    (SELECT json_agg(json_build_object('channel', cci.channel, 'identifier', cci.identifier))
       FROM contact_channel_identities cci WHERE cci.contact_id = ct.id) as "contact.channel_identities",
    as_latest.first_response_deadline_at,
@@ -259,6 +261,7 @@ SELECT
    csat.response_timestamp as csat_responded_at
 FROM conversations c
 JOIN users ct ON c.contact_id = ct.id
+LEFT JOIN companies comp ON comp.id = ct.company_id
 JOIN inboxes inb ON c.inbox_id = inb.id
 LEFT JOIN LATERAL (
     SELECT rating, feedback, response_timestamp

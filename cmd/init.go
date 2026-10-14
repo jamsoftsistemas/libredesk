@@ -22,6 +22,7 @@ import (
 	"github.com/abhinavxd/libredesk/internal/automation"
 	businesshours "github.com/abhinavxd/libredesk/internal/business_hours"
 	"github.com/abhinavxd/libredesk/internal/colorlog"
+	"github.com/abhinavxd/libredesk/internal/company"
 	contextlink "github.com/abhinavxd/libredesk/internal/context_link"
 	"github.com/abhinavxd/libredesk/internal/conversation"
 	"github.com/abhinavxd/libredesk/internal/conversation/priority"
@@ -570,6 +571,20 @@ func initTeam(db *sqlx.DB, i18n *i18n.I18n) *team.Manager {
 	})
 	if err != nil {
 		log.Fatalf("error initializing team manager: %v", err)
+	}
+	return mgr
+}
+
+// initCompany inits company manager.
+func initCompany(db *sqlx.DB, i18n *i18n.I18n) *company.Manager {
+	var lo = initLogger("company-manager")
+	mgr, err := company.New(company.Opts{
+		DB:   db,
+		Lo:   lo,
+		I18n: i18n,
+	})
+	if err != nil {
+		log.Fatalf("error initializing company manager: %v", err)
 	}
 	return mgr
 }

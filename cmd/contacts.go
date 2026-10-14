@@ -364,6 +364,17 @@ func contactFromForm(r *fastglue.Request) (models.User, *multipart.Form, error) 
 		v := value(key)
 		return null.NewString(v, v != "")
 	}
+	optionalID := func(key string) null.Int {
+		v := value(key)
+		if v == "" || v == "none" {
+			return null.NewInt(0, false)
+		}
+		id, err := strconv.Atoi(v)
+		if err != nil || id <= 0 {
+			return null.NewInt(0, false)
+		}
+		return null.NewInt(id, true)
+	}
 
 	email := value("email")
 	if email == "" && value("phone_number") == "" {
@@ -377,6 +388,19 @@ func contactFromForm(r *fastglue.Request) (models.User, *multipart.Form, error) 
 		return models.User{}, nil, envelope.NewError(envelope.InputError, app.i18n.Ts("globals.messages.empty", "name", "first_name"), nil)
 	}
 
+	// Resolve the company: an explicit numeric company_id takes precedence, falling back
+	// to looking up company_external_id so callers never have to know Libredesk's internal IDs.
+	companyID := optionalID("company_id")
+	if !companyID.Valid {
+		if companyExternalID := value("company_external_id"); companyExternalID != "" {
+			company, err := app.company.GetByExternalID(companyExternalID)
+			if err != nil {
+				return models.User{}, nil, err
+			}
+			companyID = null.NewInt(company.ID, true)
+		}
+	}
+
 	return models.User{
 		FirstName:              firstName,
 		LastName:               value("last_name"),
@@ -385,5 +409,6 @@ func contactFromForm(r *fastglue.Request) (models.User, *multipart.Form, error) 
 		PhoneNumber:            optional("phone_number"),
 		PhoneNumberCountryCode: optional("phone_number_country_code"),
 		Country:                optional("country"),
+		CompanyID:              companyID,
 	}, form, nil
 }

@@ -64,6 +64,12 @@
       </span>
     </div>
     <div class="flex gap-2 items-center">
+      <Building2 size="16" class="text-muted-foreground flex-shrink-0" />
+      <span class="sidebar-value truncate">
+        {{ conversation?.contact?.company_name || t('company.noCompanyAssigned') }}
+      </span>
+    </div>
+    <div class="flex gap-2 items-center">
       <Phone size="16" class="text-muted-foreground flex-shrink-0" />
       <span class="sidebar-value">
         {{ phoneNumber }}
@@ -142,7 +148,8 @@ import {
   Monitor,
   Smartphone,
   ShieldCheck,
-  ShieldQuestion
+  ShieldQuestion,
+  Building2
 } from 'lucide-vue-next'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@shared-ui/components/ui/tooltip'
 import WhatsAppIcon from '@main/components/icons/WhatsAppIcon.vue'

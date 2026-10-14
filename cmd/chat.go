@@ -44,6 +44,7 @@ const (
 	maxEmailLength                  = 254
 	maxNameLength                   = 128
 	maxExternalUserIDLength         = 128
+	maxCompanyExternalIDLength      = 100
 	maxPhoneNumberLength            = 20
 	maxPhoneCountryCodeLength       = 10
 	fieldTypePhone                  = "phone"
@@ -68,6 +69,7 @@ type Claims struct {
 	LastName                string         `json:"last_name,omitempty"`
 	PhoneNumber             string         `json:"phone_number,omitempty"`
 	PhoneNumberCountryCode  string         `json:"phone_number_country_code,omitempty"`
+	CompanyExternalID       string         `json:"company_external_id,omitempty"`
 	ContactCustomAttributes map[string]any `json:"contact_custom_attributes,omitempty"`
 	jwt.RegisteredClaims
 }
@@ -404,6 +406,10 @@ func handleAuthExchange(r *fastglue.Request) error {
 	if len(claims.PhoneNumberCountryCode) > maxPhoneCountryCodeLength {
 		claims.PhoneNumberCountryCode = ""
 	}
+	// Company association is best-effort - drop an invalid one instead of failing the whole exchange.
+	if len(claims.CompanyExternalID) > maxCompanyExternalIDLength {
+		claims.CompanyExternalID = ""
+	}
 
 	// Resolve or create the contact.
 	contactID, err := resolveOrCreateExternalContact(app, claims)
@@ -416,6 +422,17 @@ func handleAuthExchange(r *fastglue.Request) error {
 	if len(claims.ContactCustomAttributes) > 0 {
 		if err := app.user.SaveCustomAttributes(contactID, claims.ContactCustomAttributes, false); err != nil {
 			app.lo.Error("error saving custom attributes during auth exchange", "contact_id", contactID, "error", err)
+		}
+	}
+
+	// Sync the contact's company from the JWT. Best-effort - an unknown or missing
+	// external ID shouldn't fail the whole exchange.
+	if claims.CompanyExternalID != "" {
+		company, err := app.company.GetByExternalID(claims.CompanyExternalID)
+		if err != nil {
+			app.lo.Warn("could not resolve company from JWT during auth exchange", "contact_id", contactID, "company_external_id", claims.CompanyExternalID, "error", err)
+		} else if err := app.user.SetContactCompany(contactID, company.ID); err != nil {
+			app.lo.Error("error setting contact company during auth exchange", "contact_id", contactID, "company_id", company.ID, "error", err)
 		}
 	}
 

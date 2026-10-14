@@ -197,6 +197,14 @@ const permissions = ref([
       { name: perms.CONTACT_NOTES_WRITE, label: t('admin.role.contactNotes.write') },
       { name: perms.CONTACT_NOTES_DELETE, label: t('admin.role.contactNotes.delete') }
     ]
+  },
+  {
+    name: t('globals.terms.company'),
+    permissions: [
+      { name: perms.COMPANIES_READ_ALL, label: t('admin.role.companies.readAll') },
+      { name: perms.COMPANIES_WRITE, label: t('admin.role.companies.write') },
+      { name: perms.COMPANIES_DELETE, label: t('admin.role.companies.delete') }
+    ]
   }
 ])
 

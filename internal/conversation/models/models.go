@@ -246,6 +246,8 @@ type ConversationContact struct {
 	LastActiveAt           null.Time       `db:"last_active_at" json:"last_active_at"`
 	LastLoginAt            null.Time       `db:"last_login_at" json:"last_login_at"`
 	ExternalUserID         null.String     `db:"external_user_id" json:"external_user_id"`
+	CompanyID              null.Int        `db:"company_id" json:"company_id"`
+	CompanyName            null.String     `db:"company_name" json:"company_name"`
 
 	ChannelIdentities umodels.ChannelIdentities `db:"channel_identities" json:"channel_identities,omitempty"`
 }
