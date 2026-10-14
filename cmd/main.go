@@ -24,6 +24,7 @@ import (
 	"github.com/abhinavxd/libredesk/internal/authz"
 	businesshours "github.com/abhinavxd/libredesk/internal/business_hours"
 	"github.com/abhinavxd/libredesk/internal/colorlog"
+	"github.com/abhinavxd/libredesk/internal/company"
 	"github.com/abhinavxd/libredesk/internal/csat"
 	customAttribute "github.com/abhinavxd/libredesk/internal/custom_attribute"
 	"github.com/abhinavxd/libredesk/internal/inbox/channel/livechat/proactive"
@@ -111,6 +112,7 @@ type App struct {
 	role               *role.Manager
 	user               *user.Manager
 	team               *team.Manager
+	company            *company.Manager
 	status             *status.Manager
 	priority           *priority.Manager
 	tag                *tag.Manager
@@ -255,6 +257,7 @@ func main() {
 		media                       = initMedia(db, i18n, settings)
 		inbox                       = initInbox(db, i18n)
 		team                        = initTeam(db, i18n)
+		company                     = initCompany(db, i18n)
 		businessHours               = initBusinessHours(db, i18n)
 		webhook                     = initWebhook(db, i18n, ssrfControl)
 		user                        = initUser(i18n, db)
@@ -322,6 +325,7 @@ func main() {
 		inbox:            inbox,
 		user:             user,
 		team:             team,
+		company:          company,
 		csat:             csat,
 		status:           status,
 		priority:         priority,

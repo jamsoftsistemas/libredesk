@@ -287,5 +287,13 @@ export const contactNavItems = [
     href: '/contacts',
     isTitleKeyPlural: true,
     icon: 'Contact'
+  },
+  {
+    titleKey: 'globals.terms.company',
+    allLabelKey: 'company.allCompanies',
+    href: '/client-companies',
+    isTitleKeyPlural: true,
+    permission: 'companies:read_all',
+    icon: 'Building2'
   }
 ]

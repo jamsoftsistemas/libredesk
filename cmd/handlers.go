@@ -170,6 +170,14 @@ func initHandlers(g *fastglue.Fastglue, hub *ws.Hub) {
 	g.POST("/api/v1/contacts/{id}/notes", perm(handleCreateContactNote, "contact_notes:write"))
 	g.DELETE("/api/v1/contacts/{id}/notes/{note_id}", perm(handleDeleteContactNote, "contact_notes:delete"))
 
+	// Companies.
+	g.GET("/api/v1/companies/compact", auth(handleGetCompaniesCompact))
+	g.GET("/api/v1/companies", perm(handleGetCompanies, "companies:read_all"))
+	g.POST("/api/v1/companies", perm(handleCreateCompany, "companies:write"))
+	g.GET("/api/v1/companies/{id}", perm(handleGetCompany, "companies:read_all"))
+	g.PUT("/api/v1/companies/{id}", perm(handleUpdateCompany, "companies:write"))
+	g.DELETE("/api/v1/companies/{id}", perm(handleDeleteCompany, "companies:delete"))
+
 	// Teams.
 	g.GET("/api/v1/teams/compact", auth(handleGetTeamsCompact))
 	g.GET("/api/v1/teams", perm(handleGetTeams, "teams:manage"))
@@ -428,6 +436,7 @@ func initHandlers(g *fastglue.Fastglue, hub *ws.Hub) {
 	g.GET("/views/{all:*}", authPage(serveIndexPage))
 	g.GET("/admin/{all:*}", authPage(serveIndexPage))
 	g.GET("/contacts/{all:*}", authPage(serveIndexPage))
+	g.GET("/client-companies/{all:*}", authPage(serveIndexPage))
 	g.GET("/reports/{all:*}", authPage(serveIndexPage))
 	g.GET("/account/{all:*}", authPage(serveIndexPage))
 	g.GET("/reset-password", notAuthPage(serveIndexPage))

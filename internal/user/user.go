@@ -114,6 +114,7 @@ type queries struct {
 	IsEmailBlocked                   *sqlx.Stmt `query:"is-email-blocked"`
 	SetExternalUserID                *sqlx.Stmt `query:"set-external-user-id"`
 	SetContactPhoneIfMissing         *sqlx.Stmt `query:"set-contact-phone-if-missing"`
+	SetContactCompany                *sqlx.Stmt `query:"set-contact-company"`
 	UpdateContactNameIfDefault       *sqlx.Stmt `query:"update-contact-name-if-default"`
 	GetContactIDByChannelIdentity    *sqlx.Stmt `query:"get-contact-id-by-channel-identity"`
 	GetChannelIdentitiesByContact    *sqlx.Stmt `query:"get-channel-identities-by-contact"`
@@ -656,7 +657,7 @@ func (u *Manager) makeUserListQuery(page, pageSize int, userTypes []string, orde
 		PageSize: pageSize,
 		Location: location,
 	}, filtersJSON, dbutil.AllowedFields{
-		"users": {"email", "created_at", "updated_at"},
+		"users": {"email", "created_at", "updated_at", "external_user_id"},
 	}, nil)
 }
 

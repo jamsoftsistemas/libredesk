@@ -44,6 +44,9 @@ export const permissions = {
   CONTACT_NOTES_READ: 'contact_notes:read',
   CONTACT_NOTES_WRITE: 'contact_notes:write',
   CONTACT_NOTES_DELETE: 'contact_notes:delete',
+  COMPANIES_READ_ALL: 'companies:read_all',
+  COMPANIES_WRITE: 'companies:write',
+  COMPANIES_DELETE: 'companies:delete',
   ACTIVITY_LOGS_MANAGE: 'activity_logs:manage',
   WEBHOOKS_MANAGE: 'webhooks:manage',
   CONTEXT_LINKS_MANAGE: 'context_links:manage'

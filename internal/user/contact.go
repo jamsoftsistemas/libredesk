@@ -40,9 +40,12 @@ func (u *Manager) CreateContact(user *models.User) error {
 			return err
 		}
 	}
-	if err := u.q.InsertContact.QueryRow(user.Email, user.FirstName, user.LastName, password, user.PhoneNumber, user.PhoneNumberCountryCode, user.Country).Scan(&user.ID); err != nil {
+	if err := u.q.InsertContact.QueryRow(user.Email, user.FirstName, user.LastName, password, user.PhoneNumber, user.PhoneNumberCountryCode, user.Country, user.CompanyID).Scan(&user.ID); err != nil {
 		if dbutil.IsUniqueViolationError(err) {
 			return envelope.NewError(envelope.InputError, u.i18n.T("contact.alreadyExistsWithEmail"), nil)
+		}
+		if dbutil.IsForeignKeyError(err) {
+			return envelope.NewError(envelope.InputError, u.i18n.T("validation.notFoundCompany"), nil)
 		}
 		u.lo.Error("error creating contact", "error", err)
 		return envelope.NewError(envelope.GeneralError, u.i18n.T("globals.messages.somethingWentWrong"), nil)
@@ -61,9 +64,12 @@ func (u *Manager) UpdateContactBasicInfo(id int, firstName, lastName, email, pho
 
 func (u *Manager) UpdateContact(id int, user models.User) error {
 	user.Email = null.NewString(strings.ToLower(strings.TrimSpace(user.Email.String)), user.Email.Valid)
-	if _, err := u.q.UpdateContact.Exec(id, user.FirstName, user.LastName, user.Email, user.AvatarURL, user.PhoneNumber, user.PhoneNumberCountryCode, user.Country); err != nil {
+	if _, err := u.q.UpdateContact.Exec(id, user.FirstName, user.LastName, user.Email, user.AvatarURL, user.PhoneNumber, user.PhoneNumberCountryCode, user.Country, user.CompanyID); err != nil {
 		if dbutil.IsUniqueViolationError(err) {
 			return envelope.NewError(envelope.InputError, u.i18n.T("contact.alreadyExistsWithEmail"), nil)
+		}
+		if dbutil.IsForeignKeyError(err) {
+			return envelope.NewError(envelope.InputError, u.i18n.T("validation.notFoundCompany"), nil)
 		}
 		u.lo.Error("error updating user", "error", err)
 		return envelope.NewError(envelope.GeneralError, u.i18n.T("globals.messages.somethingWentWrong"), nil)
@@ -340,6 +346,18 @@ func (u *Manager) SetContactPhoneIfMissing(id int, phone, countryCode string) er
 	if _, err := u.q.SetContactPhoneIfMissing.Exec(id, phone, countryCode); err != nil {
 		u.lo.Error("error setting contact phone number", "id", id, "error", err)
 		return fmt.Errorf("setting contact phone number: %w", err)
+	}
+	return nil
+}
+
+// SetContactCompany associates a contact with a company, replacing any existing association.
+func (u *Manager) SetContactCompany(id, companyID int) error {
+	if _, err := u.q.SetContactCompany.Exec(id, companyID); err != nil {
+		if dbutil.IsForeignKeyError(err) {
+			return envelope.NewError(envelope.InputError, u.i18n.T("validation.notFoundCompany"), nil)
+		}
+		u.lo.Error("error setting contact company", "id", id, "company_id", companyID, "error", err)
+		return fmt.Errorf("setting contact company: %w", err)
 	}
 	return nil
 }

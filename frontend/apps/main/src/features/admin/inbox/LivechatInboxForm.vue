@@ -1660,6 +1660,7 @@ const jwtPayloadExample = computed(() => {
   "last_name": "Doe",                         // Optional: User's last name
   "phone_number": "9876543210",                // Optional: User's phone number (e.g. "199999999999")
   "phone_number_country_code": "IN",          // Optional: ISO 3166-1 alpha-2 country code (e.g. "IN", "US")
+  "company_external_id": "acme-corp-001",     // Optional: External ID of a company in your Client Portfolio
   "exp": 1735689600,                          // Required: Expiration time (Unix timestamp in seconds)
   "contact_custom_attributes": {              // Optional: Contact-level attributes
     "plan": "premium",

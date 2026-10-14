@@ -45,6 +45,12 @@ const routes = [
         meta: { titleKey: 'globals.terms.contact', titleCount: 2 }
       },
       {
+        path: 'client-companies',
+        name: 'contact-companies',
+        component: () => import('@main/views/company/CompaniesView.vue'),
+        meta: { titleKey: 'company.allCompanies' }
+      },
+      {
         path: '/reports',
         name: 'reports',
         redirect: '/reports/overview',

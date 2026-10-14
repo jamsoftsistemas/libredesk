@@ -76,6 +76,20 @@
       </div>
     </div>
 
+    <div :class="FIELD_GRID_CLASS">
+      <div :class="FIELD_COLUMN_CLASS">
+        <FormField v-slot="{ componentField }" name="company_id">
+          <FormItem class="flex flex-col">
+            <FormLabel class="flex items-center">{{ t('globals.terms.company') }}</FormLabel>
+            <FormControl>
+              <SelectCompanyCombobox v-bind="componentField" include-none />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+      </div>
+    </div>
+
     <div v-if="userStore.can('contacts:write')">
       <Button type="submit" :isLoading="formLoading" :disabled="formLoading">
         {{ submitLabel || t('contact.updateContact') }}
@@ -98,6 +112,7 @@ import {
 import { Input } from '@shared-ui/components/ui/input'
 import { Button } from '@shared-ui/components/ui/button'
 import ComboBox from '@shared-ui/components/ui/combobox/ComboBox.vue'
+import SelectCompanyCombobox from '@main/components/combobox/SelectCompanyCombobox.vue'
 import PhoneNumberInput from '@shared-ui/components/PhoneNumberInput.vue'
 import { countryOptions } from '@shared-ui/constants/countries.js'
 import { useI18n } from 'vue-i18n'

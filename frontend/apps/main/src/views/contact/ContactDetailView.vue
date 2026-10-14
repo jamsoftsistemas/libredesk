@@ -335,6 +335,7 @@ async function onUpload(file) {
     formData.append('phone_number', form.values.phone_number)
     formData.append('phone_number_country_code', form.values.phone_number_country_code)
     formData.append('country', form.values.country || '')
+    formData.append('company_id', form.values.company_id || '')
     formData.append('enabled', form.values.enabled)
     const { data } = await api.updateContact(contact.value.id, formData)
     contact.value.avatar_url = data.avatar_url

@@ -148,6 +148,24 @@ CREATE TABLE teams (
 	CONSTRAINT constraint_teams_on_name_unique UNIQUE ("name")
 );
 
+DROP TABLE IF EXISTS companies CASCADE;
+CREATE TABLE companies (
+	id SERIAL PRIMARY KEY,
+	created_at TIMESTAMPTZ DEFAULT NOW(),
+	updated_at TIMESTAMPTZ DEFAULT NOW(),
+	external_id TEXT NULL,
+	"name" TEXT NOT NULL,
+	"document" TEXT NULL,
+	city TEXT NULL,
+	"system" TEXT NULL,
+	CONSTRAINT constraint_companies_on_name CHECK (length("name") <= 200),
+	CONSTRAINT constraint_companies_on_external_id CHECK (length(external_id) <= 100),
+	CONSTRAINT constraint_companies_on_document CHECK (length("document") <= 20),
+	CONSTRAINT constraint_companies_on_city CHECK (length(city) <= 140),
+	CONSTRAINT constraint_companies_on_system CHECK (length("system") <= 140)
+);
+CREATE UNIQUE INDEX index_unique_companies_on_document ON companies("document") WHERE "document" IS NOT NULL AND "document" != '';
+
 DROP TABLE IF EXISTS roles CASCADE;
 CREATE TABLE roles (
     id SERIAL PRIMARY KEY,
@@ -187,6 +205,9 @@ CREATE TABLE users (
 	api_key TEXT NULL,
 	api_secret TEXT NULL,
 	api_key_last_used_at TIMESTAMPTZ NULL,
+
+	-- Set to NULL when the associated company is deleted.
+	company_id INT REFERENCES companies(id) ON DELETE SET NULL ON UPDATE CASCADE NULL,
     CONSTRAINT constraint_users_on_country CHECK (LENGTH(country) <= 140),
     CONSTRAINT constraint_users_on_phone_number CHECK (LENGTH(phone_number) <= 20),
 	CONSTRAINT constraint_users_on_phone_number_country_code CHECK (LENGTH(phone_number_country_code) <= 10),
@@ -199,6 +220,7 @@ CREATE INDEX index_tgrm_users_on_phone_number ON users USING GIN (phone_number g
 CREATE INDEX index_tgrm_users_on_first_name ON users USING GIN (first_name gin_trgm_ops);
 CREATE INDEX index_tgrm_users_on_last_name ON users USING GIN (last_name gin_trgm_ops);
 CREATE INDEX index_users_on_api_key ON users(api_key);
+CREATE INDEX index_users_on_company_id ON users(company_id) WHERE company_id IS NOT NULL;
 CREATE INDEX index_users_on_availability_status_when_agent ON users(availability_status) WHERE type = 'agent' AND deleted_at IS NULL;
 CREATE UNIQUE INDEX index_unique_users_on_email_when_type_is_agent
 	ON users(email)
@@ -1168,7 +1190,7 @@ VALUES
 	(
 		'Admin',
 		'Role for users who have complete access to everything.',
-		'{webhooks:manage,context_links:manage,activity_logs:manage,custom_attributes:manage,contacts:read_all,contacts:read,contacts:write,contacts:block,contacts:delete,contacts:export,contact_notes:read,contact_notes:write,contact_notes:delete,conversations:write,ai:manage,help_center:manage,general_settings:manage,notification_settings:manage,oidc:manage,conversations:read_all,conversations:read_unassigned,conversations:read_assigned,conversations:read_team_inbox,conversations:read_team_all,conversations:read,conversations:update_user_assignee,conversations:update_team_assignee,conversations:update_priority,conversations:update_status,conversations:update_tags,messages:read,messages:write,messages:write_private,view:manage,shared_views:manage,status:manage,tags:manage,macros:manage,users:manage,teams:manage,automations:manage,inboxes:manage,roles:manage,reports:manage,templates:manage,business_hours:manage,sla:manage}'
+		'{webhooks:manage,context_links:manage,activity_logs:manage,custom_attributes:manage,contacts:read_all,contacts:read,contacts:write,contacts:block,contacts:delete,contacts:export,contact_notes:read,contact_notes:write,contact_notes:delete,conversations:write,ai:manage,help_center:manage,general_settings:manage,notification_settings:manage,oidc:manage,conversations:read_all,conversations:read_unassigned,conversations:read_assigned,conversations:read_team_inbox,conversations:read_team_all,conversations:read,conversations:update_user_assignee,conversations:update_team_assignee,conversations:update_priority,conversations:update_status,conversations:update_tags,messages:read,messages:write,messages:write_private,view:manage,shared_views:manage,status:manage,tags:manage,macros:manage,users:manage,teams:manage,automations:manage,inboxes:manage,roles:manage,reports:manage,templates:manage,business_hours:manage,sla:manage,companies:read_all,companies:write,companies:delete}'
 	);
 
 

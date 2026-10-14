@@ -77,6 +77,7 @@ SELECT
     u.external_user_id,
     u.api_secret,
     u.custom_attributes,
+    u.company_id,
     array_agg(DISTINCT r.name) FILTER (WHERE r.name IS NOT NULL) AS roles,
     COALESCE(
         (SELECT json_agg(json_build_object('id', t.id, 'name', t.name, 'emoji', t.emoji))
@@ -251,6 +252,10 @@ WHERE id = $1
   AND deleted_at IS NULL
   AND (phone_number IS NULL OR phone_number = '');
 
+-- name: set-contact-company
+UPDATE users SET company_id = $2, updated_at = now()
+WHERE id = $1 AND type IN ('contact', 'visitor') AND deleted_at IS NULL;
+
 -- name: update-contact-name-if-default
 UPDATE users SET first_name = $2, last_name = $3, updated_at = now()
 WHERE id = $1
@@ -331,8 +336,8 @@ SET enabled = $3, updated_at = NOW()
 WHERE id = $1 AND type = $2;
 
 -- name: insert-contact
-INSERT INTO users (email, type, first_name, last_name, "password", phone_number, phone_number_country_code, country)
-VALUES ($1, 'contact', $2, $3, $4, $5, $6, $7)
+INSERT INTO users (email, type, first_name, last_name, "password", phone_number, phone_number_country_code, country, company_id)
+VALUES ($1, 'contact', $2, $3, $4, $5, $6, $7, $8)
 RETURNING id;
 
 -- name: update-contact
@@ -344,6 +349,7 @@ SET first_name = COALESCE($2, first_name),
     phone_number = $6,
     phone_number_country_code = $7,
     country = $8,
+    company_id = $9,
     updated_at = now()
 WHERE id = $1 and type in ('contact', 'visitor');
 

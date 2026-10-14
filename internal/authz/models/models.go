@@ -93,6 +93,11 @@ const (
 	PermContactNotesWrite  = "contact_notes:write"
 	PermContactNotesDelete = "contact_notes:delete"
 
+	// Companies
+	PermCompaniesReadAll = "companies:read_all"
+	PermCompaniesWrite   = "companies:write"
+	PermCompaniesDelete  = "companies:delete"
+
 	// Custom attributes
 	PermCustomAttributesManage = "custom_attributes:manage"
 
@@ -146,6 +151,9 @@ var validPermissions = map[string]struct{}{
 	PermContactNotesRead:                {},
 	PermContactNotesWrite:               {},
 	PermContactNotesDelete:              {},
+	PermCompaniesReadAll:                {},
+	PermCompaniesWrite:                  {},
+	PermCompaniesDelete:                 {},
 	PermActivityLogsManage:              {},
 	PermWebhooksManage:                  {},
 	PermContextLinksManage:              {},
