@@ -47,6 +47,14 @@
           :isNewForm="true"
         />
       </div>
+      <div v-else-if="selectedChannel === 'uazapi'">
+        <UazapiInboxForm
+          :initial-values="{}"
+          :submitForm="submitUazapiForm"
+          :isLoading="isLoading"
+          :isNewForm="true"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -62,6 +70,7 @@ import MenuCard from '@main/components/layout/MenuCard.vue'
 import EmailInboxForm from '@/features/admin/inbox/EmailInboxForm.vue'
 import LivechatInboxForm from '@/features/admin/inbox/LivechatInboxForm.vue'
 import WhatsAppInboxForm from '@/features/admin/inbox/WhatsAppInboxForm.vue'
+import UazapiInboxForm from '@/features/admin/inbox/UazapiInboxForm.vue'
 import api from '@/api'
 import { EMITTER_EVENTS } from '@/constants/emitterEvents.js'
 import { useEmitter } from '@/composables/useEmitter'
@@ -97,6 +106,10 @@ const selectWhatsAppChannel = () => {
   selectChannel('whatsapp')
 }
 
+const selectUazapiChannel = () => {
+  selectChannel('uazapi')
+}
+
 const channels = [
   {
     title: t('globals.terms.email'),
@@ -114,6 +127,13 @@ const channels = [
     title: t('globals.terms.whatsapp'),
     subTitle: t('admin.inbox.help.whatsapp'),
     onClick: selectWhatsAppChannel,
+    icon: WhatsAppIcon,
+    badge: t('globals.terms.beta')
+  },
+  {
+    title: t('globals.terms.uazapi'),
+    subTitle: t('admin.inbox.help.uazapi'),
+    onClick: selectUazapiChannel,
     icon: WhatsAppIcon,
     badge: t('globals.terms.beta')
   }
@@ -172,6 +192,19 @@ const submitWhatsAppForm = (values) => {
     name: values.name,
     from: values.from,
     channel: 'whatsapp',
+    enabled: values.enabled ?? true,
+    csat_enabled: values.csat_enabled ?? false,
+    prompt_tags_on_reply: values.prompt_tags_on_reply ?? false,
+    reopen_window_hours: values.reopen_window_hours ?? 0,
+    config: values.config
+  }
+  createInbox(payload)
+}
+
+const submitUazapiForm = (values) => {
+  const payload = {
+    name: values.name,
+    channel: 'uazapi',
     enabled: values.enabled ?? true,
     csat_enabled: values.csat_enabled ?? false,
     prompt_tags_on_reply: values.prompt_tags_on_reply ?? false,
