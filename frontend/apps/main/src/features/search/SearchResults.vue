@@ -54,7 +54,11 @@
             v-if="results[type].results.length === 0"
             class="p-8 text-center text-sm text-muted-foreground"
           >
-            {{ t('globals.messages.noResultsFound') }}
+            {{
+              type === 'messages' && term.length === 0
+                ? t('search.minQueryLength', { length: minQueryLength })
+                : t('globals.messages.noResultsFound')
+            }}
           </p>
           <div v-else class="divide-y divide-border">
             <SearchResultItem
@@ -115,6 +119,7 @@ const tabLabelKeys = {
 defineProps({
   results: { type: Object, required: true },
   term: { type: String, default: '' },
+  minQueryLength: { type: Number, default: 3 },
   activeTab: { type: String, required: true },
   sorts: { type: Object, required: true },
   showClearFilters: { type: Boolean, default: false }

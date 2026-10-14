@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/abhinavxd/libredesk/internal/dbutil"
 	"github.com/abhinavxd/libredesk/internal/search/models"
 	"github.com/abhinavxd/libredesk/internal/testutil"
 	"github.com/jmoiron/sqlx"
@@ -77,6 +78,7 @@ func TestConversationSearchFieldsAndRanking(t *testing.T) {
 		DB:             db,
 		Lo:             &lo,
 		I18n:           testutil.NewI18n(t),
+		FilterFields:   dbutil.AllowedFields{"conversations": {"contact_id"}},
 		FilterLocation: func() string { return "UTC" },
 	})
 	if err != nil {
@@ -212,6 +214,18 @@ func TestConversationSearchFieldsAndRanking(t *testing.T) {
 	}
 	if len(results) != 1 || hasMore || cursor != "" || results[0].ReferenceNumber != "999" {
 		t.Fatalf("contact id did not match: results %+v, has_more %t, cursor %q", results, hasMore, cursor)
+	}
+
+	results, hasMore, cursor, err = manager.Conversations(models.Query{
+		Term:    "",
+		Filters: fmt.Sprintf(`[{"model":"conversations","field":"contact_id","operator":"equals","value":"%d"}]`, senderID),
+		PageSize: 10,
+	}, scope)
+	if err != nil {
+		t.Fatalf("searching with filters and no term: %v", err)
+	}
+	if len(results) != 1 || hasMore || cursor != "" || results[0].ReferenceNumber != "999" {
+		t.Fatalf("filters-only search did not match: results %+v, has_more %t, cursor %q", results, hasMore, cursor)
 	}
 
 	messages, hasMore, cursor, err := manager.Messages(models.Query{Term: "ordinary", PageSize: 10}, scope)

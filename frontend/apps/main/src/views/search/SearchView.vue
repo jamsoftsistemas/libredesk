@@ -23,6 +23,7 @@
           v-else-if="searchPerformed"
           :results="results"
           :term="term"
+          :min-query-length="MIN_SEARCH_LENGTH"
           :active-tab="activeTab"
           :sorts="sorts"
           :show-clear-filters="hasActiveFilters(filters)"
@@ -125,6 +126,15 @@ const fetchers = {
   messages: api.searchMessages
 }
 
+// Messages are matched by text content, so that tab always needs a real term.
+// Conversations can be browsed by filters alone (status, assignee, contact, etc.).
+const canSearchType = (type) =>
+  type === 'messages' ? term.value.length >= MIN_SEARCH_LENGTH : canSearch()
+
+const canSearch = () =>
+  term.value.length >= MIN_SEARCH_LENGTH ||
+  (term.value.length === 0 && hasActiveFilters(filters.value))
+
 const reset = () => {
   searchRequestId++
   results.value = emptyResults()
@@ -135,7 +145,7 @@ const reset = () => {
 }
 
 const search = async () => {
-  if (term.value.length < MIN_SEARCH_LENGTH) {
+  if (!canSearch()) {
     reset()
     return
   }
@@ -144,23 +154,27 @@ const search = async () => {
   searchPerformed.value = true
 
   const requestId = ++searchRequestId
+  const typesToQuery = TABS.filter(canSearchType)
   try {
-    const perPage = Object.fromEntries(TABS.map((type) => [type, results.value[type].per_page]))
+    const perPage = Object.fromEntries(
+      typesToQuery.map((type) => [type, results.value[type].per_page])
+    )
     const responses = await Promise.all(
-      TABS.map((type) => fetchers[type](searchParams(type, perPage[type])))
+      typesToQuery.map((type) => fetchers[type](searchParams(type, perPage[type])))
     )
     if (requestId !== searchRequestId) return
     cursorsByPage = emptyCursorHistory()
-    results.value = Object.fromEntries(
-      TABS.map((type, i) => [type, { ...responses[i].data.data, page: 1 }])
-    )
-    for (const type of TABS) {
+    results.value = {
+      ...emptyResults(),
+      ...Object.fromEntries(typesToQuery.map((type, i) => [type, { ...responses[i].data.data, page: 1 }]))
+    }
+    for (const type of typesToQuery) {
       if (results.value[type].has_more) {
         cursorsByPage[type].set(2, results.value[type].next_cursor)
       }
     }
     if (!tabSelectedByUser.value && results.value[activeTab.value].results.length === 0) {
-      const populatedTab = TABS.find((type) => results.value[type].results.length > 0)
+      const populatedTab = typesToQuery.find((type) => results.value[type].results.length > 0)
       if (populatedTab) activeTab.value = populatedTab
     }
   } catch (err) {
@@ -174,6 +188,7 @@ const search = async () => {
 const scrollRef = ref(null)
 
 const fetchPage = async (type, page, perPage) => {
+  if (!canSearchType(type)) return
   if (perPage !== results.value[type].per_page) {
     cursorsByPage[type] = new Map([[1, '']])
   }
@@ -236,9 +251,9 @@ const debouncedSearch = () => {
   debounceTimer = setTimeout(search, DEBOUNCE_DELAY)
 }
 
-watch(term, (value) => {
+watch(term, () => {
   syncRoute()
-  if (value.length >= MIN_SEARCH_LENGTH) {
+  if (canSearch()) {
     debouncedSearch()
   } else {
     clearTimeout(debounceTimer)
@@ -248,12 +263,17 @@ watch(term, (value) => {
 
 watch(filters, () => {
   syncRoute()
-  if (term.value.length >= MIN_SEARCH_LENGTH) debouncedSearch()
+  if (canSearch()) {
+    debouncedSearch()
+  } else {
+    clearTimeout(debounceTimer)
+    reset()
+  }
 })
 
 watch(activeTab, syncRoute)
 
-if (term.value.length >= MIN_SEARCH_LENGTH) search()
+if (canSearch()) search()
 
 onMounted(() => inputRef.value?.input?.$el?.focus?.())
 

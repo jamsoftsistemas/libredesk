@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 
 	amodels "github.com/abhinavxd/libredesk/internal/auth/models"
 	authzmodels "github.com/abhinavxd/libredesk/internal/authz/models"
@@ -73,7 +74,9 @@ func handleSearchContacts(r *fastglue.Request) error {
 }
 
 func handlePaginatedSearchConversations(r *fastglue.Request) error {
-	app, user, q, err := searchInputs(r)
+	// Conversations can be browsed by filters alone (status, assignee, contact, etc.), so an empty
+	// query term is allowed as long as at least one filter is set.
+	app, user, q, err := searchInputs(r, true)
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}
@@ -94,7 +97,8 @@ func handlePaginatedSearchConversations(r *fastglue.Request) error {
 }
 
 func handlePaginatedSearchMessages(r *fastglue.Request) error {
-	app, user, q, err := searchInputs(r)
+	// Message search always matches against text content, so a real query term is required.
+	app, user, q, err := searchInputs(r, false)
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}
@@ -114,20 +118,33 @@ func handlePaginatedSearchMessages(r *fastglue.Request) error {
 	})
 }
 
-func searchInputs(r *fastglue.Request) (*App, amodels.User, smodels.Query, error) {
-	app, user, term, err := searchTerm(r)
-	if err != nil {
-		return app, user, smodels.Query{}, err
+func searchInputs(r *fastglue.Request, allowFiltersOnly bool) (*App, amodels.User, smodels.Query, error) {
+	app := r.Context.(*App)
+	user, _ := r.RequestCtx.UserValue("user").(amodels.User)
+	term := string(r.RequestCtx.QueryArgs().Peek("query"))
+	filters := string(r.RequestCtx.QueryArgs().Peek("filters"))
+
+	if len(term) == 0 && allowFiltersOnly && hasFilters(filters) {
+		// Browsing by filters alone, no text term required.
+	} else if len(term) < minSearchQueryLength {
+		return app, user, smodels.Query{}, envelope.NewError(envelope.InputError, app.i18n.Ts("search.minQueryLength", "length", fmt.Sprintf("%d", minSearchQueryLength)), nil)
 	}
+
 	_, pageSize := getPagination(r)
 	query := searchmanager.NormalizeQuery(smodels.Query{
 		Term:     term,
-		Filters:  string(r.RequestCtx.QueryArgs().Peek("filters")),
+		Filters:  filters,
 		Cursor:   string(r.RequestCtx.QueryArgs().Peek("cursor")),
 		Sort:     smodels.Sort(r.RequestCtx.QueryArgs().Peek("sort")),
 		PageSize: pageSize,
 	})
 	return app, user, query, nil
+}
+
+// hasFilters reports whether filtersJSON encodes at least one filter condition.
+func hasFilters(filtersJSON string) bool {
+	trimmed := strings.TrimSpace(filtersJSON)
+	return trimmed != "" && trimmed != "[]" && trimmed != "null"
 }
 
 func searchTerm(r *fastglue.Request) (*App, amodels.User, string, error) {
