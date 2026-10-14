@@ -3,5 +3,6 @@ import WhatsAppIcon from '@main/components/icons/WhatsAppIcon.vue'
 
 export const CHANNEL_ICONS = {
   livechat: MessageSquare,
-  whatsapp: WhatsAppIcon
+  whatsapp: WhatsAppIcon,
+  uazapi: WhatsAppIcon
 }
