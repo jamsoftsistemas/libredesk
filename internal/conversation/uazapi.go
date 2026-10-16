@@ -90,7 +90,7 @@ func (m *Manager) sendUazapiCSAT(actorUserID int, conversation models.Conversati
 		"uazapi_button_text": m.i18n.T("globals.terms.rateUs"),
 	}
 	content := m.i18n.T("globals.messages.pleaseRateConversation")
-	if _, err := m.QueueReply(nil, conversation.InboxID, actorUserID, conversation.ContactID, conversation.UUID, content, nil, nil, nil, meta); err != nil {
+	if _, err := m.QueueReply(nil, conversation.InboxID, actorUserID, conversation.ContactID, conversation.UUID, content, nil, nil, nil, "", meta); err != nil {
 		m.lo.Error("error sending uazapi CSAT", "conversation_uuid", conversation.UUID, "error", err)
 		return envelope.NewError(envelope.GeneralError, m.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}

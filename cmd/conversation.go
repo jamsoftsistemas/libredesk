@@ -29,6 +29,10 @@ import (
 	"github.com/zerodha/fastglue"
 )
 
+type conversationReadReq struct {
+	MessageUUID string `json:"message_uuid"`
+}
+
 type assigneeChangeReq struct {
 	AssigneeID int `json:"assignee_id"`
 }
@@ -64,6 +68,7 @@ type createConversationRequest struct {
 	ReuseContact           bool              `json:"reuse_contact"`
 	Subject                string            `json:"subject"`
 	Content                string            `json:"content"`
+	SendFrom               string            `json:"send_from"`
 	Attachments            []int             `json:"attachments"`
 	Initiator              string            `json:"initiator"` // "contact" | "agent"
 	SourceID               string            `json:"source_id"` // RFC 5322 Message-ID of the inbound message. Stored on the created contact message so replies thread on it. Contact-initiated only.
@@ -409,7 +414,10 @@ func handleGetConversation(r *fastglue.Request) error {
 		return sendErrorEnvelope(r, err)
 	}
 
-	prev, _ := app.conversation.GetContactPreviousConversations(conv.ContactID, 10)
+	prev, err := app.conversation.GetContactPreviousConversations(conv.ContactID, 10, user)
+	if err != nil {
+		return sendErrorEnvelope(r, err)
+	}
 	conv.PreviousConversations = filterCurrentPreviousConv(prev, conv.UUID)
 	return r.SendEnvelope(conv)
 }
@@ -476,7 +484,13 @@ func handleUpdateConversationAssigneeLastSeen(r *fastglue.Request) error {
 		app   = r.Context.(*App)
 		uuid  = r.RequestCtx.UserValue("uuid").(string)
 		auser = r.RequestCtx.UserValue("user").(amodels.User)
+		req   = conversationReadReq{}
 	)
+	if len(r.RequestCtx.PostBody()) > 0 {
+		if err := r.Decode(&req, "json"); err != nil {
+			return r.SendErrorEnvelope(fasthttp.StatusBadRequest, app.i18n.T("errors.parsingRequest"), nil, envelope.InputError)
+		}
+	}
 	user, err := app.user.GetAgentCachedOrLoad(auser.ID)
 	if err != nil {
 		return sendErrorEnvelope(r, err)
@@ -491,13 +505,14 @@ func handleUpdateConversationAssigneeLastSeen(r *fastglue.Request) error {
 		readSourceID string
 	)
 	if conv.InboxChannel == whatsappChannel.ChannelWhatsApp || conv.InboxChannel == uazapiChannel.ChannelUazapi {
-		readInboxID, readSourceID, err = app.conversation.WhatsAppReadReceiptTarget(uuid, auser.ID)
+		readInboxID, readSourceID, err = app.conversation.WhatsAppReadReceiptTarget(uuid, auser.ID, req.MessageUUID)
 		if err != nil {
 			app.lo.Error("error resolving read receipt target", "conversation_uuid", uuid, "error", err)
 		}
 	}
 
-	if err = app.conversation.UpdateUserLastSeen(uuid, auser.ID); err != nil {
+	read, err := app.conversation.UpdateUserLastSeen(uuid, auser.ID, req.MessageUUID)
+	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}
 
@@ -508,7 +523,9 @@ func handleUpdateConversationAssigneeLastSeen(r *fastglue.Request) error {
 			go markWhatsAppMessageRead(app, readInboxID, readSourceID)
 		}
 	}
-	return r.SendEnvelope(true)
+	state := map[string]any{"conversation_uuid": uuid, "last_seen_at": read.LastSeenAt, "read_version": read.ReadVersion}
+	app.conversation.BroadcastConversationRead(auser.ID, state)
+	return r.SendEnvelope(state)
 }
 
 // handleMarkConversationAsUnread marks a conversation as unread for the current user.
@@ -527,10 +544,13 @@ func handleMarkConversationAsUnread(r *fastglue.Request) error {
 		return sendErrorEnvelope(r, err)
 	}
 
-	if err = app.conversation.MarkAsUnread(uuid, auser.ID); err != nil {
+	unread, err := app.conversation.MarkAsUnread(uuid, auser.ID)
+	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}
-	return r.SendEnvelope(true)
+	state := map[string]any{"conversation_uuid": uuid, "last_seen_at": unread.LastSeenAt, "read_version": unread.ReadVersion, "is_unread": true}
+	app.conversation.BroadcastConversationRead(auser.ID, state)
+	return r.SendEnvelope(state)
 }
 
 // handleGetConversationParticipants retrieves participants of a conversation.
@@ -999,6 +1019,11 @@ func handleCreateConversation(r *fastglue.Request) error {
 		}
 	}
 
+	media, err := getUnassociatedMedia(app, req.Attachments, auser.ID)
+	if err != nil {
+		return sendErrorEnvelope(r, err)
+	}
+
 	conversationID, conversationUUID, err := app.conversation.CreateConversation(
 		contactID,
 		req.InboxID,
@@ -1014,12 +1039,6 @@ func handleCreateConversation(r *fastglue.Request) error {
 	if err != nil {
 		app.lo.Error("error creating conversation", "error", err)
 		return sendErrorEnvelope(r, envelope.NewError(envelope.GeneralError, app.i18n.T("globals.messages.somethingWentWrong"), nil))
-	}
-
-	// Get media for the attachment ids, skip any already associated with a model.
-	media, err := getUnassociatedMedia(app, req.Attachments)
-	if err != nil {
-		return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, app.i18n.T("globals.messages.somethingWentWrong"), nil, envelope.GeneralError)
 	}
 
 	// Team assignment clears the assigned agent.
@@ -1039,14 +1058,14 @@ func handleCreateConversation(r *fastglue.Request) error {
 		if len(req.WhatsAppTemplateParams) > 0 {
 			meta["whatsapp_template_params"] = req.WhatsAppTemplateParams
 		}
-		_, sendErr = app.conversation.QueueReply(media, req.InboxID, auser.ID, contactID, conversationUUID, "" /** content **/, nil /** to **/, nil /** cc **/, nil /** bcc **/, meta)
+		_, sendErr = app.conversation.QueueReply(media, req.InboxID, auser.ID, contactID, conversationUUID, "" /** content **/, nil /** to **/, nil /** cc **/, nil /** bcc **/, "" /** sendFrom **/, meta)
 	case channel == uazapiChannel.ChannelUazapi:
-		_, sendErr = app.conversation.QueueReply(media, req.InboxID, auser.ID, contactID, conversationUUID, req.Content, nil /** to **/, nil /** cc **/, nil /** bcc **/, map[string]any{})
+		_, sendErr = app.conversation.QueueReply(media, req.InboxID, auser.ID, contactID, conversationUUID, req.Content, nil /** to **/, nil /** cc **/, nil /** bcc **/, "" /** sendFrom **/, map[string]any{})
 	case req.Initiator == umodels.UserTypeAgent:
-		_, sendErr = app.conversation.QueueReply(media, req.InboxID, auser.ID, contactID, conversationUUID, req.Content, to, req.CC, req.BCC, map[string]any{})
+		_, sendErr = app.conversation.QueueReply(media, req.InboxID, auser.ID, contactID, conversationUUID, req.Content, to, req.CC, req.BCC, req.SendFrom, map[string]any{} /** meta **/)
 	case req.Initiator == umodels.UserTypeContact:
 		agentInitiated = false
-		_, sendErr = app.conversation.CreateContactMessage(media, contactID, conversationUUID, req.Content, cmodels.ContentTypeHTML, true, req.SourceID)
+		_, sendErr = app.conversation.CreateContactMessage(media, contactID, conversationUUID, req.Content, cmodels.ContentTypeHTML, true, req.SourceID, auser.ID)
 	default:
 		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, app.i18n.T("globals.messages.somethingWentWrong"), nil, envelope.InputError)
 	}
