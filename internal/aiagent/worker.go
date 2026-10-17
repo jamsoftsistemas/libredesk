@@ -290,9 +290,31 @@ func (m *Manager) handle(ctx context.Context, convID int) {
 	tools := []ai.Tool{
 		&searchKnowledgeTool{m: m, citationsEnabled: assistant.CitationsEnabled, collect: func(rs []aimodels.SearchResult) { hits = append(hits, rs...) }},
 		&resolveTool{m: m, conv: conv, outcome: outcome},
+		&addNoteTool{m: m, conv: conv, assistant: assistant},
 	}
 	if assistant.HandoffEnabled {
 		tools = append(tools, &handoffTool{m: m, conv: conv, assistant: assistant, outcome: outcome})
+	}
+	if priorities, err := m.priority.GetAll(); err != nil {
+		m.lo.Error("error fetching priorities for ai agent tools", "conversation_uuid", conv.UUID, "error", err)
+	} else {
+		names := make([]string, len(priorities))
+		for i, p := range priorities {
+			names[i] = p.Name
+		}
+		if t := newPriorityTool(m, conv, assistant, names); t != nil {
+			tools = append(tools, t)
+		}
+	}
+	if teams, err := m.team.GetAll(); err != nil {
+		m.lo.Error("error fetching teams for ai agent tools", "conversation_uuid", conv.UUID, "error", err)
+	} else if t := newAssignTeamTool(outcome, teams); t != nil {
+		tools = append(tools, t)
+	}
+	if assistants, err := m.GetAssistants(); err != nil {
+		m.lo.Error("error fetching assistants for ai agent tools", "conversation_uuid", conv.UUID, "error", err)
+	} else if t := newAssignAIAgentTool(outcome, assistants, assistant.ID); t != nil {
+		tools = append(tools, t)
 	}
 	if recent := m.recentContactConversations(conv, runVerified); len(recent) > 0 {
 		systemPrompt += fmt.Sprintf("\n\nThis customer has %d other conversation(s) from the last %d days. Call get_previous_conversations if the current issue might be a follow-up or related to them.", len(recent), recentConversationDays)
@@ -362,6 +384,17 @@ func (m *Manager) handle(ctx context.Context, convID int) {
 		answer, confirm = answer+"\n\n"+confirm, ""
 		answerSuggestions, confirmSuggestions = nil, nil
 	}
+	if outcome.reassignAgentID != 0 {
+		// The newly assigned assistant's worker only wakes for a customer message this run hasn't
+		// answered yet; posting a reply here would mark that message answered and the handoff would
+		// go silent. The tool's own instructions tell the model not to reply when it calls this, so
+		// reaching here with text means the model didn't follow that - drop it rather than ship it.
+		if answer != "" || confirm != "" {
+			m.lo.Warn("ai agent wrote a reply while reassigning to another assistant, dropping it", "conversation_uuid", conv.UUID)
+		}
+		m.reassignToAgent(conv, assistant, outcome.reassignAgentID, outcome.reassignReason)
+		return
+	}
 	if answer != "" {
 		m.lo.Debug("ai agent replying", "conversation_uuid", conv.UUID, "reply_len", len(answer), "resolved", outcome.resolved)
 		if err := m.postReply(conv, assistant, answer, replyMeta(answerSuggestions, articleIDs)); err != nil {
@@ -379,6 +412,10 @@ func (m *Manager) handle(ctx context.Context, convID int) {
 			m.handoff(conv, assistant, m.i18n.T("ai.agent.handoffError"))
 			return
 		}
+	}
+	if outcome.reassignTeamID != 0 {
+		m.reassignToTeam(conv, assistant, outcome.reassignTeamID, outcome.reassignReason)
+		return
 	}
 	if outcome.handedOff {
 		m.lo.Debug("ai agent handed off", "conversation_uuid", conv.UUID)
@@ -536,6 +573,43 @@ func (m *Manager) handoff(conv cmodels.Conversation, assistant models.Assistant,
 
 func (m *Manager) actorUser(a models.Assistant) umodels.User {
 	return umodels.User{ID: a.UserID, FirstName: a.Name, Type: umodels.UserTypeAIAssistant}
+}
+
+// reassignToTeam hands the conversation to a team, chosen by assign_team. UpdateConversationTeamAssignee
+// itself unassigns the current user (this assistant) once the team changes, same as the fallback-team
+// path in handoff.
+func (m *Manager) reassignToTeam(conv cmodels.Conversation, assistant models.Assistant, teamID int, reason string) {
+	actor := m.actorUser(assistant)
+	note := strings.TrimSpace(reason)
+	if note == "" {
+		note = m.i18n.T("ai.agent.reassignedTeamDefault")
+	}
+	if _, err := m.convo.SendPrivateNote(nil, assistant.UserID, conv.UUID, note, nil); err != nil {
+		m.lo.Error("error posting team reassignment note", "conversation_uuid", conv.UUID, "error", err)
+	}
+	if err := m.convo.UpdateConversationTeamAssignee(conv.UUID, teamID, actor); err != nil {
+		m.lo.Error("error reassigning conversation to team", "conversation_uuid", conv.UUID, "team_id", teamID, "error", err)
+		return
+	}
+	m.recordEvent(assistant.ID, conv.ID, "handoff")
+}
+
+// reassignToAgent hands the conversation to another AI assistant, chosen by assign_ai_agent.
+// UpdateConversationUserAssignee's existing hook enqueues the new assistant's own response run.
+func (m *Manager) reassignToAgent(conv cmodels.Conversation, assistant models.Assistant, agentUserID int, reason string) {
+	actor := m.actorUser(assistant)
+	note := strings.TrimSpace(reason)
+	if note == "" {
+		note = m.i18n.T("ai.agent.reassignedAgentDefault")
+	}
+	if _, err := m.convo.SendPrivateNote(nil, assistant.UserID, conv.UUID, note, nil); err != nil {
+		m.lo.Error("error posting ai agent reassignment note", "conversation_uuid", conv.UUID, "error", err)
+	}
+	if err := m.convo.UpdateConversationUserAssignee(conv.UUID, agentUserID, actor); err != nil {
+		m.lo.Error("error reassigning conversation to ai assistant", "conversation_uuid", conv.UUID, "to_user_id", agentUserID, "error", err)
+		return
+	}
+	m.recordEvent(assistant.ID, conv.ID, "handoff")
 }
 
 // PreviewReply runs the assistant against a test message with no side effects and returns the reply and the knowledge base items it was grounded in.

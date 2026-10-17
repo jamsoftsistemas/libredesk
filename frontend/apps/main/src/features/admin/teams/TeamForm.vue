@@ -24,6 +24,20 @@
       </FormItem>
     </FormField>
 
+    <FormField v-slot="{ componentField }" name="description">
+      <FormItem class="md:col-span-2">
+        <FormLabel>{{ $t('globals.terms.description') }}</FormLabel>
+        <FormControl>
+          <Textarea
+            :placeholder="$t('admin.team.description.placeholder')"
+            v-bind="componentField"
+          />
+        </FormControl>
+        <FormDescription>{{ $t('admin.team.description.description') }}</FormDescription>
+        <FormMessage />
+      </FormItem>
+    </FormField>
+
     <FormField name="conversation_assignment_type" v-slot="{ componentField }">
       <FormItem>
         <FormLabel>{{ $t('admin.team.assignmentType') }}</FormLabel>
@@ -160,6 +174,7 @@ import {
 import { EMITTER_EVENTS } from '../../../constants/emitterEvents.js'
 import { useEmitter } from '../../../composables/useEmitter.js'
 import { Input } from '@shared-ui/components/ui/input/index.js'
+import { Textarea } from '@shared-ui/components/ui/textarea/index.js'
 import { handleHTTPError } from '@shared-ui/utils/http.js'
 import { useSlaStore } from '../../../stores/sla.js'
 import { timeZones } from '../../../constants/timezones.js'

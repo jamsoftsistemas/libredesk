@@ -14,12 +14,14 @@ import (
 	"github.com/abhinavxd/libredesk/internal/ai"
 	"github.com/abhinavxd/libredesk/internal/aiagent/models"
 	"github.com/abhinavxd/libredesk/internal/conversation"
+	"github.com/abhinavxd/libredesk/internal/conversation/priority"
 	"github.com/abhinavxd/libredesk/internal/dbutil"
 	"github.com/abhinavxd/libredesk/internal/envelope"
 	"github.com/abhinavxd/libredesk/internal/inbox"
 	"github.com/abhinavxd/libredesk/internal/media"
 	notifier "github.com/abhinavxd/libredesk/internal/notification"
 	"github.com/abhinavxd/libredesk/internal/setting"
+	"github.com/abhinavxd/libredesk/internal/team"
 	"github.com/abhinavxd/libredesk/internal/user"
 	"github.com/jmoiron/sqlx"
 	"github.com/knadh/go-i18n"
@@ -75,6 +77,8 @@ type Manager struct {
 	user     *user.Manager
 	notifier *notifier.Service
 	redis    *redis.Client
+	team     *team.Manager
+	priority *priority.Manager
 
 	maxSteps           int
 	maxHistoryMessages int
@@ -110,7 +114,7 @@ type Opts struct {
 }
 
 // New creates the AI agent manager.
-func New(opts Opts, aiManager *ai.Manager, convo *conversation.Manager, inboxManager *inbox.Manager, mediaManager *media.Manager, settingManager *setting.Manager, userManager *user.Manager, notifierService *notifier.Service, rdb *redis.Client) (*Manager, error) {
+func New(opts Opts, aiManager *ai.Manager, convo *conversation.Manager, inboxManager *inbox.Manager, mediaManager *media.Manager, settingManager *setting.Manager, userManager *user.Manager, notifierService *notifier.Service, rdb *redis.Client, teamManager *team.Manager, priorityManager *priority.Manager) (*Manager, error) {
 	var q queries
 	if err := dbutil.ScanSQLFile("queries.sql", &q, opts.DB, efs); err != nil {
 		return nil, err
@@ -130,6 +134,8 @@ func New(opts Opts, aiManager *ai.Manager, convo *conversation.Manager, inboxMan
 		user:               userManager,
 		notifier:           notifierService,
 		redis:              rdb,
+		team:               teamManager,
+		priority:           priorityManager,
 		queue:              make(chan int, opts.QueueSize),
 		inflight:           map[int]bool{},
 		pending:            map[int]bool{},

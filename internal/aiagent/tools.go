@@ -12,6 +12,7 @@ import (
 	"github.com/abhinavxd/libredesk/internal/aiagent/models"
 	cmodels "github.com/abhinavxd/libredesk/internal/conversation/models"
 	notifier "github.com/abhinavxd/libredesk/internal/notification"
+	tmodels "github.com/abhinavxd/libredesk/internal/team/models"
 	"github.com/jmoiron/sqlx/types"
 )
 
@@ -25,6 +26,8 @@ const (
 	// minConfidence is the cosine-similarity floor below which a hit is treated as no match,
 	// so the assistant hands off rather than answering from a weak retrieval.
 	minConfidence = 0.30
+
+	maxPrivateNoteLength = 4000
 )
 
 var (
@@ -60,13 +63,30 @@ var (
 		},
 		"required": ["email"]
 	}`)
+
+	noteParams = types.JSONText(`{
+		"type": "object",
+		"properties": {
+			"note": {"type": "string", "description": "The internal note text. Never shown to the customer."}
+		},
+		"required": ["note"]
+	}`)
 )
 
-// runOutcome records which terminal tool action the assistant took during one response run.
+// runOutcome records which terminal tool action the assistant took during one response run. Handoff,
+// team reassignment, and AI-agent reassignment are mutually exclusive terminal actions; resolve is
+// a separate, independent action.
 type runOutcome struct {
 	handedOff     bool
 	handoffReason string
 	resolved      bool
+
+	// reassignTeamID/reassignAgentID are >0 once assign_team/assign_ai_agent has been called. The
+	// actual reassignment is applied after the run finishes, mirroring handedOff/resolved, so it
+	// never races the reply this run posts.
+	reassignTeamID  int
+	reassignAgentID int
+	reassignReason  string
 }
 
 type searchKnowledgeTool struct {
@@ -377,6 +397,237 @@ func (t *setContactEmailTool) Execute(ctx context.Context, args string) (string,
 	t.conv.Contact.Email.Valid = true
 	t.m.lo.Debug("ai agent set contact email", "conversation_uuid", t.conv.UUID, "email", email)
 	return "The customer's email has been saved. Now call send_email_verification to email them a code.", nil
+}
+
+// priorityTool lets the assistant set the conversation's priority to one of the names configured by
+// an admin. Applied immediately: unlike handoff/resolve/reassignment it doesn't change who owns the
+// conversation, so there's nothing for it to race.
+type priorityTool struct {
+	m         *Manager
+	conv      cmodels.Conversation
+	assistant models.Assistant
+	names     []string
+	params    types.JSONText
+}
+
+// newPriorityTool returns nil if there are no priorities configured to choose from.
+func newPriorityTool(m *Manager, conv cmodels.Conversation, assistant models.Assistant, names []string) *priorityTool {
+	if len(names) == 0 {
+		return nil
+	}
+	enum, _ := json.Marshal(names)
+	params := types.JSONText(fmt.Sprintf(`{
+		"type": "object",
+		"properties": {
+			"priority": {"type": "string", "enum": %s, "description": "The priority to set."}
+		},
+		"required": ["priority"]
+	}`, enum))
+	return &priorityTool{m: m, conv: conv, assistant: assistant, names: names, params: params}
+}
+
+func (t *priorityTool) Name() string { return "set_priority" }
+
+func (t *priorityTool) Description() string {
+	return "Set the conversation's priority based on how urgent the customer's issue is."
+}
+
+func (t *priorityTool) Parameters() types.JSONText { return t.params }
+
+func (t *priorityTool) Execute(ctx context.Context, args string) (string, error) {
+	var in struct {
+		Priority string `json:"priority"`
+	}
+	if err := json.Unmarshal([]byte(args), &in); err != nil {
+		return "", fmt.Errorf("invalid arguments: %w", err)
+	}
+	name := strings.TrimSpace(in.Priority)
+	if !slices.Contains(t.names, name) {
+		return fmt.Sprintf("%q is not a valid priority. Valid priorities: %s.", name, strings.Join(t.names, ", ")), nil
+	}
+	actor := t.m.actorUser(t.assistant)
+	if err := t.m.convo.UpdateConversationPriority(t.conv.UUID, 0, name, actor); err != nil {
+		t.m.lo.Error("error setting priority via ai agent tool", "conversation_uuid", t.conv.UUID, "error", err)
+		return "", err
+	}
+	t.m.lo.Debug("ai agent set priority", "conversation_uuid", t.conv.UUID, "priority", name)
+	return fmt.Sprintf("Priority set to %s.", name), nil
+}
+
+// addNoteTool records an internal note on the conversation, never shown to the customer. Applied
+// immediately, same reasoning as priorityTool.
+type addNoteTool struct {
+	m         *Manager
+	conv      cmodels.Conversation
+	assistant models.Assistant
+}
+
+func (t *addNoteTool) Name() string { return "add_private_note" }
+
+func (t *addNoteTool) Description() string {
+	return "Add a private internal note to the conversation. Visible only to agents, never to the customer. Use it to record context for whoever picks up the conversation next, such as why you prioritized, transferred, or escalated it."
+}
+
+func (t *addNoteTool) Parameters() types.JSONText { return noteParams }
+
+func (t *addNoteTool) Execute(ctx context.Context, args string) (string, error) {
+	var in struct {
+		Note string `json:"note"`
+	}
+	if err := json.Unmarshal([]byte(args), &in); err != nil {
+		return "", fmt.Errorf("invalid arguments: %w", err)
+	}
+	note := strings.TrimSpace(in.Note)
+	if note == "" {
+		return "No note text provided.", nil
+	}
+	if runes := []rune(note); len(runes) > maxPrivateNoteLength {
+		note = string(runes[:maxPrivateNoteLength])
+	}
+	if _, err := t.m.convo.SendPrivateNote(nil, t.assistant.UserID, t.conv.UUID, note, nil); err != nil {
+		t.m.lo.Error("error adding private note via ai agent tool", "conversation_uuid", t.conv.UUID, "error", err)
+		return "", err
+	}
+	t.m.lo.Debug("ai agent added private note", "conversation_uuid", t.conv.UUID)
+	return "Private note added.", nil
+}
+
+// assignTeamTool lets the assistant route the conversation to a team based on what the team
+// handles. The actual reassignment is deferred to after the run's reply is posted (see runOutcome).
+type assignTeamTool struct {
+	outcome     *runOutcome
+	names       map[int]string
+	description string
+	params      types.JSONText
+}
+
+// newAssignTeamTool returns nil if there are no teams to route to.
+func newAssignTeamTool(outcome *runOutcome, teams []tmodels.Team) *assignTeamTool {
+	if len(teams) == 0 {
+		return nil
+	}
+	names := make(map[int]string, len(teams))
+	ids := make([]int, 0, len(teams))
+	var b strings.Builder
+	b.WriteString("Transfer the conversation to a team, based on what the team is described as handling. Available teams:\n")
+	for _, team := range teams {
+		names[team.ID] = team.Name
+		ids = append(ids, team.ID)
+		fmt.Fprintf(&b, "- id %d: %s", team.ID, team.Name)
+		if desc := strings.TrimSpace(team.Description); desc != "" {
+			fmt.Fprintf(&b, " — %s", neutralizeMarkers(desc))
+		}
+		b.WriteString("\n")
+	}
+	idsJSON, _ := json.Marshal(ids)
+	params := types.JSONText(fmt.Sprintf(`{
+		"type": "object",
+		"properties": {
+			"team_id": {"type": "integer", "enum": %s, "description": "The id of the team to transfer the conversation to."},
+			"reason": {"type": "string", "description": "Short reason for the transfer, recorded as an internal note."}
+		},
+		"required": ["team_id"]
+	}`, idsJSON))
+	return &assignTeamTool{outcome: outcome, names: names, description: b.String(), params: params}
+}
+
+func (t *assignTeamTool) Name() string { return "assign_team" }
+
+func (t *assignTeamTool) Description() string { return t.description }
+
+func (t *assignTeamTool) Parameters() types.JSONText { return t.params }
+
+func (t *assignTeamTool) Execute(ctx context.Context, args string) (string, error) {
+	var in struct {
+		TeamID int    `json:"team_id"`
+		Reason string `json:"reason"`
+	}
+	if err := json.Unmarshal([]byte(args), &in); err != nil {
+		return "", fmt.Errorf("invalid arguments: %w", err)
+	}
+	name, ok := t.names[in.TeamID]
+	if !ok {
+		return "That team_id is not valid. Use one of the ids listed in this tool's parameters.", nil
+	}
+	t.outcome.reassignTeamID = in.TeamID
+	t.outcome.reassignReason = strings.TrimSpace(in.Reason)
+	return fmt.Sprintf("Understood. The conversation will be transferred to the %s team once you finish responding. Do not call this tool again.", name), nil
+}
+
+// aiHandoffTarget is a candidate assistant for assign_ai_agent, keyed in the tool by the
+// ai_assistants row id shown to the model; outcome.reassignAgentID needs the assistant's user id
+// instead, since that's what UpdateConversationUserAssignee takes.
+type aiHandoffTarget struct {
+	name   string
+	userID int
+}
+
+// assignAIAgentTool lets the assistant route the conversation to another, more suitable AI
+// assistant, based on what that assistant is described as handling. The actual reassignment is
+// deferred (see runOutcome), and this run must not also post a customer-facing reply: the worker
+// pool only wakes an assistant for a customer message it hasn't answered yet, so if this run speaks
+// first, the newly assigned assistant will never pick up the same message.
+type assignAIAgentTool struct {
+	outcome     *runOutcome
+	targets     map[int]aiHandoffTarget
+	description string
+	params      types.JSONText
+}
+
+// newAssignAIAgentTool returns nil if there is no other enabled assistant to hand off to.
+func newAssignAIAgentTool(outcome *runOutcome, assistants []models.Assistant, selfID int) *assignAIAgentTool {
+	targets := make(map[int]aiHandoffTarget)
+	ids := make([]int, 0, len(assistants))
+	var b strings.Builder
+	b.WriteString("Hand the conversation to another AI assistant better suited to it, based on what that assistant is described as handling. Do not write a reply in the same turn you call this tool: stay silent and let the other assistant respond. Available assistants:\n")
+	for _, a := range assistants {
+		if a.ID == selfID || !a.Enabled {
+			continue
+		}
+		targets[a.ID] = aiHandoffTarget{name: a.Name, userID: a.UserID}
+		ids = append(ids, a.ID)
+		fmt.Fprintf(&b, "- id %d: %s", a.ID, a.Name)
+		if desc := strings.TrimSpace(a.Description); desc != "" {
+			fmt.Fprintf(&b, " — %s", neutralizeMarkers(desc))
+		}
+		b.WriteString("\n")
+	}
+	if len(targets) == 0 {
+		return nil
+	}
+	idsJSON, _ := json.Marshal(ids)
+	params := types.JSONText(fmt.Sprintf(`{
+		"type": "object",
+		"properties": {
+			"agent_id": {"type": "integer", "enum": %s, "description": "The id of the AI assistant to hand the conversation to."},
+			"reason": {"type": "string", "description": "Short reason for the handoff, recorded as an internal note."}
+		},
+		"required": ["agent_id"]
+	}`, idsJSON))
+	return &assignAIAgentTool{outcome: outcome, targets: targets, description: b.String(), params: params}
+}
+
+func (t *assignAIAgentTool) Name() string { return "assign_ai_agent" }
+
+func (t *assignAIAgentTool) Description() string { return t.description }
+
+func (t *assignAIAgentTool) Parameters() types.JSONText { return t.params }
+
+func (t *assignAIAgentTool) Execute(ctx context.Context, args string) (string, error) {
+	var in struct {
+		AgentID int    `json:"agent_id"`
+		Reason  string `json:"reason"`
+	}
+	if err := json.Unmarshal([]byte(args), &in); err != nil {
+		return "", fmt.Errorf("invalid arguments: %w", err)
+	}
+	target, ok := t.targets[in.AgentID]
+	if !ok {
+		return "That agent_id is not valid. Use one of the ids listed in this tool's parameters.", nil
+	}
+	t.outcome.reassignAgentID = target.userID
+	t.outcome.reassignReason = strings.TrimSpace(in.Reason)
+	return fmt.Sprintf("Understood. Handing off to %s. Do not reply to the customer yourself and do not call this tool again.", target.name), nil
 }
 
 // noReplyAddress returns a no-reply address on the notification sender's domain, or "" if unavailable.
