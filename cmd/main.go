@@ -104,6 +104,7 @@ type App struct {
 	fs                 stuffbin.FileSystem
 	consts             atomic.Value
 	auth               *auth_.Auth
+	sessionsMu         sync.RWMutex
 	authz              *authz.Enforcer
 	i18n               *i18n.I18n
 	lo                 *logf.Logger
@@ -256,7 +257,6 @@ func main() {
 		status                      = initStatus(db, i18n)
 		priority                    = initPriority(db, i18n)
 		ssrfControl                 = initSSRFControl()
-		auth                        = initAuth(oidc, rdb, i18n, ssrfControl)
 		template                    = initTemplate(db, fs, constants, i18n)
 		media                       = initMedia(db, i18n, settings)
 		inbox                       = initInbox(db, i18n)
@@ -265,12 +265,14 @@ func main() {
 		businessHours               = initBusinessHours(db, i18n)
 		webhook                     = initWebhook(db, i18n, ssrfControl)
 		user                        = initUser(i18n, db)
+		auth                        = initAuth(oidc, rdb, i18n, ssrfControl)
 		wsHub                       = initWS(user)
 		notifier                    = initNotifier()
 		userNotification            = initUserNotification(db, i18n)
 		notificationPreference      = initNotificationPreference(db, i18n)
-		pushNotification            = initPushNotification(db, settings, i18n)
-		notificationEmailQueue      = initNotificationEmailQueue(db, notifier)
+		replyDeliveryChecker        = initReplyDeliveryChecker(userNotification, user, notificationPreference)
+		pushNotification            = initPushNotification(db, settings, i18n, replyDeliveryChecker)
+		notificationEmailQueue      = initNotificationEmailQueue(db, notifier, replyDeliveryChecker)
 		notifDispatcher             = initNotifDispatcher(userNotification, notificationPreference, pushNotification, notificationEmailQueue, wsHub, ko.Bool("notification.email.enabled"))
 		automation                  = initAutomationEngine(db, i18n)
 		ai                          = initAI(ctx, db, i18n, ssrfControl)
@@ -295,6 +297,7 @@ func main() {
 	waClient := initWhatsAppClient()
 	waTemplates := initWhatsAppTemplates(db, i18n, waClient, inbox)
 	conversation.SetWhatsAppTemplateStore(waTemplates)
+	conversation.SetArticleReferenceStore(helpCenter)
 
 	uaClient := initUazapiClient()
 

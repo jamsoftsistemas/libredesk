@@ -358,7 +358,7 @@ const updateConversationPriority = (uuid, data) =>
       'Content-Type': 'application/json'
     }
   })
-const updateAssigneeLastSeen = (uuid) => http.put(`/api/v1/conversations/${uuid}/last-seen`)
+const updateAssigneeLastSeen = (uuid, messageUUID) => http.put(`/api/v1/conversations/${uuid}/last-seen`, { message_uuid: messageUUID })
 const markConversationAsUnread = (uuid) => http.put(`/api/v1/conversations/${uuid}/mark-unread`)
 const getConversationMessage = (cuuid, uuid) =>
   http.get(`/api/v1/conversations/${cuuid}/messages/${uuid}`)
@@ -444,6 +444,7 @@ const updateInbox = (id, data) =>
     }
   })
 const deleteInbox = (id) => http.delete(`/api/v1/inboxes/${id}`)
+const verifyInboxAlias = (id, data) => http.post(`/api/v1/inboxes/${id}/aliases/verify`, data)
 
 const getWhatsAppTemplates = (inboxId) =>
   http.get('/api/v1/whatsapp/templates', { params: { inbox_id: inboxId } })
@@ -779,6 +780,7 @@ export default {
   updateInbox,
   deleteInbox,
   toggleInbox,
+  verifyInboxAlias,
   getWhatsAppTemplates,
   getWhatsAppTemplate,
   updateWhatsAppTemplate,
