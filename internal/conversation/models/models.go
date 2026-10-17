@@ -639,6 +639,17 @@ func Transcript(msgs []Message, max int) string {
 				text = t
 			}
 		}
+		for _, att := range msg.Attachments {
+			if !strings.HasPrefix(att.ContentType, "audio/") {
+				continue
+			}
+			if transcript, ok := AudioTranscription(msg.Meta, att.UUID); ok {
+				if text != "" {
+					text += "\n"
+				}
+				text += "[Voice message transcribed: " + transcript + "]"
+			}
+		}
 		if text == "" {
 			continue
 		}
@@ -648,6 +659,28 @@ func Transcript(msgs []Message, max int) string {
 		b.WriteString("\n")
 	}
 	return b.String()
+}
+
+// AudioTranscription returns the transcribed text for the given attachment (media) UUID stored
+// under meta.transcriptions, and whether a completed transcription is available.
+func AudioTranscription(meta json.RawMessage, mediaUUID string) (string, bool) {
+	if len(meta) == 0 {
+		return "", false
+	}
+	var parsed struct {
+		Transcriptions map[string]struct {
+			Status string `json:"status"`
+			Text   string `json:"text"`
+		} `json:"transcriptions"`
+	}
+	if err := json.Unmarshal(meta, &parsed); err != nil {
+		return "", false
+	}
+	t, ok := parsed.Transcriptions[mediaUUID]
+	if !ok || t.Status != "done" || strings.TrimSpace(t.Text) == "" {
+		return "", false
+	}
+	return t.Text, true
 }
 
 func metaString(meta json.RawMessage, key string) string {

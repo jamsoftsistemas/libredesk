@@ -820,6 +820,15 @@ func (m *Manager) buildHistory(msgs []cmodels.Message, contactID int) []aimodels
 		// Only the customer's own attachments are worth showing the assistant.
 		if role == aimodels.RoleUser {
 			for _, att := range msg.Attachments {
+				if strings.HasPrefix(att.ContentType, "audio/") {
+					// Never send the raw audio blob to the LLM; only its text transcription, if any.
+					if text, ok := cmodels.AudioTranscription(msg.Meta, att.UUID); ok {
+						markers = append(markers, audioTranscriptMarker(att, text))
+					} else {
+						markers = append(markers, unreadableFileMarker(att))
+					}
+					continue
+				}
 				if !strings.HasPrefix(att.ContentType, "image/") {
 					m.lo.Debug("ai agent attachment not an image", "uuid", att.UUID, "content_type", att.ContentType)
 					markers = append(markers, unreadableFileMarker(att))
@@ -904,6 +913,12 @@ func (m *Manager) encodeAttachmentImage(att attachment.Attachment) (aimodels.Cha
 
 func unreadableFileMarker(att attachment.Attachment) string {
 	return fmt.Sprintf("[The customer attached a file %q (%s) that cannot be read here. Ask them to share the relevant details as text if it matters.]", att.Name, att.ContentType)
+}
+
+// audioTranscriptMarker surfaces the text transcription of a voice message; the audio itself is
+// never read or sent to the model.
+func audioTranscriptMarker(att attachment.Attachment, text string) string {
+	return fmt.Sprintf("[Voice message %q, transcribed: %s]", att.Name, text)
 }
 
 func unreadableImageMarker(att attachment.Attachment) string {
