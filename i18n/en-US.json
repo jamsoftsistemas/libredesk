@@ -1936,5 +1936,7 @@
   "replyBox.recordAudio": "Record audio",
   "replyBox.stopRecording": "Stop and attach",
   "replyBox.cancelRecording": "Cancel recording",
-  "replyBox.micPermissionDenied": "Could not access the microphone. Check the browser permissions."
+  "replyBox.micPermissionDenied": "Could not access the microphone. Check the browser permissions.",
+  "replyBox.micInsecureContext": "The microphone is only available over HTTPS (or localhost). Open this page with https:// to record audio.",
+  "replyBox.sendAudio": "Send voice message"
 }

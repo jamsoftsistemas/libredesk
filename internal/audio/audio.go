@@ -63,6 +63,22 @@ func ConvertToOggOpus(ctx context.Context, data []byte) ([]byte, error) {
 	return run(ctx, data, "-vn", "-c:a", "libopus", "-b:a", "32k", "-ac", "1", "-f", "ogg")
 }
 
+// IsOgg reports whether the content type is an ogg container.
+func IsOgg(contentType string) bool {
+	switch baseType(contentType) {
+	case "audio/ogg", "audio/opus":
+		return true
+	}
+	return false
+}
+
+// RemuxOgg rewrites an ogg file without re-encoding so its timestamps start at zero.
+// Firefox's MediaRecorder emits ogg whose granule positions start at the stream's age,
+// which makes players report a duration far longer than the recording.
+func RemuxOgg(ctx context.Context, data []byte) ([]byte, error) {
+	return run(ctx, data, "-vn", "-c:a", "copy", "-f", "ogg")
+}
+
 // ConvertToMP3 converts any audio blob to mp3.
 func ConvertToMP3(ctx context.Context, data []byte) ([]byte, error) {
 	return run(ctx, data, "-vn", "-c:a", "libmp3lame", "-b:a", "64k", "-ac", "1", "-f", "mp3")

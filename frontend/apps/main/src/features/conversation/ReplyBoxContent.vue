@@ -201,7 +201,7 @@
       :showGenerateReply="messageType !== 'private_note'"
       @emojiSelect="handleEmojiSelect"
       @generateReply="$emit('generateReply')"
-      @audioRecorded="(file) => handleFilesDropped([file])"
+      @audioRecorded="(file) => emit('voiceNote', file)"
     />
   </div>
 </template>
@@ -355,6 +355,7 @@ const emit = defineEmits([
   'inlineImageUpload',
   'fileDelete',
   'filesDropped',
+  'voiceNote',
   'aiGenerationChange',
   'generateReply'
 ])

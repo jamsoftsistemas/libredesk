@@ -195,7 +195,7 @@ const { t } = useI18n()
 const emitter = useEmitter()
 
 const modelPlaceholder = computed(() => {
-  if (props.type === 'transcription') return 'google/gemini-2.5-flash'
+  if (props.type === 'transcription') return 'openai/whisper-large-v3'
   return props.showEmbeddingFields ? 'text-embedding-3-small' : 'gpt-5.4-mini'
 })
 const formLoading = ref(false)
@@ -271,16 +271,22 @@ const embeddingPresets = [
 
 const transcriptionPresets = [
   {
-    value: 'openrouter-gemini-flash',
-    label: 'OpenRouter (Gemini 2.5 Flash)',
+    value: 'openrouter-whisper',
+    label: 'OpenRouter (Whisper Large v3)',
     base_url: 'https://openrouter.ai/api/v1',
-    model: 'google/gemini-2.5-flash'
+    model: 'openai/whisper-large-v3'
   },
   {
-    value: 'openrouter-gpt-4o-audio',
-    label: 'OpenRouter (GPT-4o Audio)',
+    value: 'openrouter-assemblyai',
+    label: 'OpenRouter (AssemblyAI Universal)',
     base_url: 'https://openrouter.ai/api/v1',
-    model: 'openai/gpt-4o-audio-preview'
+    model: 'assemblyai/universal-3-6-pro'
+  },
+  {
+    value: 'openrouter-scribe',
+    label: 'OpenRouter (ElevenLabs Scribe v2)',
+    base_url: 'https://openrouter.ai/api/v1',
+    model: 'elevenlabs/scribe-v2'
   }
 ]
 

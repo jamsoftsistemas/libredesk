@@ -16,7 +16,7 @@ func V2_20_0(db *sqlx.DB, fs stuffbin.FileSystem, ko *koanf.Koanf) error {
 	}
 	if _, err := db.Exec(`
 		INSERT INTO ai_providers ("name", provider, type, config, is_default)
-		VALUES ('transcription', 'openai', 'transcription', '{"api_key": "", "base_url": "https://openrouter.ai/api/v1", "model": "google/gemini-2.5-flash"}'::jsonb, false)
+		VALUES ('transcription', 'openai', 'transcription', '{"api_key": "", "base_url": "https://openrouter.ai/api/v1", "model": "openai/whisper-large-v3"}'::jsonb, false)
 		ON CONFLICT DO NOTHING;
 	`); err != nil {
 		return err

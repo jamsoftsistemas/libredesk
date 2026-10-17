@@ -103,6 +103,7 @@
           @fileUpload="handleFileUpload"
           @fileDelete="handleFileDelete"
           @filesDropped="uploadFiles"
+          @voiceNote="sendVoiceNote"
           @aiGenerationChange="isGenerating = $event"
           :isGenerating="isGenerating"
           :canSendReply="canSendReply"
@@ -172,6 +173,7 @@
         @fileUpload="handleFileUpload"
         @fileDelete="handleFileDelete"
         @filesDropped="uploadFiles"
+          @voiceNote="sendVoiceNote"
         @aiGenerationChange="isGenerating = $event"
         :isGenerating="isGenerating"
         :canSendReply="canSendReply"
@@ -694,6 +696,26 @@ const processSend = async (
 }
 
 const processSendAndSetStatus = (status) => processSend(false, false, status)
+
+// sendVoiceNote uploads a recorded voice note and sends it right away, like WhatsApp.
+const sendVoiceNote = async (file) => {
+  const [valid] = validateWhatsAppFiles([file])
+  if (!valid) return
+  const before = mediaFiles.value.length
+  _uploadFiles([valid])
+  await new Promise((resolve) => {
+    const stop = watch(
+      () => uploadingFiles.value.length,
+      (n) => {
+        if (n === 0) {
+          stop()
+          resolve()
+        }
+      }
+    )
+  })
+  if (mediaFiles.value.length > before) processSend()
+}
 
 /**
  * Watches for changes in the conversation's macro id and update message content.

@@ -122,7 +122,7 @@ func handleMediaUpload(r *fastglue.Request) error {
 
 	// Convert recorded audio (webm etc.) to ogg/opus.
 	var content io.ReadSeeker = file
-	if audio.NeedsConversion(srcContentType) {
+	if audio.NeedsConversion(srcContentType) || audio.IsOgg(srcContentType) {
 		raw, err := io.ReadAll(file)
 		if err != nil {
 			app.lo.Error("error reading uploaded file", "error", err)

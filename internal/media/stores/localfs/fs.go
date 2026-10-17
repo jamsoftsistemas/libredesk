@@ -29,6 +29,10 @@ type Client struct {
 
 // New initialises store for Filesystem provider.
 func New(opts Opts) (media.Store, error) {
+	// Create the upload directory so a fresh install doesn't fail every upload.
+	if err := os.MkdirAll(getDir(opts.UploadPath), 0755); err != nil {
+		return nil, fmt.Errorf("creating upload directory %q: %w", opts.UploadPath, err)
+	}
 	return &Client{
 		opts: opts,
 	}, nil

@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,11 +13,7 @@ import (
 	"github.com/abhinavxd/libredesk/internal/audio"
 )
 
-const (
-	defaultTranscriptionModel = "google/gemini-2.5-flash"
-
-	transcriptionPrompt = "Transcribe this audio verbatim, in the language that is spoken. Reply only with the transcription, without any preamble, quotes or comments. If there is no intelligible speech, reply with an empty string."
-)
+const defaultTranscriptionModel = "openai/whisper-large-v3"
 
 // ErrTranscriptionDisabled is returned when no transcription provider API key is configured.
 var ErrTranscriptionDisabled = errors.New("transcription provider not configured")
@@ -53,6 +50,8 @@ func transcriptionFormat(contentType string) (string, bool) {
 	switch ct {
 	case "audio/ogg", "audio/opus":
 		return "ogg", true
+	case "audio/webm":
+		return "webm", true
 	case "audio/mpeg", "audio/mp3":
 		return "mp3", true
 	case "audio/wav", "audio/x-wav", "audio/wave":
@@ -69,7 +68,12 @@ func transcriptionFormat(contentType string) (string, bool) {
 	return "", false
 }
 
-// TranscribeAudio sends the audio as an input_audio chat content part (OpenRouter format) and returns the transcript.
+// transcriptionResponse is the /audio/transcriptions response body.
+type transcriptionResponse struct {
+	Text string `json:"text"`
+}
+
+// TranscribeAudio posts base64 audio to the OpenRouter-style /audio/transcriptions endpoint and returns the text.
 func (o *OpenAIClient) TranscribeAudio(ctx context.Context, data []byte, format string) (string, error) {
 	if o.cfg.APIKey == "" {
 		return "", ErrApiKeyNotSet
@@ -80,33 +84,45 @@ func (o *OpenAIClient) TranscribeAudio(ctx context.Context, data []byte, format 
 	}
 	body := map[string]any{
 		"model": model,
-		"messages": []map[string]any{
-			{
-				"role": "user",
-				"content": []map[string]any{
-					{"type": "text", "text": transcriptionPrompt},
-					{"type": "input_audio", "input_audio": map[string]string{
-						"data":   base64.StdEncoding.EncodeToString(data),
-						"format": format,
-					}},
-				},
-			},
+		"input_audio": map[string]string{
+			"data":   base64.StdEncoding.EncodeToString(data),
+			"format": format,
 		},
 	}
 	if o.cfg.Temperature != nil {
 		body["temperature"] = *o.cfg.Temperature
 	}
 
-	respBytes, err := o.post(ctx, "/chat/completions", body)
+	respBytes, err := o.post(ctx, "/audio/transcriptions", body)
 	if err != nil {
 		return "", err
 	}
-	var parsed chatCompletionResponse
+	var parsed transcriptionResponse
 	if err := json.Unmarshal(respBytes, &parsed); err != nil {
 		return "", fmt.Errorf("decoding response body: %w", err)
 	}
-	if len(parsed.Choices) == 0 {
-		return "", fmt.Errorf("no response found")
-	}
-	return strings.TrimSpace(parsed.Choices[0].Message.Content), nil
+	return strings.TrimSpace(parsed.Text), nil
+}
+
+// testAudioWAV returns half a second of 16 kHz mono silence as a WAV file, used to test the transcription provider.
+func testAudioWAV() []byte {
+	const (
+		sampleRate = 16000
+		samples    = sampleRate / 2
+		dataLen    = samples * 2
+	)
+	b := make([]byte, 44+dataLen)
+	copy(b[0:], "RIFF")
+	binary.LittleEndian.PutUint32(b[4:], uint32(36+dataLen))
+	copy(b[8:], "WAVEfmt ")
+	binary.LittleEndian.PutUint32(b[16:], 16)
+	binary.LittleEndian.PutUint16(b[20:], 1) // PCM
+	binary.LittleEndian.PutUint16(b[22:], 1) // mono
+	binary.LittleEndian.PutUint32(b[24:], sampleRate)
+	binary.LittleEndian.PutUint32(b[28:], sampleRate*2)
+	binary.LittleEndian.PutUint16(b[32:], 2)
+	binary.LittleEndian.PutUint16(b[34:], 16)
+	copy(b[36:], "data")
+	binary.LittleEndian.PutUint32(b[40:], dataLen)
+	return b
 }

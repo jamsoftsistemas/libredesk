@@ -12,8 +12,17 @@ import (
 )
 
 // convertUploadedAudio converts browser-recorded audio (e.g. webm) to ogg/opus so every channel accepts it
-// and WhatsApp renders it as a voice note. On failure or when no conversion is needed the input is returned as is.
+// and WhatsApp renders it as a voice note, and remuxes ogg to fix its timestamps.
+// On failure or when no conversion is needed the input is returned as is.
 func convertUploadedAudio(app *App, data []byte, fileName, contentType string) ([]byte, string, string, bool) {
+	if audio.IsOgg(contentType) {
+		remuxed, err := audio.RemuxOgg(context.Background(), data)
+		if err != nil {
+			app.lo.Warn("could not remux uploaded ogg audio, keeping original", "error", err)
+			return data, fileName, contentType, false
+		}
+		return remuxed, fileName, contentType, true
+	}
 	if !audio.NeedsConversion(contentType) {
 		return data, fileName, contentType, false
 	}

@@ -326,6 +326,8 @@
             this.iframe = document.createElement('iframe');
             this.iframe.src = `${this.config.baseURL}/widget?inbox_id=${encodeURIComponent(this.config.inboxID)}&parent_origin=${encodeURIComponent(window.location.origin)}`;
             this.iframe.title = 'libredesk';
+            // Lets the widget record voice messages.
+            this.iframe.allow = 'microphone';
             this.iframe.style.cssText = `
                 position: fixed;
                 border: none;

@@ -13,7 +13,7 @@
       <!-- Unified Input Container -->
       <div class="border border-input rounded-md bg-background focus-within:border-secondary">
         <!-- Textarea Container -->
-        <div class="p-2">
+        <div v-show="!isRecordingAudio" class="p-2">
           <Textarea
             v-model="newMessage"
             @keydown="handleKeydown"
@@ -33,6 +33,7 @@
         <div class="flex justify-between items-center px-2 pb-2">
           <!-- Message Input Actions (file upload + emoji) -->
           <MessageInputActions
+            v-show="!isRecordingAudio"
             :fileUploadEnabled="config.features?.file_upload || false"
             :emojiEnabled="config.features?.emoji || false"
             :uploading="isUploading"
@@ -40,12 +41,21 @@
             :disabled="isSending"
             @fileUpload="handleFileUpload"
             @emojiSelect="handleEmojiSelect"
-            @audioRecorded="(file) => handleFileUpload([file])"
-            @error="(msg) => emit('error', msg)"
+          />
+
+          <!-- Voice note: replaces the send button while the text is empty, like WhatsApp -->
+          <VoiceRecorder
+            v-if="canRecordAudio && (isRecordingAudio || !newMessage.trim())"
+            :disabled="isUploading || isSending"
+            button-class="h-9 w-9 bg-primary text-primary-foreground hover:bg-primary/90"
+            @active="isRecordingAudio = $event"
+            @recorded="(file) => handleFileUpload([file])"
+            @error="handleRecorderError"
           />
 
           <!-- Send Button -->
           <Button
+            v-else
             type="button"
             @click="sendMessage"
             :aria-label="$t('globals.messages.send')"
@@ -74,11 +84,28 @@ import { handleHTTPError } from '@shared-ui/utils/http.js'
 import { sendWidgetTyping } from '@widget/websocket.js'
 import { useTypingIndicator } from '@shared-ui/composables/useTypingIndicator.js'
 import MessageInputActions from './MessageInputActions.vue'
+import VoiceRecorder from '@shared-ui/components/VoiceRecorder.vue'
+import { isAudioRecordingSupported } from '@shared-ui/composables/useAudioRecorder'
+import { useI18n } from 'vue-i18n'
 import api, { saveSession } from '@widget/api/index.js'
 
 import { useProactiveStore } from '@widget/store/proactive.js'
 const proactive = useProactiveStore()
 const emit = defineEmits(['error'])
+
+const { t } = useI18n()
+const isRecordingAudio = ref(false)
+// Voice notes follow the file upload toggle and need an existing conversation, like attachments.
+const canRecordAudio = computed(
+  () =>
+    isAudioRecordingSupported() &&
+    !!config.value?.features?.file_upload &&
+    !!chatStore.currentConversation?.uuid
+)
+
+const handleRecorderError = (code) => {
+  emit('error', t(code === 'insecure' ? 'replyBox.micInsecureContext' : 'replyBox.micPermissionDenied'))
+}
 const widgetStore = useWidgetStore()
 const chatStore = useChatStore()
 const userStore = useUserStore()

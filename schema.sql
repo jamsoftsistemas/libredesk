@@ -1138,7 +1138,7 @@ INSERT INTO ai_providers
 VALUES
 ('openai', 'openai', 'completion', '{"api_key": ""}'::jsonb, true),
 ('embedding', 'openai', 'embedding', '{"api_key": ""}'::jsonb, false),
-('transcription', 'openai', 'transcription', '{"api_key": "", "base_url": "https://openrouter.ai/api/v1", "model": "google/gemini-2.5-flash"}'::jsonb, false);
+('transcription', 'openai', 'transcription', '{"api_key": "", "base_url": "https://openrouter.ai/api/v1", "model": "openai/whisper-large-v3"}'::jsonb, false);
 
 -- Default AI prompts
 INSERT INTO ai_prompts ("key", "content", title)

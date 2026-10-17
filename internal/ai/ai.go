@@ -411,7 +411,14 @@ func (m *Manager) TestProviderConfig(providerType string, in models.ProviderConf
 	}
 	client := NewOpenAIClient(cfg, m.lo, m.providerHTTPClient)
 
-	if providerType == models.ProviderTypeCompletion || providerType == models.ProviderTypeTranscription {
+	if providerType == models.ProviderTypeTranscription {
+		if _, err := client.TranscribeAudio(context.Background(), testAudioWAV(), "wav"); err != nil {
+			return m.testProviderError(err)
+		}
+		return nil
+	}
+
+	if providerType == models.ProviderTypeCompletion {
 		if _, err := client.SendPrompt(context.Background(), models.PromptPayload{SystemPrompt: "You are a connection test.", UserPrompt: "Reply with OK."}); err != nil {
 			return m.testProviderError(err)
 		}

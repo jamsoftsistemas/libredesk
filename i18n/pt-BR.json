@@ -1922,5 +1922,7 @@
   "replyBox.recordAudio": "Gravar áudio",
   "replyBox.stopRecording": "Parar e anexar",
   "replyBox.cancelRecording": "Cancelar gravação",
-  "replyBox.micPermissionDenied": "Não foi possível acessar o microfone. Verifique as permissões do navegador."
+  "replyBox.micPermissionDenied": "Não foi possível acessar o microfone. Verifique as permissões do navegador.",
+  "replyBox.micInsecureContext": "O microfone só fica disponível em HTTPS (ou localhost). Acesse a página com https:// para gravar áudio.",
+  "replyBox.sendAudio": "Enviar áudio"
 }
