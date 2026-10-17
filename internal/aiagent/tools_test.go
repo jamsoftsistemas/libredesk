@@ -90,6 +90,27 @@ func TestNewAssignAIAgentToolExcludesSelfAndDisabled(t *testing.T) {
 	}
 }
 
+func TestAIHopCountCapsAndResetsPerMessage(t *testing.T) {
+	m := &Manager{aiHops: map[int]aiHopState{}}
+	const convID, msgA, msgB = 1, 100, 200
+
+	if got := m.aiHopCount(convID, msgA); got != 0 {
+		t.Fatalf("expected 0 hops for a message not seen before, got %d", got)
+	}
+	for i := 0; i < maxAIHandoffHops; i++ {
+		m.recordAIHop(convID, msgA)
+	}
+	if got := m.aiHopCount(convID, msgA); got != maxAIHandoffHops {
+		t.Fatalf("expected %d hops, got %d", maxAIHandoffHops, got)
+	}
+
+	// A different, newer customer message must get a fresh budget - this is what stops a ping-pong
+	// between assistants on one message from poisoning every message after it.
+	if got := m.aiHopCount(convID, msgB); got != 0 {
+		t.Fatalf("expected hop count to reset for a new message, got %d", got)
+	}
+}
+
 func TestAssignAIAgentToolRecordsTargetUserID(t *testing.T) {
 	assistants := []models.Assistant{
 		{ID: 1, UserID: 101, Name: "Self", Enabled: true},

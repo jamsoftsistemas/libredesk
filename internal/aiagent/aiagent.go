@@ -90,7 +90,12 @@ type Manager struct {
 	pending map[int]bool
 	// lastSeen holds the newest message ID a run's history included, per in-flight conversation.
 	lastSeen map[int]int
-	mu       sync.Mutex
+	// aiHops counts, per conversation, how many times assign_ai_agent has fired for the customer
+	// message currently awaiting a reply. It resets whenever that message changes, and caps how many
+	// times assistants can hand a single unanswered message to one another, so overlapping or
+	// contradictory assistant descriptions can't bounce a conversation between them forever.
+	aiHops map[int]aiHopState
+	mu     sync.Mutex
 
 	miningQueue    chan int
 	miningInflight map[int]bool
@@ -140,6 +145,7 @@ func New(opts Opts, aiManager *ai.Manager, convo *conversation.Manager, inboxMan
 		inflight:           map[int]bool{},
 		pending:            map[int]bool{},
 		lastSeen:           map[int]int{},
+		aiHops:             map[int]aiHopState{},
 		miningQueue:        make(chan int, opts.QueueSize),
 		miningInflight:     map[int]bool{},
 		assistantUserIDs:   map[int]bool{},

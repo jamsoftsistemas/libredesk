@@ -48,6 +48,11 @@ const cannotAnswerNoHandoff = `If you cannot answer from the knowledge base, or 
 // noContactIdentityNote is a trusted, data-free system-prompt line for when nothing identifies the contact.
 const noContactIdentityNote = "You do not have any identifying details for this customer yet. If you need to identify them for a request, ask."
 
+// aiHandoffCapNote tells the model assign_ai_agent is no longer offered this turn, once
+// maxAIHandoffHops is reached, so it doesn't try to call a tool that isn't in its tool list and
+// instead resolves the request itself.
+const aiHandoffCapNote = "This conversation has already been transferred between AI assistants several times without being answered. Do not ask to transfer it again. Answer the customer yourself now, using whatever tools you have, or hand off to a human if you cannot help."
+
 // verificationNote guides the OTP flow; the actual gate is enforced server-side, this only shapes UX.
 const verificationNote = `This customer is not verified yet. Some tools need a verified customer and will tell you so if you call them too early. To verify:
 - If a tool reports the customer is not verified, or you need to act on their account, verify them first.
