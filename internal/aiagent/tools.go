@@ -575,13 +575,17 @@ type assignAIAgentTool struct {
 }
 
 // newAssignAIAgentTool returns nil if there is no other enabled assistant to hand off to.
-func newAssignAIAgentTool(outcome *runOutcome, assistants []models.Assistant, selfID int) *assignAIAgentTool {
+// excludeID additionally drops one assistant from the candidates - the one that most recently handed
+// this same customer message to the current assistant, if any (0 to not exclude). Blocking an
+// immediate bounce back to whoever just sent it is cheap to rule out, and it's the shape a
+// disagreement between two assistants' descriptions most often takes.
+func newAssignAIAgentTool(outcome *runOutcome, assistants []models.Assistant, selfID, excludeID int) *assignAIAgentTool {
 	targets := make(map[int]aiHandoffTarget)
 	ids := make([]int, 0, len(assistants))
 	var b strings.Builder
 	b.WriteString("Hand the conversation to another AI assistant better suited to it, based on what that assistant is described as handling. Do not write a reply in the same turn you call this tool: stay silent and let the other assistant respond. Available assistants:\n")
 	for _, a := range assistants {
-		if a.ID == selfID || !a.Enabled {
+		if a.ID == selfID || a.ID == excludeID || !a.Enabled {
 			continue
 		}
 		targets[a.ID] = aiHandoffTarget{name: a.Name, userID: a.UserID}

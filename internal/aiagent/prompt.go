@@ -51,7 +51,7 @@ const noContactIdentityNote = "You do not have any identifying details for this 
 // aiHandoffCapNote tells the model assign_ai_agent is no longer offered this turn, once
 // maxAIHandoffHops is reached, so it doesn't try to call a tool that isn't in its tool list and
 // instead resolves the request itself.
-const aiHandoffCapNote = "This conversation has already been transferred between AI assistants several times without being answered. Do not ask to transfer it again. Answer the customer yourself now, using whatever tools you have, or hand off to a human if you cannot help."
+const aiHandoffCapNote = "This conversation was just transferred to you by another AI assistant. You must handle it yourself now: answer the customer using whatever tools you have, or hand off to a human if you cannot help. Do not transfer it to a different assistant."
 
 // verificationNote guides the OTP flow; the actual gate is enforced server-side, this only shapes UX.
 const verificationNote = `This customer is not verified yet. Some tools need a verified customer and will tell you so if you call them too early. To verify:

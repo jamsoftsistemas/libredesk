@@ -85,29 +85,39 @@ func TestNewAssignAIAgentToolExcludesSelfAndDisabled(t *testing.T) {
 		{ID: 1, UserID: 101, Name: "Self", Enabled: true},
 		{ID: 2, UserID: 102, Name: "Disabled", Enabled: false},
 	}
-	if tool := newAssignAIAgentTool(&runOutcome{}, assistants, 1); tool != nil {
+	if tool := newAssignAIAgentTool(&runOutcome{}, assistants, 1, 0); tool != nil {
 		t.Fatal("expected nil tool when every other assistant is self or disabled")
 	}
 }
 
-func TestAIHopCountCapsAndResetsPerMessage(t *testing.T) {
-	m := &Manager{aiHops: map[int]aiHopState{}}
-	const convID, msgA, msgB = 1, 100, 200
+func TestNewAssignAIAgentToolExcludesLastFrom(t *testing.T) {
+	assistants := []models.Assistant{
+		{ID: 1, UserID: 101, Name: "Self", Enabled: true},
+		{ID: 2, UserID: 102, Name: "Just transferred this to me", Enabled: true},
+	}
+	if tool := newAssignAIAgentTool(&runOutcome{}, assistants, 1, 2); tool != nil {
+		t.Fatal("expected nil tool when the only other assistant is the one that just handed it off")
+	}
+}
 
-	if got := m.aiHopCount(convID, msgA); got != 0 {
-		t.Fatalf("expected 0 hops for a message not seen before, got %d", got)
+func TestAIHopInfoCapsAndResetsPerMessage(t *testing.T) {
+	m := &Manager{aiHops: map[int]aiHopState{}}
+	const convID, msgA, msgB, fromID = 1, 100, 200, 7
+
+	if hops, from := m.aiHopInfo(convID, msgA); hops != 0 || from != 0 {
+		t.Fatalf("expected 0 hops and no lastFrom for a message not seen before, got %d/%d", hops, from)
 	}
 	for i := 0; i < maxAIHandoffHops; i++ {
-		m.recordAIHop(convID, msgA)
+		m.recordAIHop(convID, msgA, fromID)
 	}
-	if got := m.aiHopCount(convID, msgA); got != maxAIHandoffHops {
-		t.Fatalf("expected %d hops, got %d", maxAIHandoffHops, got)
+	if hops, from := m.aiHopInfo(convID, msgA); hops != maxAIHandoffHops || from != fromID {
+		t.Fatalf("expected %d hops and lastFrom %d, got %d/%d", maxAIHandoffHops, fromID, hops, from)
 	}
 
 	// A different, newer customer message must get a fresh budget - this is what stops a ping-pong
-	// between assistants on one message from poisoning every message after it.
-	if got := m.aiHopCount(convID, msgB); got != 0 {
-		t.Fatalf("expected hop count to reset for a new message, got %d", got)
+	// on one message from poisoning every message after it.
+	if hops, from := m.aiHopInfo(convID, msgB); hops != 0 || from != 0 {
+		t.Fatalf("expected hop count and lastFrom to reset for a new message, got %d/%d", hops, from)
 	}
 }
 
@@ -117,7 +127,7 @@ func TestAssignAIAgentToolRecordsTargetUserID(t *testing.T) {
 		{ID: 2, UserID: 102, Name: "Billing bot", Description: "Handles billing", Enabled: true},
 	}
 	outcome := &runOutcome{}
-	tool := newAssignAIAgentTool(outcome, assistants, 1)
+	tool := newAssignAIAgentTool(outcome, assistants, 1, 0)
 	if tool == nil {
 		t.Fatal("expected a tool")
 	}

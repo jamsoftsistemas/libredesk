@@ -41,9 +41,10 @@ const (
 	typingRefreshInterval = 3 * time.Second
 
 	// maxAIHandoffHops caps how many times assign_ai_agent can fire for the same unanswered customer
-	// message. Past this, the tool is withheld so the assistant answers or falls back to a human
-	// instead of two or more assistants handing the message back and forth indefinitely.
-	maxAIHandoffHops = 3
+	// message, at 1: whichever assistant receives a message this way must answer it or fall back to a
+	// human, never pass it to a third assistant. Without this, two or more assistants with
+	// overlapping or contradictory descriptions can bounce the same message back and forth forever.
+	maxAIHandoffHops = 1
 
 	// Run clock: caps one full agent run - every completion call, retry, and tool call
 	// combined. The per-call 60s clock (ai.overallRequestTimeout) nests inside it.
@@ -210,11 +211,17 @@ func (m *Manager) markDone(convID int) {
 type aiHopState struct {
 	messageID int
 	hops      int
+	// lastFrom is the id of the assistant that most recently handed this message to whichever
+	// assistant now holds it, so that assistant's own assign_ai_agent can exclude it: bouncing the
+	// message straight back to whoever just sent it is the most common shape a ping-pong takes, and
+	// cheap to rule out before the hard hop cap would otherwise have to catch it a few hops later.
+	lastFrom int
 }
 
-// aiHopCount returns how many times assign_ai_agent has already fired for messageID, resetting the
-// count to 0 first if messageID is a message this conversation hasn't seen before.
-func (m *Manager) aiHopCount(convID, messageID int) int {
+// aiHopInfo returns how many times assign_ai_agent has already fired for messageID, and the id of
+// the assistant that most recently performed one (0 if none), resetting both first if messageID is a
+// message this conversation hasn't seen before.
+func (m *Manager) aiHopInfo(convID, messageID int) (hops, lastFrom int) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	state := m.aiHops[convID]
@@ -222,12 +229,12 @@ func (m *Manager) aiHopCount(convID, messageID int) int {
 		state = aiHopState{messageID: messageID}
 		m.aiHops[convID] = state
 	}
-	return state.hops
+	return state.hops, state.lastFrom
 }
 
-// recordAIHop increments the AI-to-AI handoff count for messageID, after an assign_ai_agent call is
-// actually applied.
-func (m *Manager) recordAIHop(convID, messageID int) {
+// recordAIHop increments the AI-to-AI handoff count for messageID and records fromAssistantID as the
+// assistant that just performed it, after an assign_ai_agent call is actually applied.
+func (m *Manager) recordAIHop(convID, messageID, fromAssistantID int) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	state := m.aiHops[convID]
@@ -235,6 +242,7 @@ func (m *Manager) recordAIHop(convID, messageID int) {
 		state = aiHopState{messageID: messageID}
 	}
 	state.hops++
+	state.lastFrom = fromAssistantID
 	m.aiHops[convID] = state
 }
 
@@ -350,12 +358,12 @@ func (m *Manager) handle(ctx context.Context, convID int) {
 	} else if t := newAssignTeamTool(outcome, teams); t != nil {
 		tools = append(tools, t)
 	}
-	aiHops := m.aiHopCount(convID, inbound.ID)
+	aiHops, lastFromAssistantID := m.aiHopInfo(convID, inbound.ID)
 	if aiHops >= maxAIHandoffHops {
 		systemPrompt += "\n\n" + aiHandoffCapNote
 	} else if assistants, err := m.GetAssistants(); err != nil {
 		m.lo.Error("error fetching assistants for ai agent tools", "conversation_uuid", conv.UUID, "error", err)
-	} else if t := newAssignAIAgentTool(outcome, assistants, assistant.ID); t != nil {
+	} else if t := newAssignAIAgentTool(outcome, assistants, assistant.ID, lastFromAssistantID); t != nil {
 		tools = append(tools, t)
 	}
 	if recent := m.recentContactConversations(conv, runVerified); len(recent) > 0 {
@@ -434,7 +442,7 @@ func (m *Manager) handle(ctx context.Context, convID int) {
 		if answer != "" || confirm != "" {
 			m.lo.Warn("ai agent wrote a reply while reassigning to another assistant, dropping it", "conversation_uuid", conv.UUID)
 		}
-		m.recordAIHop(convID, inbound.ID)
+		m.recordAIHop(convID, inbound.ID, assistant.ID)
 		m.reassignToAgent(conv, assistant, outcome.reassignAgentID, outcome.reassignReason)
 		return
 	}
