@@ -16,6 +16,15 @@
         />
       </div>
 
+      <!-- Audio player -->
+      <audio
+        v-else-if="isAudio(attachment)"
+        :src="attachment.url"
+        controls
+        preload="metadata"
+        class="w-64 max-w-full h-10"
+      />
+
       <!-- File attachment -->
       <div
         v-else
@@ -46,6 +55,10 @@ defineProps({
 
 const isImage = (attachment) => {
   return attachment.content_type && attachment.content_type.startsWith('image/')
+}
+
+const isAudio = (attachment) => {
+  return attachment.content_type && attachment.content_type.startsWith('audio/')
 }
 
 const getThumbnailUrl = (attachment) => {

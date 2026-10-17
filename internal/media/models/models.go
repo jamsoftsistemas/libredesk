@@ -65,13 +65,13 @@ func NormalizeContentType(contentType string) string {
 	return mediaType
 }
 
-// ContentDisposition returns inline for images, video and PDF. XML types such as SVG can run scripts and are always attachments.
+// ContentDisposition returns inline for images, video, audio and PDF. XML types such as SVG can run scripts and are always attachments.
 func ContentDisposition(contentType string) string {
 	contentType = NormalizeContentType(contentType)
 	if strings.HasSuffix(contentType, "+xml") {
 		return DispositionAttachment
 	}
-	if strings.HasPrefix(contentType, "image/") || strings.HasPrefix(contentType, "video/") || contentType == ContentTypePDF {
+	if strings.HasPrefix(contentType, "image/") || strings.HasPrefix(contentType, "video/") || strings.HasPrefix(contentType, "audio/") || contentType == ContentTypePDF {
 		return DispositionInline
 	}
 	return DispositionAttachment

@@ -40,6 +40,8 @@
             :disabled="isSending"
             @fileUpload="handleFileUpload"
             @emojiSelect="handleEmojiSelect"
+            @audioRecorded="(file) => handleFileUpload([file])"
+            @error="(msg) => emit('error', msg)"
           />
 
           <!-- Send Button -->

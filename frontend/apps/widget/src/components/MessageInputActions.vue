@@ -23,6 +23,46 @@
       <Paperclip class="h-4 w-4 text-muted-foreground" />
     </Button>
 
+    <!-- Audio Recording -->
+    <template v-if="fileUploadEnabled && canUploadFiles && canRecordAudio">
+      <div v-if="recorder.isRecording.value" class="flex items-center gap-1 px-1">
+        <span class="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+        <span class="text-xs tabular-nums text-muted-foreground w-9">
+          {{ formatRecordingDuration(recorder.duration.value) }}
+        </span>
+        <Button
+          @click="cancelRecording"
+          :aria-label="$t('replyBox.cancelRecording')"
+          variant="ghost"
+          size="sm"
+          class="h-8 w-8 p-0 hover:bg-muted/50 border-0"
+        >
+          <X class="h-4 w-4 text-muted-foreground" />
+        </Button>
+        <Button
+          @click="stopRecording"
+          :aria-label="$t('replyBox.stopRecording')"
+          variant="ghost"
+          size="sm"
+          class="h-8 w-8 p-0 hover:bg-muted/50 border-0"
+        >
+          <Check class="h-4 w-4 text-primary" />
+        </Button>
+      </div>
+      <Button
+        v-else
+        @click="startRecording"
+        :disabled="uploading || disabled"
+        :aria-label="$t('replyBox.recordAudio')"
+        :title="$t('replyBox.recordAudio')"
+        variant="ghost"
+        size="sm"
+        class="h-8 w-8 p-0 hover:bg-muted/50 border-0"
+      >
+        <Mic class="h-4 w-4 text-muted-foreground" />
+      </Button>
+    </template>
+
     <!-- Emoji Picker -->
     <div class="relative">
       <Button
@@ -54,7 +94,13 @@
 import { ref, defineAsyncComponent } from 'vue'
 import { onClickOutside } from '@vueuse/core'
 import { Button } from '@shared-ui/components/ui/button'
-import { Smile, Paperclip } from 'lucide-vue-next'
+import { Smile, Paperclip, Mic, Check, X } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
+import {
+  useAudioRecorder,
+  isAudioRecordingSupported,
+  formatRecordingDuration
+} from '@shared-ui/composables/useAudioRecorder'
 
 const EmojiPicker = defineAsyncComponent(async () => {
   const [mod] = await Promise.all([
@@ -87,7 +133,26 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['fileUpload', 'emojiSelect'])
+const emit = defineEmits(['fileUpload', 'emojiSelect', 'audioRecorded', 'error'])
+
+const { t } = useI18n()
+const recorder = useAudioRecorder()
+const canRecordAudio = isAudioRecordingSupported()
+
+const startRecording = async () => {
+  try {
+    await recorder.start()
+  } catch {
+    emit('error', t('replyBox.micPermissionDenied'))
+  }
+}
+
+const stopRecording = async () => {
+  const file = await recorder.stop()
+  if (file) emit('audioRecorded', file)
+}
+
+const cancelRecording = () => recorder.cancel()
 
 const fileInput = ref(null)
 const isEmojiPickerVisible = ref(false)

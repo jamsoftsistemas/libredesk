@@ -14,6 +14,7 @@ import (
 	"slices"
 
 	"github.com/abhinavxd/libredesk/internal/attachment"
+	"github.com/abhinavxd/libredesk/internal/audio"
 	amodels "github.com/abhinavxd/libredesk/internal/auth/models"
 	"github.com/abhinavxd/libredesk/internal/envelope"
 	"github.com/abhinavxd/libredesk/internal/image"
@@ -119,6 +120,20 @@ func handleMediaUpload(r *fastglue.Request) error {
 		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, app.i18n.T("media.fileTypeNotAllowed"), nil, envelope.InputError)
 	}
 
+	// Convert recorded audio (webm etc.) to ogg/opus.
+	var content io.ReadSeeker = file
+	if audio.NeedsConversion(srcContentType) {
+		raw, err := io.ReadAll(file)
+		if err != nil {
+			app.lo.Error("error reading uploaded file", "error", err)
+			return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, app.i18n.T("globals.messages.somethingWentWrong"), nil, envelope.GeneralError)
+		}
+		if converted, name, ct, ok := convertUploadedAudio(app, raw, srcFileName, srcContentType); ok {
+			raw, srcFileName, srcContentType, srcFileSize = converted, name, ct, int64(len(converted))
+		}
+		content = bytes.NewReader(raw)
+	}
+
 	// Delete files on any error.
 	var uuid = uuid.New()
 	thumbName := image.ThumbPrefix + uuid.String()
@@ -152,10 +167,10 @@ func handleMediaUpload(r *fastglue.Request) error {
 	}
 
 	// Reset ptr.
-	file.Seek(0, 0)
+	content.Seek(0, 0)
 
 	// Override content type after upload (in case it was detected incorrectly).
-	_, srcContentType, err = app.media.Upload(uuid.String(), srcContentType, file)
+	_, srcContentType, err = app.media.Upload(uuid.String(), srcContentType, content)
 	if err != nil {
 		cleanUp = true
 		app.lo.Error("error uploading file", "error", err)

@@ -30,7 +30,7 @@ RUN LAST_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo unknown) && \
 
 # ---- Final image ----
 FROM alpine:3.18
-RUN apk --no-cache add ca-certificates tzdata
+RUN apk --no-cache add ca-certificates tzdata ffmpeg
 WORKDIR /libredesk
 COPY --from=backend /src/libredesk ./libredesk
 COPY config.sample.toml config.toml

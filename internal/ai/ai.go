@@ -339,7 +339,7 @@ func (m *Manager) VisionEnabled() bool {
 
 // UpdateProviderConfig updates a provider type's config; a masked api_key keeps the stored key, a blank one clears it.
 func (m *Manager) UpdateProviderConfig(providerType string, in models.ProviderConfig) error {
-	if providerType != models.ProviderTypeCompletion && providerType != models.ProviderTypeEmbedding {
+	if !validProviderType(providerType) {
 		m.lo.Warn("invalid provider type", "providerType", providerType)
 		return envelope.NewError(envelope.InputError, m.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}
@@ -396,7 +396,7 @@ func (m *Manager) UpdateProviderConfig(providerType string, in models.ProviderCo
 
 // TestProviderConfig makes one live provider request with the given config; a masked api_key uses the stored key, matching what an update of the same form would store.
 func (m *Manager) TestProviderConfig(providerType string, in models.ProviderConfig) error {
-	if providerType != models.ProviderTypeCompletion && providerType != models.ProviderTypeEmbedding {
+	if !validProviderType(providerType) {
 		return envelope.NewError(envelope.InputError, m.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}
 
@@ -411,7 +411,7 @@ func (m *Manager) TestProviderConfig(providerType string, in models.ProviderConf
 	}
 	client := NewOpenAIClient(cfg, m.lo, m.providerHTTPClient)
 
-	if providerType == models.ProviderTypeCompletion {
+	if providerType == models.ProviderTypeCompletion || providerType == models.ProviderTypeTranscription {
 		if _, err := client.SendPrompt(context.Background(), models.PromptPayload{SystemPrompt: "You are a connection test.", UserPrompt: "Reply with OK."}); err != nil {
 			return m.testProviderError(err)
 		}
@@ -427,6 +427,10 @@ func (m *Manager) TestProviderConfig(providerType string, in models.ProviderConf
 			"configured", strconv.Itoa(cfg.Dimensions), "returned", strconv.Itoa(len(vec))), nil)
 	}
 	return nil
+}
+
+func validProviderType(t string) bool {
+	return t == models.ProviderTypeCompletion || t == models.ProviderTypeEmbedding || t == models.ProviderTypeTranscription
 }
 
 func (m *Manager) validatePrompt(title, content string) error {

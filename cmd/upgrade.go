@@ -60,6 +60,7 @@ var migList = []migFunc{
 	// v2.9.0-rc.9 and v2.9.0-rc.10 come from upstream but sort below the fork's v2.10+
 	// migrations, so databases already past v2.18.0 would skip them. v2.19.0 replays both.
 	{"v2.19.0", migrations.V2_19_0},
+	{"v2.20.0", migrations.V2_20_0},
 }
 
 // upgrade upgrades the database to the current version by running SQL migration files

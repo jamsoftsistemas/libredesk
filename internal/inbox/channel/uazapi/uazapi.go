@@ -242,6 +242,9 @@ func mediaTypeForAttachment(att attachment.Attachment) string {
 		return "image"
 	case strings.HasPrefix(mime, "video/"):
 		return "video"
+	case mime == "audio/ogg" || mime == "audio/opus":
+		// ogg/opus is WhatsApp's voice note format; send as push-to-talk so it renders as a voice message.
+		return "ptt"
 	case strings.HasPrefix(mime, "audio/"):
 		return "audio"
 	default:

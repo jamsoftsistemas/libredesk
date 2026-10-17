@@ -173,7 +173,11 @@
             </div>
 
             <!-- Attachments -->
-            <BubbleAttachmentPreview :attachments="nonInlineAttachments" />
+            <BubbleAttachmentPreview
+              :attachments="nonInlineAttachments"
+              :transcriptions="message.meta?.transcriptions"
+              :created-at="message.created_at"
+            />
 
             <!-- CSAT Response -->
             <CSATResponseDisplay :message="message" />

@@ -752,6 +752,9 @@ func handleWidgetMediaUpload(r *fastglue.Request) error {
 		app.lo.Error("error reading file content", "error", err)
 		return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, app.i18n.T("globals.messages.somethingWentWrong"), nil, envelope.GeneralError)
 	}
+	if converted, name, ct, ok := convertUploadedAudio(app, fileContent, srcFileName, srcContentType); ok {
+		fileContent, srcFileName, srcContentType, srcFileSize = converted, name, ct, int64(len(converted))
+	}
 
 	message := cmodels.Message{
 		ConversationUUID: conversationUUID,

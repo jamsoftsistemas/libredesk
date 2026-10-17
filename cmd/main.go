@@ -20,6 +20,7 @@ import (
 	activitylog "github.com/abhinavxd/libredesk/internal/activity_log"
 	"github.com/abhinavxd/libredesk/internal/ai"
 	"github.com/abhinavxd/libredesk/internal/aiagent"
+	"github.com/abhinavxd/libredesk/internal/audio"
 	auth_ "github.com/abhinavxd/libredesk/internal/auth"
 	"github.com/abhinavxd/libredesk/internal/authz"
 	businesshours "github.com/abhinavxd/libredesk/internal/business_hours"
@@ -293,6 +294,10 @@ func main() {
 	}
 	automation.SetSystemUserID(systemUser.ID)
 	conversation.SetAIAgent(aiAgent)
+	conversation.SetTranscriber(transcriberAdapter{ai: ai})
+	if !audio.Available() {
+		lo.Warn("ffmpeg not found in PATH: recorded audio will not be converted to ogg/opus")
+	}
 
 	waClient := initWhatsAppClient()
 	waTemplates := initWhatsAppTemplates(db, i18n, waClient, inbox)
@@ -386,6 +391,7 @@ func main() {
 
 	// The outgoing scanner needs the inboxes registered, else queued messages fail with "inbox not found".
 	go conversation.Run(ctx, messageIncomingQWorkers, messageOutgoingQWorkers, messageOutgoingScanInterval)
+	go conversation.RunTranscriptionWorkers(ctx, 2)
 
 	go whatsappTemplateSyncWorker(ctx, app)
 

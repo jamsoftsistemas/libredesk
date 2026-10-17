@@ -20,6 +20,8 @@ const (
 
 	ProviderTypeCompletion = "completion"
 	ProviderTypeEmbedding  = "embedding"
+	// ProviderTypeTranscription transcribes audio attachments (OpenRouter by default).
+	ProviderTypeTranscription = "transcription"
 
 	KnowledgeTypeSnippet = "snippet"
 

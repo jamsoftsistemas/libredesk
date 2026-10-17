@@ -14,6 +14,11 @@
           :description="t('admin.ai.embeddingDescription')"
           :show-embedding-fields="true"
         />
+        <ProviderForm
+          type="transcription"
+          :title="t('admin.ai.transcription')"
+          :description="t('admin.ai.transcriptionDescription')"
+        />
       </div>
     </template>
 

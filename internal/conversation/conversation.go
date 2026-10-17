@@ -128,6 +128,8 @@ type Manager struct {
 	continuityConfig           ContinuityConfig
 	subjectRefFormat           string
 	aiAgent                    AIAgentEngine
+	transcriber                Transcriber
+	transcriptionQueue         chan transcriptionJob
 }
 
 type replyNotificationGroup struct {
@@ -320,6 +322,7 @@ func New(
 		lo:                         opts.Lo,
 		incomingMessageQueue:       make(chan models.IncomingMessage, opts.IncomingMessageQueueSize),
 		outgoingMessageQueue:       make(chan models.Message, opts.OutgoingMessageQueueSize),
+		transcriptionQueue:         make(chan transcriptionJob, transcriptionQueueSize),
 		outgoingProcessingMessages: sync.Map{},
 		continuityConfig:           continuityConfig,
 		subjectRefFormat:           subjectRefFormat,
@@ -404,6 +407,7 @@ type queries struct {
 	UpdateMessageSourceIDByUUID        *sqlx.Stmt `query:"update-message-source-id-by-uuid"`
 	ApplyWhatsAppMessageStatus         *sqlx.Stmt `query:"apply-whatsapp-message-status"`
 	MergeMessageMetaByUUID             *sqlx.Stmt `query:"merge-message-meta-by-uuid"`
+	MergeMessageTranscription          *sqlx.Stmt `query:"merge-message-transcription"`
 	GetWhatsAppReadReceiptTarget       *sqlx.Stmt `query:"get-whatsapp-read-receipt-target"`
 	UpdateConversationLastInboundAt    *sqlx.Stmt `query:"update-conversation-last-inbound-at"`
 	GetContactWindowInboundAt          *sqlx.Stmt `query:"get-contact-window-inbound-at"`

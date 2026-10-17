@@ -715,7 +715,7 @@ CREATE TABLE ai_providers (
 	config JSONB NOT NULL DEFAULT '{}',
 	is_default BOOLEAN NOT NULL DEFAULT FALSE,
 	CONSTRAINT constraint_ai_providers_on_name CHECK (length(name) <= 140),
-	CONSTRAINT constraint_ai_providers_on_type CHECK (type IN ('completion', 'embedding'))
+	CONSTRAINT constraint_ai_providers_on_type CHECK (type IN ('completion', 'embedding', 'transcription'))
 );
 CREATE UNIQUE INDEX index_unique_ai_providers_on_is_default_when_is_default_is_true ON ai_providers USING btree (is_default)
 WHERE (is_default = true);
@@ -1137,7 +1137,8 @@ INSERT INTO ai_providers
 ("name", provider, type, config, is_default)
 VALUES
 ('openai', 'openai', 'completion', '{"api_key": ""}'::jsonb, true),
-('embedding', 'openai', 'embedding', '{"api_key": ""}'::jsonb, false);
+('embedding', 'openai', 'embedding', '{"api_key": ""}'::jsonb, false),
+('transcription', 'openai', 'transcription', '{"api_key": "", "base_url": "https://openrouter.ai/api/v1", "model": "google/gemini-2.5-flash"}'::jsonb, false);
 
 -- Default AI prompts
 INSERT INTO ai_prompts ("key", "content", title)

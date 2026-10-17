@@ -847,6 +847,9 @@ func (m *Manager) AfterMessageInsert(message *models.Message, inlineUUIDs []stri
 		*message = refetchedMessage
 	}
 
+	// Transcribe audio attachments in the background.
+	m.enqueueTranscriptions(message)
+
 	// Trigger webhook for new message created.
 	m.webhookStore.TriggerEvent(wmodels.EventMessageCreated, message)
 }

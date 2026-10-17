@@ -1913,5 +1913,14 @@
   "widget.replyTeam": "Encaminhar respostas para a equipe",
   "widget.searchArticles": "Procurar ajuda",
   "widget.showHelpTab": "Mostrar guia Ajuda",
-  "widget.urlPatternsHint": "Um URL ou caminho por linha. Use * para corresponder a qualquer caractere. As inclusões vazias correspondem a todas as páginas."
+  "widget.urlPatternsHint": "Um URL ou caminho por linha. Use * para corresponder a qualquer caractere. As inclusões vazias correspondem a todas as páginas.",
+  "admin.ai.transcription": "Transcrição de áudio",
+  "admin.ai.transcriptionDescription": "Transcreve todo áudio enviado ou recebido, em todos os canais. Usa um endpoint compatível com OpenAI com entrada de áudio, como o OpenRouter.",
+  "conversation.transcription": "Transcrição",
+  "conversation.transcribing": "Transcrevendo…",
+  "conversation.transcriptionFailed": "Transcrição indisponível",
+  "replyBox.recordAudio": "Gravar áudio",
+  "replyBox.stopRecording": "Parar e anexar",
+  "replyBox.cancelRecording": "Cancelar gravação",
+  "replyBox.micPermissionDenied": "Não foi possível acessar o microfone. Verifique as permissões do navegador."
 }

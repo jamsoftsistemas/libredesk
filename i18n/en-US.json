@@ -1927,5 +1927,14 @@
   "widget.replyTeam": "Route replies to team",
   "widget.searchArticles": "Search for help",
   "widget.showHelpTab": "Show Help tab",
-  "widget.urlPatternsHint": "One URL or path per line. Use * to match any characters. Empty includes match every page."
+  "widget.urlPatternsHint": "One URL or path per line. Use * to match any characters. Empty includes match every page.",
+  "admin.ai.transcription": "Audio transcription",
+  "admin.ai.transcriptionDescription": "Transcribes every audio message sent or received, on all channels. Uses an OpenAI-compatible endpoint with audio input, such as OpenRouter.",
+  "conversation.transcription": "Transcription",
+  "conversation.transcribing": "Transcribing…",
+  "conversation.transcriptionFailed": "Transcription unavailable",
+  "replyBox.recordAudio": "Record audio",
+  "replyBox.stopRecording": "Stop and attach",
+  "replyBox.cancelRecording": "Cancel recording",
+  "replyBox.micPermissionDenied": "Could not access the microphone. Check the browser permissions."
 }

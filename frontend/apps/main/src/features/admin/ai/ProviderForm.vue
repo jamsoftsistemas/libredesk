@@ -28,7 +28,7 @@
               <FormControl>
                 <Input
                   type="text"
-                  :placeholder="showEmbeddingFields ? 'text-embedding-3-small' : 'gpt-5.4-mini'"
+                  :placeholder="modelPlaceholder"
                   v-bind="componentField"
                 />
               </FormControl>
@@ -40,7 +40,11 @@
             <FormItem>
               <FormLabel>{{ t('admin.ai.baseUrl') }}</FormLabel>
               <FormControl>
-                <Input type="text" placeholder="https://api.openai.com/v1" v-bind="componentField" />
+                <Input
+                  type="text"
+                  :placeholder="type === 'transcription' ? 'https://openrouter.ai/api/v1' : 'https://api.openai.com/v1'"
+                  v-bind="componentField"
+                />
               </FormControl>
               <FormDescription>{{ t('admin.ai.baseUrlHint') }}</FormDescription>
               <FormMessage />
@@ -189,6 +193,11 @@ const props = defineProps({
 
 const { t } = useI18n()
 const emitter = useEmitter()
+
+const modelPlaceholder = computed(() => {
+  if (props.type === 'transcription') return 'google/gemini-2.5-flash'
+  return props.showEmbeddingFields ? 'text-embedding-3-small' : 'gpt-5.4-mini'
+})
 const formLoading = ref(false)
 const testLoading = ref(false)
 const hasApiKey = ref(false)
@@ -260,7 +269,25 @@ const embeddingPresets = [
   }
 ]
 
-const presets = computed(() => (props.showEmbeddingFields ? embeddingPresets : completionPresets))
+const transcriptionPresets = [
+  {
+    value: 'openrouter-gemini-flash',
+    label: 'OpenRouter (Gemini 2.5 Flash)',
+    base_url: 'https://openrouter.ai/api/v1',
+    model: 'google/gemini-2.5-flash'
+  },
+  {
+    value: 'openrouter-gpt-4o-audio',
+    label: 'OpenRouter (GPT-4o Audio)',
+    base_url: 'https://openrouter.ai/api/v1',
+    model: 'openai/gpt-4o-audio-preview'
+  }
+]
+
+const presets = computed(() => {
+  if (props.type === 'transcription') return transcriptionPresets
+  return props.showEmbeddingFields ? embeddingPresets : completionPresets
+})
 
 const applyPreset = (value) => {
   const preset = presets.value.find((p) => p.value === value)

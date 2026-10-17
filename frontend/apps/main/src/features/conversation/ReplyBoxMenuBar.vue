@@ -42,6 +42,49 @@
         </TooltipTrigger>
         <TooltipContent>{{ $t('globals.messages.attachFile') }}</TooltipContent>
       </Tooltip>
+      <template v-if="canRecordAudio">
+        <div
+          v-if="recorder.isRecording.value"
+          class="flex items-center gap-1 rounded-md border border-border/70 px-2 h-8 max-md:h-11"
+        >
+          <span class="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+          <span class="text-xs tabular-nums text-muted-foreground w-9">
+            {{ formatRecordingDuration(recorder.duration.value) }}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            class="h-6 w-6"
+            :aria-label="$t('replyBox.cancelRecording')"
+            @click="cancelRecording"
+          >
+            <X class="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            class="h-6 w-6 text-primary"
+            :aria-label="$t('replyBox.stopRecording')"
+            @click="stopRecording"
+          >
+            <Check class="h-4 w-4" />
+          </Button>
+        </div>
+        <Tooltip v-else>
+          <TooltipTrigger as-child>
+            <Toggle
+              :class="ICON_BUTTON_CLASS"
+              variant="outline"
+              :aria-label="$t('replyBox.recordAudio')"
+              @click="startRecording"
+              :pressed="false"
+            >
+              <Mic class="h-4 w-4" />
+            </Toggle>
+          </TooltipTrigger>
+          <TooltipContent>{{ $t('replyBox.recordAudio') }}</TooltipContent>
+        </Tooltip>
+      </template>
       <Tooltip>
         <TooltipTrigger as-child>
           <Toggle
@@ -144,7 +187,7 @@ import { onClickOutside } from '@vueuse/core'
 import { Button } from '@shared-ui/components/ui/button'
 import { Toggle } from '@shared-ui/components/ui/toggle'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@shared-ui/components/ui/tooltip'
-import { Paperclip, Smile, Zap, ChevronDownIcon, Sparkles, Loader2 } from 'lucide-vue-next'
+import { Paperclip, Smile, Zap, ChevronDownIcon, Sparkles, Loader2, Mic, Check, X } from 'lucide-vue-next'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -158,6 +201,12 @@ import { useEmitter } from '@main/composables/useEmitter'
 import { EMITTER_EVENTS } from '@main/constants/emitterEvents.js'
 import { WHATSAPP_MEDIA_ACCEPT } from '@main/features/conversation/whatsappMedia'
 import { MACROS_COMMAND, useCommandPalette } from '@main/features/command/useCommandPalette'
+import {
+  useAudioRecorder,
+  isAudioRecordingSupported,
+  formatRecordingDuration
+} from '@shared-ui/composables/useAudioRecorder'
+import { useI18n } from 'vue-i18n'
 
 const EmojiPicker = defineAsyncComponent(async () => {
   const [mod] = await Promise.all([import('vue3-emoji-picker'), import('vue3-emoji-picker/css')])
@@ -168,7 +217,7 @@ const attachmentInput = ref(null)
 // const inlineImageInput = ref(null)
 const isEmojiPickerVisible = ref(false)
 const emojiPickerRef = ref(null)
-const emit = defineEmits(['emojiSelect', 'generateReply'])
+const emit = defineEmits(['emojiSelect', 'generateReply', 'audioRecorded'])
 
 // Using defineProps for props that don't need two-way binding
 const props = defineProps({
@@ -221,6 +270,28 @@ const openMacroPicker = () => {
 const openTemplatePicker = () => {
   emitter.emit(EMITTER_EVENTS.WHATSAPP_TEMPLATE_PICKER_OPEN)
 }
+
+const { t } = useI18n()
+const recorder = useAudioRecorder()
+const canRecordAudio = isAudioRecordingSupported()
+
+const startRecording = async () => {
+  try {
+    await recorder.start()
+  } catch {
+    emitter.emit(EMITTER_EVENTS.SHOW_TOAST, {
+      variant: 'destructive',
+      description: t('replyBox.micPermissionDenied')
+    })
+  }
+}
+
+const stopRecording = async () => {
+  const file = await recorder.stop()
+  if (file) emit('audioRecorded', file)
+}
+
+const cancelRecording = () => recorder.cancel()
 
 function onSelectEmoji(emoji) {
   emit('emojiSelect', emoji.i)

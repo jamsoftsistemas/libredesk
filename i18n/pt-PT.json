@@ -1015,5 +1015,14 @@
   "webhook.sentSuccessfully": "Webhook enviado com sucesso",
   "widget.conversationClosed": "Esta conversa foi encerrada",
   "widget.ipBlocked": "Acesso negado",
-  "widget.prechatForm.startChat": "Iniciar chat"
+  "widget.prechatForm.startChat": "Iniciar chat",
+  "admin.ai.transcription": "Transcrição de áudio",
+  "admin.ai.transcriptionDescription": "Transcreve todo áudio enviado ou recebido, em todos os canais. Usa um endpoint compatível com OpenAI com entrada de áudio, como o OpenRouter.",
+  "conversation.transcription": "Transcrição",
+  "conversation.transcribing": "Transcrevendo…",
+  "conversation.transcriptionFailed": "Transcrição indisponível",
+  "replyBox.recordAudio": "Gravar áudio",
+  "replyBox.stopRecording": "Parar e anexar",
+  "replyBox.cancelRecording": "Cancelar gravação",
+  "replyBox.micPermissionDenied": "Não foi possível acessar o microfone. Verifique as permissões do navegador."
 }

@@ -1323,3 +1323,17 @@ WHERE id = $1;
 
 -- name: assign-proactive-team
 UPDATE conversations SET assigned_team_id = NULLIF($2, 0) WHERE id = $1;
+
+-- name: merge-message-transcription
+-- Merges one attachment's transcription into meta.transcriptions keyed by media uuid.
+UPDATE conversation_messages m
+SET meta = jsonb_set(
+        COALESCE(m.meta, '{}'::jsonb),
+        '{transcriptions}',
+        COALESCE(m.meta->'transcriptions', '{}'::jsonb) || jsonb_build_object($2::text, $3::jsonb)
+    ),
+    updated_at = NOW()
+FROM conversations c
+WHERE m.uuid = $1
+  AND c.id = m.conversation_id
+RETURNING m.uuid, c.uuid AS conversation_uuid, m.meta;

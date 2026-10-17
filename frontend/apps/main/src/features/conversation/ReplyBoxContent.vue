@@ -201,6 +201,7 @@
       :showGenerateReply="messageType !== 'private_note'"
       @emojiSelect="handleEmojiSelect"
       @generateReply="$emit('generateReply')"
+      @audioRecorded="(file) => handleFilesDropped([file])"
     />
   </div>
 </template>
