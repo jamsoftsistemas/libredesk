@@ -14,6 +14,7 @@ import (
 	aimodels "github.com/abhinavxd/libredesk/internal/ai/models"
 	"github.com/abhinavxd/libredesk/internal/aiagent/models"
 	"github.com/abhinavxd/libredesk/internal/attachment"
+	"github.com/abhinavxd/libredesk/internal/conversation"
 	cmodels "github.com/abhinavxd/libredesk/internal/conversation/models"
 	statusmodels "github.com/abhinavxd/libredesk/internal/conversation/status/models"
 	imageutil "github.com/abhinavxd/libredesk/internal/image"
@@ -39,6 +40,12 @@ const (
 
 	// typingRefreshInterval must stay under the widget's 5s typing expiry (TYPING_RECEIVE_TIMEOUT).
 	typingRefreshInterval = 3 * time.Second
+
+	// maxAIHandoffHops caps how many times assign_ai_agent can fire for the same unanswered customer
+	// message, at 1: whichever assistant receives a message this way must answer it or fall back to a
+	// human, never pass it to a third assistant. Without this, two or more assistants with
+	// overlapping or contradictory descriptions can bounce the same message back and forth forever.
+	maxAIHandoffHops = 1
 
 	// Run clock: caps one full agent run - every completion call, retry, and tool call
 	// combined. The per-call 60s clock (ai.overallRequestTimeout) nests inside it.
@@ -192,11 +199,52 @@ func (m *Manager) markDone(convID int) {
 	delete(m.inflight, convID)
 	if !requeue {
 		delete(m.lastSeen, convID)
+		delete(m.aiHops, convID)
 	}
 	m.mu.Unlock()
 	if requeue {
 		m.enqueue(convID)
 	}
+}
+
+// aiHopState tracks the AI-to-AI handoff count for one conversation, scoped to the customer message
+// currently awaiting a reply.
+type aiHopState struct {
+	messageID int
+	hops      int
+	// lastFrom is the id of the assistant that most recently handed this message to whichever
+	// assistant now holds it, so that assistant's own assign_ai_agent can exclude it: bouncing the
+	// message straight back to whoever just sent it is the most common shape a ping-pong takes, and
+	// cheap to rule out before the hard hop cap would otherwise have to catch it a few hops later.
+	lastFrom int
+}
+
+// aiHopInfo returns how many times assign_ai_agent has already fired for messageID, and the id of
+// the assistant that most recently performed one (0 if none), resetting both first if messageID is a
+// message this conversation hasn't seen before.
+func (m *Manager) aiHopInfo(convID, messageID int) (hops, lastFrom int) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	state := m.aiHops[convID]
+	if state.messageID != messageID {
+		state = aiHopState{messageID: messageID}
+		m.aiHops[convID] = state
+	}
+	return state.hops, state.lastFrom
+}
+
+// recordAIHop increments the AI-to-AI handoff count for messageID and records fromAssistantID as the
+// assistant that just performed it, after an assign_ai_agent call is actually applied.
+func (m *Manager) recordAIHop(convID, messageID, fromAssistantID int) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	state := m.aiHops[convID]
+	if state.messageID != messageID {
+		state = aiHopState{messageID: messageID}
+	}
+	state.hops++
+	state.lastFrom = fromAssistantID
+	m.aiHops[convID] = state
 }
 
 func (m *Manager) handle(ctx context.Context, convID int) {
@@ -232,6 +280,18 @@ func (m *Manager) handle(ctx context.Context, convID int) {
 	slices.Reverse(msgs)
 	inbound := latestInboundContact(msgs)
 	if inbound == nil {
+		return
+	}
+	// Wait for any audio attachment on the customer's message to finish transcribing before
+	// replying, instead of racing the async transcription worker and answering as if it were
+	// unreadable. Skipped once the message already carries text (e.g. a caption, or a channel like
+	// UAZAPI that transcribes synchronously and writes the result straight into the message text) -
+	// there's nothing to wait for in that case. lastSeen is intentionally left untouched so this
+	// message still looks "fresh" and gets retried once the transcription settles (see
+	// conversation.Manager.notifyAIAgent) or, at worst, once the transcription timeout window passes
+	// and it's treated as unreadable.
+	if m.messageText(*inbound) == "" && hasPendingAudioTranscription(*inbound) {
+		m.lo.Debug("ai agent waiting for audio transcription", "conversation_id", convID, "message_id", inbound.ID)
 		return
 	}
 	// Only respond to a fresh inbound customer message, never to the assistant's own or automated
@@ -290,9 +350,34 @@ func (m *Manager) handle(ctx context.Context, convID int) {
 	tools := []ai.Tool{
 		&searchKnowledgeTool{m: m, citationsEnabled: assistant.CitationsEnabled, collect: func(rs []aimodels.SearchResult) { hits = append(hits, rs...) }},
 		&resolveTool{m: m, conv: conv, outcome: outcome},
+		&addNoteTool{m: m, conv: conv, assistant: assistant},
 	}
 	if assistant.HandoffEnabled {
 		tools = append(tools, &handoffTool{m: m, conv: conv, assistant: assistant, outcome: outcome})
+	}
+	if priorities, err := m.priority.GetAll(); err != nil {
+		m.lo.Error("error fetching priorities for ai agent tools", "conversation_uuid", conv.UUID, "error", err)
+	} else {
+		names := make([]string, len(priorities))
+		for i, p := range priorities {
+			names[i] = p.Name
+		}
+		if t := newPriorityTool(m, conv, assistant, names); t != nil {
+			tools = append(tools, t)
+		}
+	}
+	if teams, err := m.team.GetAll(); err != nil {
+		m.lo.Error("error fetching teams for ai agent tools", "conversation_uuid", conv.UUID, "error", err)
+	} else if t := newAssignTeamTool(outcome, teams); t != nil {
+		tools = append(tools, t)
+	}
+	aiHops, lastFromAssistantID := m.aiHopInfo(convID, inbound.ID)
+	if aiHops >= maxAIHandoffHops {
+		systemPrompt += "\n\n" + aiHandoffCapNote
+	} else if assistants, err := m.GetAssistants(); err != nil {
+		m.lo.Error("error fetching assistants for ai agent tools", "conversation_uuid", conv.UUID, "error", err)
+	} else if t := newAssignAIAgentTool(outcome, assistants, assistant.ID, lastFromAssistantID); t != nil {
+		tools = append(tools, t)
 	}
 	if recent := m.recentContactConversations(conv, runVerified); len(recent) > 0 {
 		systemPrompt += fmt.Sprintf("\n\nThis customer has %d other conversation(s) from the last %d days. Call get_previous_conversations if the current issue might be a follow-up or related to them.", len(recent), recentConversationDays)
@@ -362,6 +447,18 @@ func (m *Manager) handle(ctx context.Context, convID int) {
 		answer, confirm = answer+"\n\n"+confirm, ""
 		answerSuggestions, confirmSuggestions = nil, nil
 	}
+	if outcome.reassignAgentID != 0 {
+		// The newly assigned assistant's worker only wakes for a customer message this run hasn't
+		// answered yet; posting a reply here would mark that message answered and the handoff would
+		// go silent. The tool's own instructions tell the model not to reply when it calls this, so
+		// reaching here with text means the model didn't follow that - drop it rather than ship it.
+		if answer != "" || confirm != "" {
+			m.lo.Warn("ai agent wrote a reply while reassigning to another assistant, dropping it", "conversation_uuid", conv.UUID)
+		}
+		m.recordAIHop(convID, inbound.ID, assistant.ID)
+		m.reassignToAgent(conv, assistant, outcome.reassignAgentID, outcome.reassignReason)
+		return
+	}
 	if answer != "" {
 		m.lo.Debug("ai agent replying", "conversation_uuid", conv.UUID, "reply_len", len(answer), "resolved", outcome.resolved)
 		if err := m.postReply(conv, assistant, answer, replyMeta(answerSuggestions, articleIDs)); err != nil {
@@ -379,6 +476,10 @@ func (m *Manager) handle(ctx context.Context, convID int) {
 			m.handoff(conv, assistant, m.i18n.T("ai.agent.handoffError"))
 			return
 		}
+	}
+	if outcome.reassignTeamID != 0 {
+		m.reassignToTeam(conv, assistant, outcome.reassignTeamID, outcome.reassignReason)
+		return
 	}
 	if outcome.handedOff {
 		m.lo.Debug("ai agent handed off", "conversation_uuid", conv.UUID)
@@ -538,6 +639,43 @@ func (m *Manager) actorUser(a models.Assistant) umodels.User {
 	return umodels.User{ID: a.UserID, FirstName: a.Name, Type: umodels.UserTypeAIAssistant}
 }
 
+// reassignToTeam hands the conversation to a team, chosen by assign_team. UpdateConversationTeamAssignee
+// itself unassigns the current user (this assistant) once the team changes, same as the fallback-team
+// path in handoff.
+func (m *Manager) reassignToTeam(conv cmodels.Conversation, assistant models.Assistant, teamID int, reason string) {
+	actor := m.actorUser(assistant)
+	note := strings.TrimSpace(reason)
+	if note == "" {
+		note = m.i18n.T("ai.agent.reassignedTeamDefault")
+	}
+	if _, err := m.convo.SendPrivateNote(nil, assistant.UserID, conv.UUID, note, nil); err != nil {
+		m.lo.Error("error posting team reassignment note", "conversation_uuid", conv.UUID, "error", err)
+	}
+	if err := m.convo.UpdateConversationTeamAssignee(conv.UUID, teamID, actor); err != nil {
+		m.lo.Error("error reassigning conversation to team", "conversation_uuid", conv.UUID, "team_id", teamID, "error", err)
+		return
+	}
+	m.recordEvent(assistant.ID, conv.ID, "handoff")
+}
+
+// reassignToAgent hands the conversation to another AI assistant, chosen by assign_ai_agent.
+// UpdateConversationUserAssignee's existing hook enqueues the new assistant's own response run.
+func (m *Manager) reassignToAgent(conv cmodels.Conversation, assistant models.Assistant, agentUserID int, reason string) {
+	actor := m.actorUser(assistant)
+	note := strings.TrimSpace(reason)
+	if note == "" {
+		note = m.i18n.T("ai.agent.reassignedAgentDefault")
+	}
+	if _, err := m.convo.SendPrivateNote(nil, assistant.UserID, conv.UUID, note, nil); err != nil {
+		m.lo.Error("error posting ai agent reassignment note", "conversation_uuid", conv.UUID, "error", err)
+	}
+	if err := m.convo.UpdateConversationUserAssignee(conv.UUID, agentUserID, actor); err != nil {
+		m.lo.Error("error reassigning conversation to ai assistant", "conversation_uuid", conv.UUID, "to_user_id", agentUserID, "error", err)
+		return
+	}
+	m.recordEvent(assistant.ID, conv.ID, "handoff")
+}
+
 // PreviewReply runs the assistant against a test message with no side effects and returns the reply and the knowledge base items it was grounded in.
 func (m *Manager) PreviewReply(ctx context.Context, assistantID int, message string) (string, []models.PreviewSource, error) {
 	a, err := m.GetAssistant(assistantID)
@@ -695,6 +833,18 @@ func (m *Manager) buildHistory(msgs []cmodels.Message, contactID int) []aimodels
 		// Only the customer's own attachments are worth showing the assistant.
 		if role == aimodels.RoleUser {
 			for _, att := range msg.Attachments {
+				if strings.HasPrefix(att.ContentType, "audio/") {
+					// Never send the raw audio blob to the LLM; only its text transcription, if any.
+					if transcript, ok := cmodels.AudioTranscription(msg.Meta, att.UUID); ok {
+						markers = append(markers, audioTranscriptMarker(att, transcript))
+					} else if text == "" {
+						// Some channels (e.g. UAZAPI) transcribe synchronously and write the
+						// result straight into the message text instead of Meta; only flag the
+						// attachment as unreadable when no transcript text is already present.
+						markers = append(markers, unreadableFileMarker(att))
+					}
+					continue
+				}
 				if !strings.HasPrefix(att.ContentType, "image/") {
 					m.lo.Debug("ai agent attachment not an image", "uuid", att.UUID, "content_type", att.ContentType)
 					markers = append(markers, unreadableFileMarker(att))
@@ -777,8 +927,29 @@ func (m *Manager) encodeAttachmentImage(att attachment.Attachment) (aimodels.Cha
 	return aimodels.ChatImage{MediaType: mediaType, Data: data}, true
 }
 
+// hasPendingAudioTranscription reports whether msg carries an audio attachment whose transcription
+// hasn't settled (done or failed) yet, and is still within the window a transcription attempt is
+// given to complete - i.e. one worth waiting on rather than treating as unreadable right away.
+func hasPendingAudioTranscription(msg cmodels.Message) bool {
+	if time.Since(msg.CreatedAt) >= conversation.TranscriptionTimeout {
+		return false
+	}
+	for _, att := range msg.Attachments {
+		if strings.HasPrefix(att.ContentType, "audio/") && !cmodels.AudioTranscriptionSettled(msg.Meta, att.UUID) {
+			return true
+		}
+	}
+	return false
+}
+
 func unreadableFileMarker(att attachment.Attachment) string {
 	return fmt.Sprintf("[The customer attached a file %q (%s) that cannot be read here. Ask them to share the relevant details as text if it matters.]", att.Name, att.ContentType)
+}
+
+// audioTranscriptMarker surfaces the text transcription of a voice message; the audio itself is
+// never read or sent to the model.
+func audioTranscriptMarker(att attachment.Attachment, text string) string {
+	return fmt.Sprintf("[Voice message %q, transcribed: %s]", att.Name, text)
 }
 
 func unreadableImageMarker(att attachment.Attachment) string {

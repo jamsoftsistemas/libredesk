@@ -73,6 +73,9 @@ type ProviderConfig struct {
 	ReasoningEffort string `json:"reasoning_effort,omitempty"`
 	// Vision marks the completion model as accepting image input; when false the harness drops image parts.
 	Vision bool `json:"vision"`
+	// Language hints the transcription model with the expected audio language (ISO-639-1, e.g. "pt",
+	// "en"); left blank, the model auto-detects it. Improves accuracy/latency for Whisper-family models.
+	Language string `json:"language,omitempty"`
 }
 
 // Prompt backs the agent-facing rephrase/summarize actions in the reply box.

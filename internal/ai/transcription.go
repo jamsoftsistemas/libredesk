@@ -92,6 +92,11 @@ func (o *OpenAIClient) TranscribeAudio(ctx context.Context, data []byte, format 
 	if o.cfg.Temperature != nil {
 		body["temperature"] = *o.cfg.Temperature
 	}
+	if o.cfg.Language != "" {
+		// ISO-639-1 hint (e.g. "pt", "en"); Whisper-family models skip language auto-detection and
+		// transcribe more accurately/faster when the language is already known.
+		body["language"] = o.cfg.Language
+	}
 
 	respBytes, err := o.post(ctx, "/audio/transcriptions", body)
 	if err != nil {

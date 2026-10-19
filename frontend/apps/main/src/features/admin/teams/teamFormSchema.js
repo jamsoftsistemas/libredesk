@@ -9,6 +9,7 @@ export const createTeamFormSchema = (t) => z.object({
       message: t('globals.messages.required')
     }),
   emoji: z.string({ required_error: t('globals.messages.required') }),
+  description: z.string().optional().default(''),
   conversation_assignment_type: z.string({ required_error: t('globals.messages.required') }),
   max_auto_assigned_conversations: z.coerce.number().optional().default(0),
   timezone: z.string({ required_error: t('globals.messages.required') }),

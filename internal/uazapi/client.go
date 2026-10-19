@@ -200,8 +200,11 @@ func (c *Client) send(ctx context.Context, acc Account, path string, payload map
 }
 
 // DownloadMedia resolves a message's media to a short-lived CDN URL (and optionally transcribes audio).
-func (c *Client) DownloadMedia(ctx context.Context, acc Account, messageID string, generateMP3 bool) (DownloadResponse, error) {
+func (c *Client) DownloadMedia(ctx context.Context, acc Account, messageID string, generateMP3, transcribe bool) (DownloadResponse, error) {
 	payload := map[string]any{"id": messageID, "generate_mp3": generateMP3}
+	if transcribe {
+		payload["transcribe"] = true
+	}
 	body, err := c.do(ctx, http.MethodPost, acc, false, "/message/download", payload, c.mediaHTTPClient)
 	if err != nil {
 		return DownloadResponse{}, err
