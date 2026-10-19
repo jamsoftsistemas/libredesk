@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
+	"html"
 	"strconv"
 	"strings"
 	"time"
@@ -135,7 +136,7 @@ func ingestUazapiMessage(ctx context.Context, app *App, inboxID int, ev *uazapi.
 		return nil
 	}
 
-	attachments, err := fetchUazapiAttachments(ctx, app, cfg, m)
+	attachments, transcription, err := fetchUazapiAttachments(ctx, app, cfg, m)
 	if err != nil {
 		return fmt.Errorf("downloading uazapi media: %w", err)
 	}
@@ -172,6 +173,9 @@ func ingestUazapiMessage(ctx context.Context, app *App, inboxID int, ev *uazapi.
 	content := uazapiTextPreview(m)
 	if m.Text == "" && len(attachments) > 0 {
 		content = ""
+	}
+	if m.Text == "" && transcription != "" {
+		content = "🎤 Transcrição: " + html.EscapeString(transcription)
 	}
 
 	msg := cmodels.Message{
@@ -232,32 +236,42 @@ func applyUazapiConnectionEvent(app *App, inboxID int, ev *uazapi.ConnectionEven
 }
 
 // fetchUazapiAttachments returns (nil, nil) when there is nothing to fetch or the download permanently fails.
-func fetchUazapiAttachments(ctx context.Context, app *App, cfg uazapiChannel.Config, m uazapi.Message) (attachment.Attachments, error) {
+// For audio/voice messages it also asks UAZAPI to transcribe (requires an OpenAI key saved on the instance)
+// and returns the text; a transcription failure never blocks the audio attachment.
+func fetchUazapiAttachments(ctx context.Context, app *App, cfg uazapiChannel.Config, m uazapi.Message) (attachment.Attachments, string, error) {
 	if app.uazapiClient == nil {
-		return nil, nil
+		return nil, "", nil
 	}
 	acc := cfg.Account()
 
 	fileURL := m.FileURL
 	mimeType := m.MimeType
-	if fileURL == "" {
+	transcription := ""
+	isAudio := uazapiMessageIsAudio(m.MessageType)
+	if fileURL == "" || isAudio {
 		if !uazapiMessageHasMedia(m.MessageType) {
-			return nil, nil
+			return nil, "", nil
 		}
 		dlCtx, cancel := context.WithTimeout(ctx, uazapiMediaAttemptTimeout)
-		info, err := app.uazapiClient.DownloadMedia(dlCtx, acc, m.MessageID, true)
+		info, err := app.uazapiClient.DownloadMedia(dlCtx, acc, m.MessageID, true, isAudio)
 		cancel()
 		if err != nil {
 			app.lo.Warn("uazapi media unavailable, inserting placeholder", "message_id", m.MessageID, "error", err)
-			return nil, nil
-		}
-		fileURL = info.FileURL
-		if mimeType == "" {
-			mimeType = info.MimeType
+			if fileURL == "" {
+				return nil, "", nil
+			}
+		} else {
+			if info.FileURL != "" {
+				fileURL = info.FileURL
+			}
+			if mimeType == "" {
+				mimeType = info.MimeType
+			}
+			transcription = strings.TrimSpace(info.Transcription)
 		}
 	}
 	if fileURL == "" {
-		return nil, nil
+		return nil, transcription, nil
 	}
 
 	maxBytes := int64(app.consts.Load().(*constants).MaxFileUploadSizeMB) * 1024 * 1024
@@ -266,10 +280,10 @@ func fetchUazapiAttachments(ctx context.Context, app *App, cfg uazapiChannel.Con
 	cancel()
 	if err != nil {
 		app.lo.Warn("error downloading uazapi media, inserting placeholder", "message_id", m.MessageID, "error", err)
-		return nil, nil
+		return nil, transcription, nil
 	}
 	if len(body) == 0 {
-		return nil, nil
+		return nil, transcription, nil
 	}
 	if mimeType == "" {
 		mimeType = contentType
@@ -283,7 +297,12 @@ func fetchUazapiAttachments(ctx context.Context, app *App, cfg uazapiChannel.Con
 			Size:        len(body),
 			Disposition: attachment.DispositionAttachment,
 		},
-	}, nil
+	}, transcription, nil
+}
+
+func uazapiMessageIsAudio(messageType string) bool {
+	t := strings.ToLower(messageType)
+	return strings.Contains(t, "audio") || strings.Contains(t, "ptt")
 }
 
 func uazapiMessageHasMedia(messageType string) bool {
