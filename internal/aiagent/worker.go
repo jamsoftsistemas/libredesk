@@ -14,6 +14,7 @@ import (
 	aimodels "github.com/abhinavxd/libredesk/internal/ai/models"
 	"github.com/abhinavxd/libredesk/internal/aiagent/models"
 	"github.com/abhinavxd/libredesk/internal/attachment"
+	"github.com/abhinavxd/libredesk/internal/conversation"
 	cmodels "github.com/abhinavxd/libredesk/internal/conversation/models"
 	statusmodels "github.com/abhinavxd/libredesk/internal/conversation/status/models"
 	imageutil "github.com/abhinavxd/libredesk/internal/image"
@@ -279,6 +280,18 @@ func (m *Manager) handle(ctx context.Context, convID int) {
 	slices.Reverse(msgs)
 	inbound := latestInboundContact(msgs)
 	if inbound == nil {
+		return
+	}
+	// Wait for any audio attachment on the customer's message to finish transcribing before
+	// replying, instead of racing the async transcription worker and answering as if it were
+	// unreadable. Skipped once the message already carries text (e.g. a caption, or a channel like
+	// UAZAPI that transcribes synchronously and writes the result straight into the message text) -
+	// there's nothing to wait for in that case. lastSeen is intentionally left untouched so this
+	// message still looks "fresh" and gets retried once the transcription settles (see
+	// conversation.Manager.notifyAIAgent) or, at worst, once the transcription timeout window passes
+	// and it's treated as unreadable.
+	if m.messageText(*inbound) == "" && hasPendingAudioTranscription(*inbound) {
+		m.lo.Debug("ai agent waiting for audio transcription", "conversation_id", convID, "message_id", inbound.ID)
 		return
 	}
 	// Only respond to a fresh inbound customer message, never to the assistant's own or automated
@@ -822,9 +835,12 @@ func (m *Manager) buildHistory(msgs []cmodels.Message, contactID int) []aimodels
 			for _, att := range msg.Attachments {
 				if strings.HasPrefix(att.ContentType, "audio/") {
 					// Never send the raw audio blob to the LLM; only its text transcription, if any.
-					if text, ok := cmodels.AudioTranscription(msg.Meta, att.UUID); ok {
-						markers = append(markers, audioTranscriptMarker(att, text))
-					} else {
+					if transcript, ok := cmodels.AudioTranscription(msg.Meta, att.UUID); ok {
+						markers = append(markers, audioTranscriptMarker(att, transcript))
+					} else if text == "" {
+						// Some channels (e.g. UAZAPI) transcribe synchronously and write the
+						// result straight into the message text instead of Meta; only flag the
+						// attachment as unreadable when no transcript text is already present.
 						markers = append(markers, unreadableFileMarker(att))
 					}
 					continue
@@ -909,6 +925,21 @@ func (m *Manager) encodeAttachmentImage(att attachment.Attachment) (aimodels.Cha
 	}
 	m.lo.Debug("ai agent encoded image", "uuid", att.UUID, "raw_bytes", len(blob), "encoded_b64", len(data))
 	return aimodels.ChatImage{MediaType: mediaType, Data: data}, true
+}
+
+// hasPendingAudioTranscription reports whether msg carries an audio attachment whose transcription
+// hasn't settled (done or failed) yet, and is still within the window a transcription attempt is
+// given to complete - i.e. one worth waiting on rather than treating as unreadable right away.
+func hasPendingAudioTranscription(msg cmodels.Message) bool {
+	if time.Since(msg.CreatedAt) >= conversation.TranscriptionTimeout {
+		return false
+	}
+	for _, att := range msg.Attachments {
+		if strings.HasPrefix(att.ContentType, "audio/") && !cmodels.AudioTranscriptionSettled(msg.Meta, att.UUID) {
+			return true
+		}
+	}
+	return false
 }
 
 func unreadableFileMarker(att attachment.Attachment) string {

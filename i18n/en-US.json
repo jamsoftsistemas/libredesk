@@ -141,6 +141,8 @@
   "admin.ai.faqLearning.title": "Learn from resolved conversations",
   "admin.ai.instructions": "Custom instructions",
   "admin.ai.instructionsHint": "Added to AI prompts. Use it to set tone and format, e.g. keep replies under 3 sentences.",
+  "admin.ai.language": "Language",
+  "admin.ai.languageHint": "ISO 639-1 code of the language customers speak (e.g. \"pt\", \"en\", \"es\"). Leave blank to auto-detect; setting it improves transcription accuracy and speed.",
   "admin.ai.maxTokens": "Max tokens",
   "admin.ai.positiveNumber": "Enter a whole number greater than 0.",
   "admin.ai.preset": "Preset",

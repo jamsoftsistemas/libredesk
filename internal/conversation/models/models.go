@@ -661,26 +661,42 @@ func Transcript(msgs []Message, max int) string {
 	return b.String()
 }
 
+// audioTranscriptionEntry is one entry of meta.transcriptions, keyed by attachment (media) UUID.
+type audioTranscriptionEntry struct {
+	Status string `json:"status"`
+	Text   string `json:"text"`
+}
+
+// lookupAudioTranscription returns the raw meta.transcriptions entry for mediaUUID, if any.
+func lookupAudioTranscription(meta json.RawMessage, mediaUUID string) (audioTranscriptionEntry, bool) {
+	if len(meta) == 0 {
+		return audioTranscriptionEntry{}, false
+	}
+	var parsed struct {
+		Transcriptions map[string]audioTranscriptionEntry `json:"transcriptions"`
+	}
+	if err := json.Unmarshal(meta, &parsed); err != nil {
+		return audioTranscriptionEntry{}, false
+	}
+	t, ok := parsed.Transcriptions[mediaUUID]
+	return t, ok
+}
+
 // AudioTranscription returns the transcribed text for the given attachment (media) UUID stored
 // under meta.transcriptions, and whether a completed transcription is available.
 func AudioTranscription(meta json.RawMessage, mediaUUID string) (string, bool) {
-	if len(meta) == 0 {
-		return "", false
-	}
-	var parsed struct {
-		Transcriptions map[string]struct {
-			Status string `json:"status"`
-			Text   string `json:"text"`
-		} `json:"transcriptions"`
-	}
-	if err := json.Unmarshal(meta, &parsed); err != nil {
-		return "", false
-	}
-	t, ok := parsed.Transcriptions[mediaUUID]
+	t, ok := lookupAudioTranscription(meta, mediaUUID)
 	if !ok || t.Status != "done" || strings.TrimSpace(t.Text) == "" {
 		return "", false
 	}
 	return t.Text, true
+}
+
+// AudioTranscriptionSettled reports whether mediaUUID's transcription has reached a final state
+// (done or failed), as opposed to still being in flight or never having been attempted.
+func AudioTranscriptionSettled(meta json.RawMessage, mediaUUID string) bool {
+	t, ok := lookupAudioTranscription(meta, mediaUUID)
+	return ok && (t.Status == "done" || t.Status == "failed")
 }
 
 func metaString(meta json.RawMessage, key string) string {

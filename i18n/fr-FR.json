@@ -150,6 +150,8 @@
   "admin.ai.reasoningEffortHint": "Laissez vide pour la plupart des modèles. Valeurs acceptées : « none », « low », « medium » ou « high ».",
   "admin.ai.instructions": "Instructions personnalisées",
   "admin.ai.instructionsHint": "Ajouté aux invites IA. Utilisez-le pour définir le ton et le format, par exemple « Garde les réponses sous 3 phrases ».",
+  "admin.ai.language": "Langue",
+  "admin.ai.languageHint": "Code ISO 639-1 de la langue parlee par les clients (par ex. \"pt\", \"en\", \"es\"). Laissez vide pour une detection automatique ; le definir ameliore la precision et la vitesse de la transcription.",
   "admin.ai.vision": "Le modèle prend en charge la soumission d'images",
   "admin.ai.visionHint": "Activer uniquement si le modèle de complétion peut lire les images. Lorsque activé, les pièces jointes des clients sont envoyées au modèle. Lorsque désactivé, les images ne sont jamais envoyées.",
   "admin.ai.completionDescription": "Le modèle utilisé pour rédiger des réponses et alimenter le copilote.",

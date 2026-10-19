@@ -139,6 +139,8 @@
   "admin.ai.faqLearning.title": "Aprender com conversas resolvidas",
   "admin.ai.instructions": "Instruções personalizadas",
   "admin.ai.instructionsHint": "Adicionado aos prompts de IA. Use-o para definir o tom e o formato, por ex. mantenha as respostas com menos de 3 frases.",
+  "admin.ai.language": "Idioma",
+  "admin.ai.languageHint": "Código ISO 639-1 do idioma falado pelos clientes (ex.: \"pt\", \"en\", \"es\"). Deixe em branco para detecção automática; definir melhora a precisão e a velocidade da transcrição.",
   "admin.ai.maxTokens": "Máximo de Tokens",
   "admin.ai.positiveNumber": "Insira um número inteiro maior que 0.",
   "admin.ai.preset": "Predefinido",

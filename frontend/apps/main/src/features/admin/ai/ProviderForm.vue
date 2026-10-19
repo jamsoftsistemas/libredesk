@@ -133,6 +133,19 @@
               </FormItem>
             </FormField>
           </template>
+
+          <template v-if="type === 'transcription'">
+            <FormField v-slot="{ componentField }" name="language">
+              <FormItem>
+                <FormLabel>{{ t('admin.ai.language') }}</FormLabel>
+                <FormControl>
+                  <Input type="text" placeholder="pt" maxlength="8" v-bind="componentField" />
+                </FormControl>
+                <FormDescription>{{ t('admin.ai.languageHint') }}</FormDescription>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+          </template>
         </div>
 
         <div class="flex gap-2">
@@ -336,7 +349,8 @@ const form = useForm({
       dimensions: numberField().refine((v) => isBlank(v) || isPositiveInt(v), {
         message: t('admin.ai.positiveNumber')
       }),
-      vision: z.boolean().optional()
+      vision: z.boolean().optional(),
+      language: z.string().optional()
     })
   ),
   initialValues: {
@@ -348,7 +362,8 @@ const form = useForm({
     temperature: fieldDefaults.temperature,
     max_tokens: fieldDefaults.maxTokens,
     dimensions: fieldDefaults.dimensions,
-    vision: false
+    vision: false,
+    language: ''
   }
 })
 
@@ -371,7 +386,8 @@ onMounted(async () => {
         temperature: data.temperature != null ? String(data.temperature) : seed.temperature,
         max_tokens: data.max_tokens ? String(data.max_tokens) : seed.maxTokens,
         dimensions: data.dimensions ? String(data.dimensions) : seed.dimensions,
-        vision: !!data.vision
+        vision: !!data.vision,
+        language: data.language || ''
       },
       false
     )
@@ -401,6 +417,9 @@ const buildPayload = (values) => {
   if (props.showEmbeddingFields) {
     if (values.dimensions !== '' && values.dimensions != null)
       payload.dimensions = Number(values.dimensions)
+  }
+  if (props.type === 'transcription') {
+    payload.language = (values.language || '').trim().toLowerCase()
   }
   return payload
 }

@@ -193,8 +193,24 @@ func ingestUazapiMessage(ctx context.Context, app *App, inboxID int, ev *uazapi.
 		Attachments:      attachments,
 	}
 
-	if _, err := app.conversation.ProcessIncomingWhatsAppMessage(msg, isNewConversation, time.UnixMilli(m.MessageTimestamp)); err != nil {
+	processedMsg, err := app.conversation.ProcessIncomingWhatsAppMessage(msg, isNewConversation, time.UnixMilli(m.MessageTimestamp))
+	if err != nil {
 		return fmt.Errorf("processing uazapi message: %w", err)
+	}
+
+	// UAZAPI transcribes audio itself (synchronously, before the message is even inserted); persist
+	// it into the message's meta too, in the same shape the internal transcription worker uses, so
+	// readers that only look at meta (e.g. the AI agent) see it regardless of which channel produced it.
+	if transcription != "" {
+		for _, att := range processedMsg.Attachments {
+			if !strings.HasPrefix(att.ContentType, "audio/") {
+				continue
+			}
+			if err := app.conversation.SaveAudioTranscription(processedMsg.UUID, att.UUID, transcription); err != nil {
+				app.lo.Warn("error saving uazapi audio transcription", "message_uuid", processedMsg.UUID, "error", err)
+			}
+			break
+		}
 	}
 	return nil
 }
