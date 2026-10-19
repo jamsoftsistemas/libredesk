@@ -55,15 +55,6 @@ type PreviewSource struct {
 	URL   string  `json:"url,omitempty"`
 }
 
-// RecentConversation is a summary row of a contact's past conversation, fed to the assistant as context.
-type RecentConversation struct {
-	UUID            string    `db:"uuid"`
-	ReferenceNumber string    `db:"reference_number"`
-	CreatedAt       time.Time `db:"created_at"`
-	Subject         string    `db:"subject"`
-	Status          string    `db:"status"`
-}
-
 // StatWindow holds the raw counts scanned for one time window.
 type StatWindow struct {
 	Conversations int     `db:"conversations"`

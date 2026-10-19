@@ -49,7 +49,6 @@ type queries struct {
 	DeleteAssistantTools    *sqlx.Stmt `query:"delete-assistant-tools"`
 	InsertAssistantTool     *sqlx.Stmt `query:"insert-assistant-tool"`
 	CountAITurns            *sqlx.Stmt `query:"count-ai-turns-since-assignment"`
-	GetRecentContactConvos  *sqlx.Stmt `query:"get-recent-contact-conversations"`
 	GetAssistantWindowStats *sqlx.Stmt `query:"get-assistant-window-stats"`
 	GetAssistantExpectation *sqlx.Stmt `query:"get-assistant-expectation-by-user-id"`
 	InsertAIAgentEvent      *sqlx.Stmt `query:"insert-ai-agent-event"`

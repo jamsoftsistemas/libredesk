@@ -379,11 +379,6 @@ func (m *Manager) handle(ctx context.Context, convID int) {
 	} else if t := newAssignAIAgentTool(outcome, assistants, assistant.ID, lastFromAssistantID); t != nil {
 		tools = append(tools, t)
 	}
-	if recent := m.recentContactConversations(conv, runVerified); len(recent) > 0 {
-		systemPrompt += fmt.Sprintf("\n\nThis customer has %d other conversation(s) from the last %d days. Call get_previous_conversations if the current issue might be a follow-up or related to them.", len(recent), recentConversationDays)
-		tools = append(tools, &previousConversationsTool{m: m, conversations: recent})
-	}
-
 	// Register the verification tools whenever verification is OTP-based, even if the run starts
 	// verified: the 30-min window can expire mid-run and a blocked tool then points the model at
 	// them. set_contact_email is visitor-only, so a self-claimed email can be corrected in chat; a
@@ -877,20 +872,6 @@ func (m *Manager) buildHistory(msgs []cmodels.Message, contactID int) []aimodels
 		history = append(history, aimodels.ChatMessage{Role: role, Content: text, Images: images})
 	}
 	return history
-}
-
-// recentContactConversations lists the contact's other recent conversations, only once verified so
-// past-conversation PII never reaches an unverified/self-claimed identity.
-func (m *Manager) recentContactConversations(conv cmodels.Conversation, verified bool) []models.RecentConversation {
-	if !verified {
-		return nil
-	}
-	recent := []models.RecentConversation{}
-	if err := m.q.GetRecentContactConvos.Select(&recent, conv.ContactID, conv.ID, recentConversationDays, maxRecentConversations); err != nil {
-		m.lo.Error("error fetching recent contact conversations for ai agent", "conversation_uuid", conv.UUID, "error", err)
-		return nil
-	}
-	return recent
 }
 
 // assistantHasVerifiedTool reports whether any tool attached to the assistant is verification-gated;

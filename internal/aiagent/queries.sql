@@ -103,14 +103,6 @@ WHERE conversation_id = $1 AND sender_id = $2 AND type = 'outgoing' AND private 
       AND meta->>'activity_type' IN ('assigned_user_change', 'self_assign')
   ), to_timestamp(0));
 
--- name: get-recent-contact-conversations
-SELECT c.uuid, c.reference_number, c.created_at, COALESCE(c.subject, '') AS subject, s.name AS status
-FROM conversations c
-JOIN conversation_statuses s ON s.id = c.status_id
-WHERE c.contact_id = $1 AND c.id != $2 AND c.created_at >= now() - make_interval(days => $3)
-ORDER BY c.created_at DESC
-LIMIT $4;
-
 -- name: insert-faq-suggestion
 INSERT INTO ai_faq_suggestions (conversation_id, question, answer) VALUES ($1, $2, $3);
 

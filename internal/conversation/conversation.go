@@ -1651,6 +1651,15 @@ func (m *Manager) ApplyAction(action amodels.RuleAction, conv models.Conversatio
 		if err != nil {
 			return fmt.Errorf("invalid agent ID %q: %w", action.Value[0], err)
 		}
+		// A team assignment is a one-way handoff: once a conversation has been assigned to a
+		// team, automation rules must not reassign it back to an AI assistant.
+		if conv.AssignedTeamID.Valid && conv.AssignedTeamID.Int > 0 {
+			if target, tErr := m.userStore.GetAgentCachedOrLoad(agentID); tErr == nil && target.Type == umodels.UserTypeAIAssistant {
+				m.lo.Debug("skipping automation re-assignment to AI assistant, conversation already handed off to a team",
+					"conversation_uuid", conv.UUID, "assigned_team_id", conv.AssignedTeamID.Int, "agent_id", agentID)
+				return nil
+			}
+		}
 		return m.UpdateConversationUserAssignee(conv.UUID, agentID, user)
 	case amodels.ActionSetPriority:
 		priorityID, err := strconv.Atoi(action.Value[0])
