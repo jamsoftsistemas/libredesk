@@ -64,7 +64,7 @@ export function useTextEditor({
           event.stopPropagation()
           return false
         }
-        if (event.ctrlKey && event.key === 'Enter') {
+        if (!event.ctrlKey && !event.shiftKey && event.key === 'Enter') {
           onSend()
           return true
         }
