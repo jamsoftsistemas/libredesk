@@ -247,6 +247,7 @@ SELECT
    ct.external_user_id as "contact.external_user_id",
    ct.company_id as "contact.company_id",
    comp.name as "contact.company_name",
+   comp.system as "contact.company_system",
    (SELECT json_agg(json_build_object('channel', cci.channel, 'identifier', cci.identifier))
       FROM contact_channel_identities cci WHERE cci.contact_id = ct.id) as "contact.channel_identities",
    as_latest.first_response_deadline_at,

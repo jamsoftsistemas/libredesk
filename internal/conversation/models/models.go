@@ -256,6 +256,7 @@ type ConversationContact struct {
 	ExternalUserID         null.String     `db:"external_user_id" json:"external_user_id"`
 	CompanyID              null.Int        `db:"company_id" json:"company_id"`
 	CompanyName            null.String     `db:"company_name" json:"company_name"`
+	CompanySystem          null.String     `db:"company_system" json:"company_system"`
 
 	ChannelIdentities umodels.ChannelIdentities `db:"channel_identities" json:"channel_identities,omitempty"`
 }

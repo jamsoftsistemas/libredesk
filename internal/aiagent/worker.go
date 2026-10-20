@@ -330,6 +330,9 @@ func (m *Manager) handle(ctx context.Context, convID int) {
 	if len(contactLines) == 0 {
 		systemPrompt += "\n\n" + noContactIdentityNote
 	}
+	if conv.Contact.CompanySystem.String != "" {
+		systemPrompt += "\n\n" + companySystemKnownNote(conv.Contact.CompanySystem.String)
+	}
 	history := m.buildHistory(msgs, conv.ContactID)
 	// Keep customer-controlled data (contact fields, subject, attributes) out of the system prompt; it
 	// stays in a user-role block so it ranks below the assistant's instructions, not beside them.

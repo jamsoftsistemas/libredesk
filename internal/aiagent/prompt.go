@@ -48,6 +48,12 @@ const cannotAnswerNoHandoff = `If you cannot answer from the knowledge base, or 
 // noContactIdentityNote is a trusted, data-free system-prompt line for when nothing identifies the contact.
 const noContactIdentityNote = "You do not have any identifying details for this customer yet. If you need to identify them for a request, ask."
 
+// companySystemKnownNote tells the model the customer's company is already registered against a
+// specific system, so it can skip the triage question and go straight to troubleshooting/routing.
+func companySystemKnownNote(system string) string {
+	return fmt.Sprintf("This customer's company is already registered as using %q. Do not ask which system they use - treat it as already known and go straight to helping or routing based on it.", system)
+}
+
 // aiHandoffCapNote tells the model assign_ai_agent is no longer offered this turn, once
 // maxAIHandoffHops is reached, so it doesn't try to call a tool that isn't in its tool list and
 // instead resolves the request itself.
@@ -109,6 +115,12 @@ func contactFieldLines(c cmodels.ConversationContact) []string {
 	}
 	if c.ExternalUserID.String != "" {
 		lines = append(lines, "- External user ID: "+c.ExternalUserID.String)
+	}
+	if c.CompanyName.String != "" {
+		lines = append(lines, "- Company: "+c.CompanyName.String)
+	}
+	if c.CompanySystem.String != "" {
+		lines = append(lines, "- Registered system for this company: "+c.CompanySystem.String)
 	}
 	if ca := strings.TrimSpace(string(c.CustomAttributes)); ca != "" && ca != "{}" && ca != "null" {
 		lines = append(lines, "- Additional attributes: "+ca)
