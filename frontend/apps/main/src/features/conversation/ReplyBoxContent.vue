@@ -147,6 +147,12 @@
 
     <!-- Main tiptap editor -->
     <div class="flex-grow flex flex-col overflow-hidden">
+      <QuotedMessagePreview
+        v-if="quotedMessage"
+        :authorName="quotedMessage.authorName"
+        :snippet="quotedMessage.snippet"
+        @cancel="quotedMessage = null"
+      />
       <Editor
         ref="editorRef"
         v-model:htmlContent="htmlContent"
@@ -229,6 +235,7 @@ import { useEmitter } from '@main/composables/useEmitter'
 import ReplyBoxAttachmentPreview from '@/features/conversation/message/attachment/ReplyBoxAttachmentPreview.vue'
 import MacroActionsPreview from '@/features/conversation/MacroActionsPreview.vue'
 import ReplyBoxMenuBar from '@/features/conversation/ReplyBoxMenuBar.vue'
+import QuotedMessagePreview from '@/features/conversation/QuotedMessagePreview.vue'
 import { useI18n } from 'vue-i18n'
 import { validateEmail } from '@shared-ui/utils/string'
 import { useMacroStore } from '@main/stores/macro'
@@ -252,6 +259,7 @@ const emailErrors = defineModel('emailErrors', { default: () => [] })
 const htmlContent = defineModel('htmlContent', { default: '' })
 const textContent = defineModel('textContent', { default: '' })
 const mentions = defineModel('mentions', { default: () => [] })
+const quotedMessage = defineModel('quotedMessage', { default: null })
 const macroStore = useMacroStore()
 
 // Get suggestions for the mention dropdown
@@ -502,5 +510,6 @@ watch(
 const focus = () => {
   editorRef.value?.focus()
 }
+
 defineExpose({ focus })
 </script>

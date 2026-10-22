@@ -174,6 +174,15 @@ func (m *Manager) sendOutgoingMessage(message models.Message) {
 	// Convert to OutboundMessage for transport
 	outbound := message.ToOutbound()
 
+	if inb.Channel() == inbox.ChannelUazapi {
+		if sender, err := m.userStore.GetAgentCachedOrLoad(message.SenderID); err != nil {
+			m.lo.Error("error fetching message sender for uazapi prefix", "sender_id", message.SenderID, "error", err)
+		} else if !sender.IsSystemUser() {
+			outbound.SenderName = sender.FirstName
+			outbound.SenderIsAI = sender.Type == umodels.UserTypeAIAssistant
+		}
+	}
+
 	if inb.Channel() == inbox.ChannelEmail {
 		inboxRecord, err := m.inboxStore.GetDBRecord(message.InboxID)
 		if handleError(err, "error fetching inbox sender addresses") {

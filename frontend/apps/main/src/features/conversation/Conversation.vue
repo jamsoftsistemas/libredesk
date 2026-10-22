@@ -101,6 +101,28 @@
       <ReplyBox v-else-if="canCompose" />
     </div>
   </div>
+
+  <AlertDialog
+    :open="!!conversationStore.pendingResolveStatus"
+    @update:open="(open) => !open && conversationStore.cancelResolveWithoutTags()"
+  >
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>{{ t('conversation.missingTagsOnResolveTitle') }}</AlertDialogTitle>
+        <AlertDialogDescription>
+          {{ t('conversation.missingTagsOnResolveDescription') }}
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel @click="conversationStore.cancelResolveWithoutTags()">
+          {{ t('globals.messages.cancel') }}
+        </AlertDialogCancel>
+        <AlertDialogAction @click="conversationStore.confirmResolveWithoutTags()">
+          {{ t('conversation.resolveAnyway') }}
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
 </template>
 
 <script setup>
@@ -118,6 +140,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@shared-ui/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@shared-ui/components/ui/alert-dialog'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@shared-ui/components/ui/tooltip'
 import { formatMessageTimestamp } from '@shared-ui/utils/datetime.js'
 import { Button } from '@shared-ui/components/ui/button'
@@ -143,8 +175,14 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const isMobile = useIsMobile()
+const isAssignedToOther = computed(() => {
+  const assigneeId = conversationStore.current?.assigned_user_id
+  return Boolean(assigneeId) && assigneeId !== userStore.userID
+})
 const canCompose = computed(
-  () => userStore.can(perms.MESSAGES_WRITE) || userStore.can(perms.MESSAGES_WRITE_PRIVATE)
+  () =>
+    (userStore.can(perms.MESSAGES_WRITE) || userStore.can(perms.MESSAGES_WRITE_PRIVATE)) &&
+    !isAssignedToOther.value
 )
 
 // Each detail route is `<list route name>-conversation`.
@@ -155,6 +193,21 @@ const goBackToList = () => {
   if (window.history.state?.back?.split('?')[0] === target.path) router.back()
   else router.push(target)
 }
+
+// ESC closes/deselects the open conversation (like the mobile back button), unless a dialog
+// (e.g. a picker or confirmation) is open and should handle ESC itself, or the agent is
+// actively typing - Escape there is expected to stay local (dismiss a menu, blur, etc.).
+const isEditableElement = (el) =>
+  !!el && (el.isContentEditable || ['INPUT', 'TEXTAREA'].includes(el.tagName))
+
+const onKeydown = (event) => {
+  if (event.key !== 'Escape' || event.repeat) return
+  if (isEditableElement(document.activeElement)) return
+  if (document.querySelector('[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]')) return
+  goBackToList()
+}
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 
 const canAssignToMe = computed(
   () =>
@@ -224,7 +277,7 @@ const handleUpdateStatus = (status) => {
     palette.openPalette({ parent: SNOOZE_COMMAND })
     return
   }
-  conversationStore.updateStatus(status)
+  conversationStore.requestStatusUpdate(status)
 }
 
 const paletteActions = {

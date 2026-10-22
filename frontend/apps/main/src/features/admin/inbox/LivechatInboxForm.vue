@@ -117,6 +117,17 @@
                   </FormItem>
                 </FormField>
 
+                <FormField v-slot="{ componentField, handleChange }" name="prompt_tags_on_resolve">
+                  <FormItem>
+                    <SwitchField
+                      :title="$t('admin.inbox.promptTagsOnResolve')"
+                      :description="$t('admin.inbox.promptTagsOnResolve.description')"
+                      :checked="componentField.modelValue"
+                      @update:checked="handleChange"
+                    />
+                  </FormItem>
+                </FormField>
+
                 <FormField v-slot="{ componentField }" name="name">
                   <FormItem>
                     <FormLabel>{{ $t('globals.terms.name') }}</FormLabel>
@@ -1721,6 +1732,7 @@ const form = useForm({
     secret: '',
     csat_enabled: false,
     prompt_tags_on_reply: false,
+    prompt_tags_on_resolve: false,
     linked_email_inbox_id: null,
     config: {
       help: defaultWidgetHelp(),

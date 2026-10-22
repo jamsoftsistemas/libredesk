@@ -122,6 +122,9 @@ export class WebSocketClient {
               this.convStore.fetchSidebarCounts({ force: true })
             } else {
               this.convStore.refreshSidebarCounts()
+              if (document.hidden) {
+                playNotificationSound()
+              }
             }
           } else {
             this.convStore.refreshConversationList()

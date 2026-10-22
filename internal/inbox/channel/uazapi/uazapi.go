@@ -163,14 +163,16 @@ func (u *Uazapi) send(message models.OutboundMessage) error {
 		TrackID:     message.UUID,
 	}
 
+	body := withSenderPrefix(message, textBody(message))
+
 	var resp uazapi.SendResponse
 	switch {
 	case meta.ButtonURL != "" && len(message.Attachments) == 0:
-		resp, err = u.client.SendButtonMenu(ctx, acc, meta.ToNumber, textBody(message), meta.ButtonText, meta.ButtonURL, opts)
+		resp, err = u.client.SendButtonMenu(ctx, acc, meta.ToNumber, body, meta.ButtonText, meta.ButtonURL, opts)
 	case len(message.Attachments) > 0:
 		resp, err = u.sendAttachment(ctx, acc, opts, message)
-	case strings.TrimSpace(textBody(message)) != "":
-		resp, err = u.client.SendText(ctx, acc, meta.ToNumber, textBody(message), opts)
+	case strings.TrimSpace(body) != "":
+		resp, err = u.client.SendText(ctx, acc, meta.ToNumber, body, opts)
 	default:
 		return fmt.Errorf("outbound message has no content")
 	}
@@ -197,7 +199,27 @@ func (u *Uazapi) sendAttachment(ctx context.Context, acc uazapi.Account, opts ua
 
 	att := message.Attachments[0]
 	dataURI := fmt.Sprintf("data:%s;base64,%s", att.ContentType, base64.StdEncoding.EncodeToString(att.Content))
-	return u.client.SendMedia(ctx, acc, meta.ToNumber, mediaTypeForAttachment(att), dataURI, strings.TrimSpace(textBody(message)), att.Name, opts)
+	caption := strings.TrimSpace(withSenderPrefix(message, textBody(message)))
+	return u.client.SendMedia(ctx, acc, meta.ToNumber, mediaTypeForAttachment(att), dataURI, caption, att.Name, opts)
+}
+
+// withSenderPrefix prepends a bold "*Name:*" line identifying the attendant who sent the message,
+// e.g. "*IA JAMES:*" for the AI assistant or "*David:*" for a human agent, as WhatsApp conversations
+// are shared across a team and recipients need to know who is replying.
+func withSenderPrefix(message models.OutboundMessage, body string) string {
+	var prefix string
+	switch {
+	case message.SenderIsAI:
+		prefix = "*IA JAMES:*"
+	case message.SenderName != "":
+		prefix = fmt.Sprintf("*%s:*", message.SenderName)
+	default:
+		return body
+	}
+	if body == "" {
+		return prefix
+	}
+	return prefix + "\n" + body
 }
 
 func parseSendMeta(raw json.RawMessage) (SendMeta, error) {

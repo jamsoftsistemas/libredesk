@@ -58,16 +58,29 @@
       </template>
 
       <div
-        class="w-4/5"
-        :class="{ 'flex justify-end items-center gap-2': isOutgoing }"
+        class="w-4/5 flex items-center gap-1"
+        :class="{ 'justify-end': isOutgoing }"
         style="contain: inline-size"
       >
-        <!-- Delete note menu (private notes, appears on hover, left of bubble) -->
+        <!-- Hover actions (outgoing: left of bubble) -->
         <div
-          v-if="canDeleteNote"
-          class="flex-shrink-0 transition-opacity duration-200 can-hover:opacity-0 can-hover:group-hover:opacity-100 focus-within:!opacity-100"
+          v-if="isOutgoing && (canQuoteMessage || canDeleteNote)"
+          class="flex items-center flex-shrink-0 transition-opacity duration-200 can-hover:opacity-0 can-hover:group-hover:opacity-100 focus-within:!opacity-100"
         >
-          <DropdownMenu>
+          <Tooltip v-if="canQuoteMessage">
+            <TooltipTrigger as-child>
+              <Button
+                variant="ghost"
+                class="w-8 h-8 p-0 text-muted-foreground"
+                :aria-label="t('conversation.quoteMessage')"
+                @click="quoteMessage"
+              >
+                <Quote class="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{{ t('conversation.quoteMessage') }}</TooltipContent>
+          </Tooltip>
+          <DropdownMenu v-if="canDeleteNote">
             <DropdownMenuTrigger as-child>
               <Button variant="ghost" class="w-8 h-8 p-0 text-muted-foreground">
                 <MoreHorizontal class="w-4 h-4" />
@@ -86,7 +99,7 @@
         </div>
 
         <div
-          class="flex flex-col justify-end message-bubble"
+          class="flex flex-col justify-end message-bubble min-w-0"
           :class="bubbleClasses"
         >
           <div v-if="isDeleted" class="text-sm italic text-muted-foreground">
@@ -236,6 +249,21 @@
             </div>
           </template>
         </div>
+
+        <!-- Hover actions (incoming: right of bubble) -->
+        <Tooltip v-if="!isOutgoing && canQuoteMessage">
+          <TooltipTrigger as-child>
+            <Button
+              variant="ghost"
+              class="w-8 h-8 p-0 flex-shrink-0 text-muted-foreground transition-opacity duration-200 can-hover:opacity-0 can-hover:group-hover:opacity-100 focus-within:!opacity-100"
+              :aria-label="t('conversation.quoteMessage')"
+              @click="quoteMessage"
+            >
+              <Quote class="w-4 h-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{{ t('conversation.quoteMessage') }}</TooltipContent>
+        </Tooltip>
       </div>
 
       <!-- Avatar (right for outgoing) -->
@@ -319,7 +347,8 @@ import {
   CircleAlert,
   Maximize2,
   Trash2,
-  MoreHorizontal
+  MoreHorizontal,
+  Quote
 } from 'lucide-vue-next'
 import {
   DropdownMenu,
@@ -350,8 +379,12 @@ import MessageEnvelope from './MessageEnvelope.vue'
 import CSATResponseDisplay from './CSATResponseDisplay.vue'
 import api from '@main/api'
 import { containsQuoteMarkers } from '@shared-ui/utils/quotedContent.js'
+import { buildQuoteHtml, buildQuoteSnippet } from '@shared-ui/utils/messageQuote.js'
 import { linkifyText } from '@shared-ui/utils/linkify.js'
 import { getMessageDeliveryStatus } from './messageDeliveryStatus.js'
+import { useEmitter } from '@main/composables/useEmitter'
+import { EMITTER_EVENTS } from '@main/constants/emitterEvents.js'
+import { permissions as perms } from '@main/constants/permissions.js'
 
 const extendedCssProperties = [...allowedCssProperties, 'transform', 'transform-origin']
 // The sanitizer has no strikethrough tag, so these are rewritten to a styled span it keeps.
@@ -504,6 +537,25 @@ const hasQuotedContent = computed(
 )
 const toggleQuote = () => {
   showQuotedText.value = !showQuotedText.value
+}
+
+// Lets the agent cite a message from the timeline into the composer - works the same
+// for every channel since it just inserts HTML into the shared rich-text editor.
+const emitter = useEmitter()
+const canQuoteMessage = computed(() => {
+  if (isDeleted.value || props.message.meta?.wa_unsupported) return false
+  if (!userStore.can(perms.MESSAGES_WRITE) && !userStore.can(perms.MESSAGES_WRITE_PRIVATE)) return false
+  const assigneeId = convStore.current?.assigned_user_id
+  return !assigneeId || assigneeId === userStore.userID
+})
+const quoteMessage = () => {
+  const html = buildQuoteHtml({
+    authorName: getFullName.value,
+    content: sanitizedContent.value,
+    contentType: props.message.content_type
+  })
+  const snippet = buildQuoteSnippet(sanitizedContent.value, props.message.content_type)
+  emitter.emit(EMITTER_EVENTS.REPLY_BOX_QUOTE_MESSAGE, { authorName: getFullName.value, snippet, html })
 }
 
 // Enumerate from rendered DOM (not HTML source) to inherit vue-letter's

@@ -778,6 +778,16 @@
                 />
               </FormItem>
             </FormField>
+            <FormField v-slot="{ componentField, handleChange, meta }" name="prompt_tags_on_resolve">
+              <FormItem>
+                <SwitchField
+                  :title="$t('admin.inbox.promptTagsOnResolve')"
+                  :description="$t('admin.inbox.promptTagsOnResolve.description')"
+                  :checked="componentField.modelValue"
+                  @update:checked="(v) => handleChange(v, meta.validated)"
+                />
+              </FormItem>
+            </FormField>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
@@ -1093,6 +1103,7 @@ const form = useForm({
     enabled: true,
     csat_enabled: false,
     prompt_tags_on_reply: false,
+    prompt_tags_on_resolve: false,
     enable_plus_addressing: true,
     auth_type: AUTH_TYPE_PASSWORD,
     imap: {
@@ -1174,7 +1185,8 @@ const getFieldSection = (key) => {
       'reply_to',
       'enable_plus_addressing',
       'csat_enabled',
-      'prompt_tags_on_reply'
+      'prompt_tags_on_reply',
+      'prompt_tags_on_resolve'
     ].includes(key)
   )
     return 'options'

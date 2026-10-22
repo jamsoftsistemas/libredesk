@@ -24,7 +24,6 @@ import { useStorage } from '@vueuse/core'
 import { Inbox, Shield, FileLineChart, BookUser } from 'lucide-vue-next'
 import { SidebarMenuButton, SidebarMenuItem } from '@shared-ui/components/ui/sidebar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@shared-ui/components/ui/tooltip'
-import { useIsMobile } from '@shared-ui/composables'
 import { useUserStore } from '@main/stores/user'
 
 defineProps({
@@ -35,13 +34,12 @@ defineProps({
 const route = useRoute()
 const { t } = useI18n()
 const userStore = useUserStore()
-const isMobile = useIsMobile()
 
 const lastInboxPath = useStorage('lastInboxPath', '')
 
+// Deselects any open conversation so clicking back into Inbox never silently keeps it open.
 const inboxTarget = computed(() => {
   if (!lastInboxPath.value) return { name: 'inboxes' }
-  if (!isMobile.value) return lastInboxPath.value
   return lastInboxPath.value.replace(/\/conversation\/[^/]+$/, '') || { name: 'inboxes' }
 })
 

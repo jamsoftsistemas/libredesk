@@ -238,6 +238,7 @@ export const createFormSchema = (t) =>
     enabled: z.boolean(),
     csat_enabled: z.boolean(),
     prompt_tags_on_reply: z.boolean(),
+    prompt_tags_on_resolve: z.boolean().optional(),
     secret: z.string().nullable().optional(),
     linked_email_inbox_id: z.number().nullable().optional(),
     config: z.object({

@@ -382,7 +382,10 @@
   // Outlook/Hotmail emit a marker with the quoted history as trailing
   // siblings (no wrapping element), so we hide the marker AND everything
   // after it. Outlook always top-posts, so trailing siblings are quote.
-  blockquote,
+  // blockquote.quoted-message is our own "cited message" feature, not an email thread
+  // quote, so it always stays visible regardless of this toggle's state. vue-letter
+  // prefixes the class with "msg_XYZ_" at render time, hence the substring match.
+  blockquote:not([class~="quoted-message"]):not([class*="_quoted-message"]),
   [id$="_divRplyFwdMsg"],
   [id$="_divRplyFwdMsg"] ~ *,
   [id$="_appendonsend"],

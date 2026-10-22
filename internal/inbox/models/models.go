@@ -28,23 +28,24 @@ const (
 
 // Inbox represents a inbox record in DB.
 type Inbox struct {
-	ID                 int             `db:"id" json:"id"`
-	UUID               string          `db:"uuid" json:"uuid"`
-	CreatedAt          time.Time       `db:"created_at" json:"created_at"`
-	UpdatedAt          time.Time       `db:"updated_at" json:"updated_at"`
-	Name               string          `db:"name" json:"name"`
-	DeletedAt          *time.Time      `db:"deleted_at" json:"-"`
-	Channel            string          `db:"channel" json:"channel"`
-	Enabled            bool            `db:"enabled" json:"enabled"`
-	CSATEnabled        bool            `db:"csat_enabled" json:"csat_enabled"`
-	PromptTagsOnReply  bool            `db:"prompt_tags_on_reply" json:"prompt_tags_on_reply"`
-	ReopenWindowHours  int             `db:"reopen_window_hours" json:"reopen_window_hours"`
-	From               string          `db:"from" json:"from"`
-	Aliases            EmailAliases    `db:"aliases" json:"aliases"`
-	FromNameTemplate   string          `db:"from_name_template" json:"from_name_template"`
-	Config             json.RawMessage `db:"config" json:"config"`
-	Secret             null.String     `db:"secret" json:"secret"`
-	LinkedEmailInboxID null.Int        `db:"linked_email_inbox_id" json:"linked_email_inbox_id"`
+	ID                  int             `db:"id" json:"id"`
+	UUID                string          `db:"uuid" json:"uuid"`
+	CreatedAt           time.Time       `db:"created_at" json:"created_at"`
+	UpdatedAt           time.Time       `db:"updated_at" json:"updated_at"`
+	Name                string          `db:"name" json:"name"`
+	DeletedAt           *time.Time      `db:"deleted_at" json:"-"`
+	Channel             string          `db:"channel" json:"channel"`
+	Enabled             bool            `db:"enabled" json:"enabled"`
+	CSATEnabled         bool            `db:"csat_enabled" json:"csat_enabled"`
+	PromptTagsOnReply   bool            `db:"prompt_tags_on_reply" json:"prompt_tags_on_reply"`
+	PromptTagsOnResolve bool            `db:"prompt_tags_on_resolve" json:"prompt_tags_on_resolve"`
+	ReopenWindowHours   int             `db:"reopen_window_hours" json:"reopen_window_hours"`
+	From                string          `db:"from" json:"from"`
+	Aliases             EmailAliases    `db:"aliases" json:"aliases"`
+	FromNameTemplate    string          `db:"from_name_template" json:"from_name_template"`
+	Config              json.RawMessage `db:"config" json:"config"`
+	Secret              null.String     `db:"secret" json:"secret"`
+	LinkedEmailInboxID  null.Int        `db:"linked_email_inbox_id" json:"linked_email_inbox_id"`
 	// Computed, not persisted. The URL the admin pastes into Meta's webhook config.
 	WebhookURL string `db:"-" json:"webhook_url,omitempty"`
 	// Computed, not persisted. True when Meta recently rejected this inbox's access token.

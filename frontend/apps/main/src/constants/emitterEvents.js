@@ -13,6 +13,7 @@ export const EMITTER_EVENTS = {
     REPLY_BOX_FOCUS: 'reply-box-focus',
     REPLY_BOX_SET_TYPE: 'reply-box-set-type',
     REPLY_BOX_TOGGLE_MINIMIZE: 'reply-box-toggle-minimize',
+    REPLY_BOX_QUOTE_MESSAGE: 'reply-box-quote-message',
     CONVERSATION_ACTION: 'conversation-action',
     CONTACT_ACTION: 'contact-action'
 }

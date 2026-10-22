@@ -97,6 +97,7 @@
           v-model:showCc="showCc"
           v-model:showBcc="showBcc"
           v-model:mentions="mentions"
+          v-model:quotedMessage="quotedMessage"
           @toggleFullscreen="isEditorFullscreen = !isEditorFullscreen"
           @send="processSend"
           @sendAndSetStatus="processSendAndSetStatus"
@@ -166,6 +167,7 @@
         v-model:showCc="showCc"
         v-model:showBcc="showBcc"
         v-model:mentions="mentions"
+        v-model:quotedMessage="quotedMessage"
         @toggleFullscreen="isEditorFullscreen = !isEditorFullscreen"
         @minimize="toggleMinimize"
         @send="processSend"
@@ -312,6 +314,7 @@ watch(
   currentConversationUUID,
   async (uuid, prevUuid) => {
     if (prevUuid) conversationStore.setSelectedDraftType(prevUuid, messageType.value)
+    quotedMessage.value = null
     if (!uuid) {
       messageType.value = defaultMessageType.value
       return
@@ -360,6 +363,7 @@ const pendingToolApproval = ref(null)
 const pendingToolConversationUUID = ref('')
 const deferredStatus = ref(null)
 const mentions = ref([])
+const quotedMessage = ref(null)
 
 watch(currentConversationUUID, (uuid) => {
   if (pendingToolApproval.value && pendingToolConversationUUID.value !== uuid) {
@@ -467,11 +471,28 @@ const toggleMinimize = () => {
   if (!isMinimized.value) nextTick(() => replyBoxContentRef.value?.focus())
 }
 
+// Quoting a message from the timeline expands/opens whichever composer surface
+// applies (cramped -> fullscreen dialog, minimized -> inline box) and shows it as a
+// WhatsApp-style preview chip above the editor; the quote itself is merged into the
+// message content only on send (see processSend).
+const handleQuoteMessage = (data) => {
+  if (!data || (!canSendReply.value && !canSendPrivateNote.value)) return
+  quotedMessage.value = data
+  if (isCramped.value) {
+    isEditorFullscreen.value = true
+    nextTick(() => fullscreenContentRef.value?.focus())
+    return
+  }
+  isMinimized.value = false
+  nextTick(() => activeContentRef()?.focus())
+}
+
 onMounted(() => {
   emitter.on(EMITTER_EVENTS.COPILOT_INSERT_REPLY, handleCopilotInsertReply)
   emitter.on(EMITTER_EVENTS.REPLY_BOX_SET_TYPE, setMessageTypeFromPalette)
   emitter.on(EMITTER_EVENTS.REPLY_BOX_FOCUS, focusFromPalette)
   emitter.on(EMITTER_EVENTS.REPLY_BOX_TOGGLE_MINIMIZE, toggleMinimize)
+  emitter.on(EMITTER_EVENTS.REPLY_BOX_QUOTE_MESSAGE, handleQuoteMessage)
 })
 
 onUnmounted(() => {
@@ -479,6 +500,7 @@ onUnmounted(() => {
   emitter.off(EMITTER_EVENTS.REPLY_BOX_SET_TYPE, setMessageTypeFromPalette)
   emitter.off(EMITTER_EVENTS.REPLY_BOX_FOCUS, focusFromPalette)
   emitter.off(EMITTER_EVENTS.REPLY_BOX_TOGGLE_MINIMIZE, toggleMinimize)
+  emitter.off(EMITTER_EVENTS.REPLY_BOX_QUOTE_MESSAGE, handleQuoteMessage)
 })
 
 /**
@@ -570,7 +592,8 @@ const processSend = async (
 
   // Add pending message to cache for instant display.
   if (hasContent) {
-    const savedContent = htmlContent.value
+    const originalContent = htmlContent.value
+    const savedContent = (quotedMessage.value?.html || '') + originalContent
     const author = {
       id: userStore.userID,
       first_name: userStore.firstName,
@@ -653,7 +676,7 @@ const processSend = async (
         // Already-accepted attachments must not be resent on retry.
         const sentIDs = new Set(parts.slice(0, i).flatMap((p) => p.attachments.map((f) => f.id)))
         if (sentIDs.size) setMediaFiles(mediaFiles.value.filter((f) => !sentIDs.has(f.id)))
-        if (i === 0) htmlContent.value = savedContent
+        if (i === 0) htmlContent.value = originalContent
         emitter.emit(EMITTER_EVENTS.SHOW_TOAST, {
           variant: 'destructive',
           description: handleHTTPError(error).message
@@ -690,7 +713,8 @@ const processSend = async (
     clearMediaFiles()
     emailErrors.value = []
     mentions.value = []
-    if (statusToSet) conversationStore.updateStatus(statusToSet)
+    quotedMessage.value = null
+    if (statusToSet) conversationStore.requestStatusUpdate(statusToSet)
   }
   isSending.value = false
 }

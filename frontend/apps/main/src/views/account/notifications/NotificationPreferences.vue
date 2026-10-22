@@ -114,6 +114,7 @@ const typeLabels = {
   assignment: 'notification.type.assignment',
   mention: 'notification.type.mention',
   conversation_reopened: 'notification.type.conversationReopened',
+  new_conversation: 'notification.type.newConversation',
   new_reply: 'notification.type.newReply',
   new_reply_participating: 'notification.type.newReplyParticipating',
   sla_first_response_warning: 'notification.type.slaFirstResponseWarning',

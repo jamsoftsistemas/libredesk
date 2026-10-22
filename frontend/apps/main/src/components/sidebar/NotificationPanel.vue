@@ -166,6 +166,7 @@ const notificationStore = useNotificationStore()
 const notificationStyles = {
   mention: { icon: AtSign, class: 'text-primary' },
   assignment: { icon: UserPlus, class: 'text-accent-foreground' },
+  new_conversation: { icon: Bell, class: 'text-accent-foreground' },
   new_reply: { icon: MessageSquare, class: 'text-primary' },
   new_reply_participating: { icon: MessageSquare, class: 'text-primary' },
   conversation_reopened: { icon: RotateCcw, class: 'text-accent-foreground' }
@@ -193,7 +194,12 @@ const handleNotificationClick = async (notification) => {
     router.push({
       name: 'inbox-conversation',
       params: {
-        type: notification.notification_type === 'mention' ? 'mentioned' : 'assigned',
+        type:
+          notification.notification_type === 'mention'
+            ? 'mentioned'
+            : notification.notification_type === 'new_conversation'
+              ? 'unassigned'
+              : 'assigned',
         uuid: notification.conversation_uuid
       },
       query: notification.message_uuid ? { scrollTo: notification.message_uuid } : {}

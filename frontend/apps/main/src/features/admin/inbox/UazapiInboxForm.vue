@@ -31,6 +31,17 @@
       </FormItem>
     </FormField>
 
+    <FormField v-slot="{ componentField, handleChange }" name="prompt_tags_on_resolve">
+      <FormItem>
+        <SwitchField
+          :title="$t('admin.inbox.promptTagsOnResolve')"
+          :description="$t('admin.inbox.promptTagsOnResolve.description')"
+          :checked="componentField.modelValue"
+          @update:checked="handleChange"
+        />
+      </FormItem>
+    </FormField>
+
     <FormField v-slot="{ componentField, handleChange }" name="csat_enabled">
       <FormItem>
         <SwitchField
@@ -186,6 +197,7 @@ const form = useForm({
     enabled: true,
     csat_enabled: false,
     prompt_tags_on_reply: false,
+    prompt_tags_on_resolve: false,
     reopen_window_hours: 0,
     config: {
       base_url: '',

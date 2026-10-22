@@ -17,6 +17,7 @@ type NotificationChannel string
 const (
 	NotificationTypeMention                NotificationType = "mention"
 	NotificationTypeAssignment             NotificationType = "assignment"
+	NotificationTypeNewConversation        NotificationType = "new_conversation"
 	NotificationTypeNewReply               NotificationType = "new_reply"
 	NotificationTypeNewReplyParticipating  NotificationType = "new_reply_participating"
 	NotificationTypeConversationReopened   NotificationType = "conversation_reopened"
@@ -41,6 +42,7 @@ var AgentNotificationTypes = []NotificationType{
 	NotificationTypeAssignment,
 	NotificationTypeMention,
 	NotificationTypeConversationReopened,
+	NotificationTypeNewConversation,
 	NotificationTypeNewReply,
 	NotificationTypeNewReplyParticipating,
 	NotificationTypeSLAFirstResponseWarn,
@@ -68,6 +70,9 @@ var ReplyTypes = []NotificationType{
 var defaultDisabledTypes = []NotificationType{
 	NotificationTypeNewReply,
 	NotificationTypeNewReplyParticipating,
+	// New conversations can fire for every agent authorized to read a team/unassigned
+	// queue, so this stays opt-in to avoid flooding busy teams by default.
+	NotificationTypeNewConversation,
 }
 
 // NotificationPreference is a per-channel toggle for a notification type.

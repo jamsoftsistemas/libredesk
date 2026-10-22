@@ -192,6 +192,7 @@ type teamStore interface {
 type userStore interface {
 	Get(int, string, []string) (umodels.User, error)
 	GetAgentCachedOrLoad(int) (umodels.User, error)
+	GetAgents() ([]umodels.UserCompact, error)
 	GetSystemUser() (umodels.User, error)
 	ResolveContact(user *umodels.User, policy umodels.ContactPolicy) error
 	UpgradeVisitorToContact(visitorID int) error
@@ -475,6 +476,7 @@ func (c *Manager) CreateConversation(contactID, inboxID int, lastMessage string,
 	}
 	if item, err := c.GetConversationListItem(uuid); err == nil {
 		c.BroadcastNewConversation(&item)
+		c.NotifyNewConversation(item)
 	} else {
 		c.lo.Error("error fetching conversation list item for broadcast", "uuid", uuid, "error", err)
 	}
@@ -1375,6 +1377,37 @@ func (m *Manager) NotifyAssignment(userIDs []int, conversation models.Conversati
 		return fmt.Errorf("sending assignment notification: %w", err)
 	}
 	return nil
+}
+
+// NotifyNewConversation notifies every agent authorized to read a newly created conversation's
+// queue (its team, or the unassigned queue) that it is now available. No-op once the conversation
+// already has an assignee, since NotifyAssignment covers that case.
+func (m *Manager) NotifyNewConversation(item models.ConversationListItem) {
+	if item.AssignedUserID.Valid {
+		return
+	}
+	userIDs, err := m.AuthorizedAgentIDs(item.AssignedUserID, item.AssignedTeamID)
+	if err != nil {
+		m.lo.Error("error resolving recipients for new conversation notification", "conversation_uuid", item.UUID, "error", err)
+		return
+	}
+	if len(userIDs) == 0 {
+		return
+	}
+	recipients := make([]nmodels.Recipient, 0, len(userIDs))
+	for _, id := range userIDs {
+		recipients = append(recipients, nmodels.Recipient{UserID: id})
+	}
+	if _, err := m.dispatcher.Send(nmodels.Notification{
+		Type:             nmodels.NotificationTypeNewConversation,
+		Recipients:       recipients,
+		Title:            m.i18n.Ts("notification.newConversation", "referenceNumber", item.ReferenceNumber),
+		Body:             null.StringFrom(cmp.Or(item.Subject.String, item.LastMessage.String)),
+		ConversationID:   null.IntFrom(item.ID),
+		ConversationUUID: item.UUID,
+	}); err != nil {
+		m.lo.Error("error sending new conversation notification", "conversation_uuid", item.UUID, "error", err)
+	}
 }
 
 // NotifyNewReply notifies the assigned agent and the other participating agents of an incoming reply.
@@ -2368,6 +2401,29 @@ func (c *Manager) GetConversationListItem(uuid string) (models.ConversationListI
 		return item, err
 	}
 	return item, nil
+}
+
+// AuthorizedAgentIDs returns every enabled agent ID authorized to read a conversation with the
+// given assignment state, regardless of whether they are currently connected.
+func (c *Manager) AuthorizedAgentIDs(assignedUserID, assignedTeamID null.Int) ([]int, error) {
+	agents, err := c.userStore.GetAgents()
+	if err != nil {
+		return nil, fmt.Errorf("fetching agents: %w", err)
+	}
+	out := make([]int, 0, len(agents))
+	for _, a := range agents {
+		if !a.Enabled {
+			continue
+		}
+		agent, err := c.userStore.GetAgentCachedOrLoad(a.ID)
+		if err != nil {
+			continue
+		}
+		if authz.CanReadAssignment(agent, assignedUserID, assignedTeamID) {
+			out = append(out, a.ID)
+		}
+	}
+	return out, nil
 }
 
 func (c *Manager) AuthorizedConnectedAgentIDs(assignedUserID, assignedTeamID null.Int) []int {

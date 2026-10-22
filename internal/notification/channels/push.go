@@ -35,8 +35,11 @@ func (p *push) Send(delivery Delivery) Result {
 
 func pushRoute(notificationType models.NotificationType, conversationUUID, messageUUID string) string {
 	list := "assigned"
-	if notificationType == models.NotificationTypeMention {
+	switch notificationType {
+	case models.NotificationTypeMention:
 		list = "mentioned"
+	case models.NotificationTypeNewConversation:
+		list = "unassigned"
 	}
 	route := fmt.Sprintf("/inboxes/%s/conversation/%s", list, conversationUUID)
 	if messageUUID != "" {

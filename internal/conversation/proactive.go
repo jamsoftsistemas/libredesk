@@ -74,6 +74,7 @@ func (m *Manager) CreateProactiveConversation(delivery proactive.Delivery, conta
 	}
 	if item, err := m.GetConversationListItem(uuid); err == nil {
 		m.BroadcastNewConversation(&item)
+		m.NotifyNewConversation(item)
 	}
 	for i := range messages {
 		m.AfterMessageInsert(&messages[i], inlineUUIDs[i])

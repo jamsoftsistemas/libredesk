@@ -59,7 +59,7 @@
       <Tooltip>
         <TooltipTrigger as-child>
           <Toggle
-            :class="[ICON_BUTTON_CLASS, 'md:hidden']"
+            :class="ICON_BUTTON_CLASS"
             variant="outline"
             :aria-label="$t('actions.applyMacro')"
             @click="openMacroPicker"

@@ -17,6 +17,7 @@ import { permissions as PERMISSIONS } from '@/constants/permissions'
 import { useThrottleFn, useStorage } from '@vueuse/core'
 import { useUserStore } from '@/stores/user'
 import { useNotificationStore } from '@/stores/notification'
+import { useInboxStore } from '@/stores/inbox'
 import { delayedLoading } from '@/utils/delayed-loading'
 import api from '@main/api'
 
@@ -38,6 +39,9 @@ export const useConversationStore = defineStore('conversation', () => {
   const draftsReady = new Promise((resolve) => { resolveDraftsReady = resolve })
   const userStore = useUserStore()
   const notificationStore = useNotificationStore()
+  const inboxStore = useInboxStore()
+  // Holds the status an agent is trying to set while a tags-required confirmation is pending.
+  const pendingResolveStatus = ref(null)
   const router = useRouter()
   const isViewingConversation = (uuid) => router.currentRoute.value.params.uuid === uuid
 
@@ -888,6 +892,34 @@ export const useConversationStore = defineStore('conversation', () => {
     }
   }
 
+  // Sets status, warning first if resolving without tags on an inbox that requires them.
+  // skipTagsCheck lets the confirmation dialog's "resolve anyway" action bypass the warning.
+  function requestStatusUpdate (v, { skipTagsCheck = false } = {}) {
+    if (!conversation.data) return
+    const inbox = inboxStore.inboxes.find((i) => i.id === conversation.data.inbox_id)
+    if (
+      !skipTagsCheck &&
+      v === CONVERSATION_DEFAULT_STATUSES.RESOLVED &&
+      inbox?.prompt_tags_on_resolve &&
+      !(conversation.data.tags?.length > 0)
+    ) {
+      pendingResolveStatus.value = v
+      return
+    }
+    updateStatus(v)
+  }
+
+  function confirmResolveWithoutTags () {
+    if (!pendingResolveStatus.value) return
+    const status = pendingResolveStatus.value
+    pendingResolveStatus.value = null
+    requestStatusUpdate(status, { skipTagsCheck: true })
+  }
+
+  function cancelResolveWithoutTags () {
+    pendingResolveStatus.value = null
+  }
+
   async function snoozeConversation (snoozeDuration) {
     try {
       await api.updateConversationStatus(conversation.data.uuid, { status: CONVERSATION_DEFAULT_STATUSES.SNOOZED, snoozed_until: snoozeDuration })
@@ -1391,6 +1423,10 @@ export const useConversationStore = defineStore('conversation', () => {
     updateAssignee,
     updatePriority,
     updateStatus,
+    requestStatusUpdate,
+    pendingResolveStatus,
+    confirmResolveWithoutTags,
+    cancelResolveWithoutTags,
     refreshConversationList,
     resetConversations,
     updateConversationLastMessage,

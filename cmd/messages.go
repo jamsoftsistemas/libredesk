@@ -290,6 +290,14 @@ func handleSendMessage(r *fastglue.Request) error {
 	if err != nil {
 		return sendErrorEnvelope(r, err)
 	}
+
+	// Auto-assign the conversation to the replying agent if not already assigned to them.
+	if !conv.AssignedUserID.Valid || conv.AssignedUserID.Int != user.ID {
+		if err := app.conversation.UpdateConversationUserAssignee(cuuid, user.ID, user); err != nil {
+			app.lo.Error("error auto-assigning conversation to replying agent", "uuid", cuuid, "error", err)
+		}
+	}
+
 	markAssignmentNotificationRead(app, conv, user)
 	resolveQuotedCIDs(app, &message)
 	resolveAttachmentCIDs(&message, rootURL)

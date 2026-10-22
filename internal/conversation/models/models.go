@@ -517,6 +517,11 @@ type OutboundMessage struct {
 	// Metadata
 	Meta      json.RawMessage
 	CreatedAt time.Time
+
+	// SenderName and SenderIsAI identify who authored the message, for channels (e.g. UAZAPI) that
+	// prefix outgoing messages with the attendant's name.
+	SenderName string
+	SenderIsAI bool
 }
 
 // ToOutbound converts a Message to an OutboundMessage for transport.

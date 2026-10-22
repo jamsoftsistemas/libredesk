@@ -76,4 +76,16 @@ describe('containsQuoteMarkers', () => {
   test('does not match if id uses single quotes (edge case - Outlook always emits double)', () => {
     expect(containsQuoteMarkers(`<div id='appendonsend'></div>`)).toBe(false)
   })
+
+  test('ignores our own cited-message blockquote', () => {
+    const html = '<p>Reply text</p><blockquote class="quoted-message"><p>Author</p><p>Original</p></blockquote>'
+    expect(containsQuoteMarkers(html)).toBe(false)
+  })
+
+  test('still detects a real email quote alongside a cited-message blockquote', () => {
+    const html =
+      '<blockquote class="quoted-message"><p>Author</p><p>Original</p></blockquote>' +
+      '<p>Reply text</p><blockquote>legacy email thread</blockquote>'
+    expect(containsQuoteMarkers(html)).toBe(true)
+  })
 })
