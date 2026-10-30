@@ -98,7 +98,7 @@ export class WebSocketClient {
             })
           }
 
-          if (isFromContact && document.hidden) {
+          if (isFromContact && document.hidden && this.convStore.isOwnAssignment(convPayload)) {
             if (isOpen || this.convStore.isConversationInList(uuid)) {
               playNotificationSound()
             } else {
@@ -122,7 +122,7 @@ export class WebSocketClient {
               this.convStore.fetchSidebarCounts({ force: true })
             } else {
               this.convStore.refreshSidebarCounts()
-              if (document.hidden) {
+              if (document.hidden && this.convStore.isOwnAssignment(data.data)) {
                 playNotificationSound()
               }
             }

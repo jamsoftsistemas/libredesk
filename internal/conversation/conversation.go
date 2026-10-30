@@ -1566,8 +1566,19 @@ func (m *Manager) NotifyMention(conversationUUID string, message models.Message,
 	// Don't notify the person who made the mention.
 	delete(recipientIDMap, mentionedByUserID)
 
+	// Only notify recipients who actually have read access to the conversation,
+	// e.g. a team mention shouldn't notify members who aren't allowed to view
+	// a conversation assigned elsewhere.
 	userIDs := make([]int, 0, len(recipientIDMap))
 	for userID := range recipientIDMap {
+		agent, err := m.userStore.GetAgentCachedOrLoad(userID)
+		if err != nil {
+			m.lo.Error("error fetching agent for mention notification", "user_id", userID, "error", err)
+			continue
+		}
+		if !agent.Enabled || !authz.CanReadAssignment(agent, conversation.AssignedUserID, conversation.AssignedTeamID) {
+			continue
+		}
 		userIDs = append(userIDs, userID)
 	}
 

@@ -416,6 +416,19 @@ export const useConversationStore = defineStore('conversation', () => {
     return false
   }
 
+  // isOwnAssignment reports whether conv is assigned to the current user or to one of their own
+  // teams (or unassigned to any team). Used to decide whether a push should trigger a sound/alert,
+  // which must stay scoped to "my work" even for agents whose read permissions span every team
+  // (e.g. CONVERSATIONS_READ_ALL) - broad read access should not mean broad notification noise.
+  function isOwnAssignment (conv) {
+    if (!conv) return true
+    if (conv.assigned_user_id) return conv.assigned_user_id === userStore.userID
+    if (conv.assigned_team_id) {
+      return userStore.teams.some((team) => Number(team.id) === Number(conv.assigned_team_id))
+    }
+    return true
+  }
+
   function belongsToList (conv) {
     const matched = matchesAssignmentScope(conv)
     return matched === null ? true : matched
@@ -1401,6 +1414,7 @@ export const useConversationStore = defineStore('conversation', () => {
     currentFrom,
     currentFromOptions,
     isConversationInList,
+    isOwnAssignment,
     addPendingNotification,
     mergeConversationUpdate,
     handleConvPush,
