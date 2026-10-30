@@ -882,6 +882,8 @@
   "conversation.tryAdjustingFilters": "Não é possível excluir o status pois está em uso, remova este status de todas as conversas antes de excluir",
   "conversation.viewPermissionDenied": "Não é possível atualizar o status de conversa padrão",
   "conversation.uazapi.messagePlaceholder": "Digite uma mensagem",
+  "conversation.livechat.registeredContactsOnly": "Conversas por live chat só podem ser iniciadas com contatos cadastrados.",
+  "conversation.livechat.searchContact": "Pesquisar contato cadastrado por nome ou email",
   "conversation.whatsapp.csatMessage": "Sua conversa foi resolvida. Como nos saímos? Avalie sua experiência: {link}",
   "conversation.whatsapp.csatNotSent": "A pesquisa CSAT não foi enviada. A janela de resposta do WhatsApp está fechada.",
   "conversation.whatsapp.error.contactCountryCodeInvalid": "O número de telefone deste contato não possui código de país válido. Fixe no contato para enviar mensagens no WhatsApp.",

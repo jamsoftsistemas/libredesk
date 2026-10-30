@@ -3,7 +3,8 @@ import { useStorage, StorageSerializers } from '@vueuse/core'
 const DRAFT_KEYS = {
   email: 'newConversationDraftEmail',
   whatsapp: 'newConversationDraftWhatsApp',
-  uazapi: 'newConversationDraftUazapi'
+  uazapi: 'newConversationDraftUazapi',
+  livechat: 'newConversationDraftLivechat'
 }
 
 // Sync flush: a queued write is dropped when the form unmounts right after clearing the draft.

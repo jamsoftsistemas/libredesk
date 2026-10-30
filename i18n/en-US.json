@@ -887,6 +887,8 @@
   "conversation.tryAdjustingFilters": "Try adjusting filters",
   "conversation.viewPermissionDenied": "You do not have access to this view",
   "conversation.uazapi.messagePlaceholder": "Type a message",
+  "conversation.livechat.registeredContactsOnly": "Live chat conversations can only be started with registered contacts.",
+  "conversation.livechat.searchContact": "Search registered contact by name or email",
   "conversation.whatsapp.csatMessage": "Your conversation has been resolved. How did we do? Rate your experience: {link}",
   "conversation.whatsapp.csatNotSent": "CSAT survey was not sent. The WhatsApp reply window is closed.",
   "conversation.whatsapp.error.contactCountryCodeInvalid": "This contact's phone number has no valid country code. Fix it on the contact to message them on WhatsApp.",

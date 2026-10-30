@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"mime"
 	"slices"
 	"strconv"
@@ -18,6 +19,7 @@ import (
 	cmodels "github.com/abhinavxd/libredesk/internal/conversation/models"
 	"github.com/abhinavxd/libredesk/internal/countries"
 	"github.com/abhinavxd/libredesk/internal/envelope"
+	"github.com/abhinavxd/libredesk/internal/inbox/channel/livechat"
 	uazapiChannel "github.com/abhinavxd/libredesk/internal/inbox/channel/uazapi"
 	whatsappChannel "github.com/abhinavxd/libredesk/internal/inbox/channel/whatsapp"
 	"github.com/abhinavxd/libredesk/internal/stringutil"
@@ -948,6 +950,12 @@ func handleCreateConversation(r *fastglue.Request) error {
 		to        = []string{req.Email}
 	)
 	switch channel {
+	case livechat.ChannelLiveChat:
+		// Only registered contacts can be messaged. A visitor has no identity to reach.
+		if _, err := app.user.Get(req.ContactID, "", []string{umodels.UserTypeContact}); err != nil {
+			return sendErrorEnvelope(r, err)
+		}
+		contactID = req.ContactID
 	case whatsappChannel.ChannelWhatsApp, uazapiChannel.ChannelUazapi:
 		if req.ContactID <= 0 {
 			canWriteContacts, err := app.authz.Enforce(user, "contacts", "write")
@@ -1059,6 +1067,10 @@ func handleCreateConversation(r *fastglue.Request) error {
 			meta["whatsapp_template_params"] = req.WhatsAppTemplateParams
 		}
 		_, sendErr = app.conversation.QueueReply(media, req.InboxID, auser.ID, contactID, conversationUUID, "" /** content **/, nil /** to **/, nil /** cc **/, nil /** bcc **/, "" /** sendFrom **/, meta)
+	case channel == livechat.ChannelLiveChat:
+		// The widget renders HTML, the form sends plain text.
+		content := strings.ReplaceAll(html.EscapeString(req.Content), "\n", "<br>")
+		_, sendErr = app.conversation.QueueReply(media, req.InboxID, auser.ID, contactID, conversationUUID, content, nil /** to **/, nil /** cc **/, nil /** bcc **/, "" /** sendFrom **/, map[string]any{})
 	case channel == uazapiChannel.ChannelUazapi:
 		_, sendErr = app.conversation.QueueReply(media, req.InboxID, auser.ID, contactID, conversationUUID, req.Content, nil /** to **/, nil /** cc **/, nil /** bcc **/, "" /** sendFrom **/, map[string]any{})
 	case req.Initiator == umodels.UserTypeAgent:
@@ -1169,6 +1181,13 @@ func validateCreateConversationRequest(req createConversationRequest, app *App) 
 			if req.FirstName == "" {
 				return "", envelope.NewError(envelope.InputError, app.i18n.Ts("globals.messages.required", "name", "`first_name`"), nil)
 			}
+		}
+	case livechat.ChannelLiveChat:
+		if req.Content == "" {
+			return "", envelope.NewError(envelope.InputError, app.i18n.Ts("globals.messages.required", "name", "`content`"), nil)
+		}
+		if req.ContactID <= 0 {
+			return "", envelope.NewError(envelope.InputError, app.i18n.Ts("globals.messages.required", "name", "`contact_id`"), nil)
 		}
 	case "email":
 		if req.Content == "" {
