@@ -10,8 +10,12 @@ const (
 	PermConversationsRead               = "conversations:read"
 	PermConversationsUpdateUserAssignee = "conversations:update_user_assignee"
 	PermConversationsUpdateTeamAssignee = "conversations:update_team_assignee"
+	PermConversationsAssignSelfFromOther = "conversations:assign_self_from_other"
 	PermConversationsUpdatePriority     = "conversations:update_priority"
-	PermConversationsUpdateStatus       = "conversations:update_status"
+	PermConversationsUpdateStatusOpen     = "conversations:update_status_open"
+	PermConversationsUpdateStatusSnoozed  = "conversations:update_status_snoozed"
+	PermConversationsUpdateStatusResolved = "conversations:update_status_resolved"
+	PermConversationsUpdateStatusClosed   = "conversations:update_status_closed"
 	PermConversationsUpdateTags         = "conversations:update_tags"
 	PermConversationWrite               = "conversations:write"
 	PermMessagesRead                    = "messages:read"
@@ -114,8 +118,12 @@ var validPermissions = map[string]struct{}{
 	PermConversationsRead:               {},
 	PermConversationsUpdateUserAssignee: {},
 	PermConversationsUpdateTeamAssignee: {},
+	PermConversationsAssignSelfFromOther: {},
 	PermConversationsUpdatePriority:     {},
-	PermConversationsUpdateStatus:       {},
+	PermConversationsUpdateStatusOpen:     {},
+	PermConversationsUpdateStatusSnoozed:  {},
+	PermConversationsUpdateStatusResolved: {},
+	PermConversationsUpdateStatusClosed:   {},
 	PermConversationsUpdateTags:         {},
 	PermConversationWrite:               {},
 	PermMessagesRead:                    {},
@@ -163,4 +171,34 @@ var validPermissions = map[string]struct{}{
 func PermissionExists(permission string) bool {
 	_, exists := validPermissions[permission]
 	return exists
+}
+
+// StatusUpdatePermissions lists every permission that allows changing a conversation to some status.
+var StatusUpdatePermissions = []string{
+	PermConversationsUpdateStatusOpen,
+	PermConversationsUpdateStatusSnoozed,
+	PermConversationsUpdateStatusResolved,
+	PermConversationsUpdateStatusClosed,
+}
+
+// StatusUpdatePermission returns the permission required to move a conversation to the given status.
+// Custom statuses fall back to their category: open, waiting (snoozed-like) or resolved.
+func StatusUpdatePermission(name, category string) string {
+	switch name {
+	case "Open":
+		return PermConversationsUpdateStatusOpen
+	case "Snoozed":
+		return PermConversationsUpdateStatusSnoozed
+	case "Resolved":
+		return PermConversationsUpdateStatusResolved
+	case "Closed":
+		return PermConversationsUpdateStatusClosed
+	}
+	switch category {
+	case "waiting":
+		return PermConversationsUpdateStatusSnoozed
+	case "resolved":
+		return PermConversationsUpdateStatusResolved
+	}
+	return PermConversationsUpdateStatusOpen
 }

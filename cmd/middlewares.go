@@ -140,6 +140,12 @@ func auth(handler fastglue.FastRequestHandler) fastglue.FastRequestHandler {
 // perm checks if the user has the required permission to access the endpoint.
 // Supports both API key authentication (Authorization header) and session-based authentication.
 func perm(handler fastglue.FastRequestHandler, perm string) fastglue.FastRequestHandler {
+	return permAny(handler, perm)
+}
+
+// permAny is like perm but grants access when the user has at least one of the given permissions.
+// Handlers that accept several permissions must narrow down what each one allows.
+func permAny(handler fastglue.FastRequestHandler, perms ...string) fastglue.FastRequestHandler {
 	return func(r *fastglue.Request) error {
 		var app = r.Context.(*App)
 
@@ -155,16 +161,22 @@ func perm(handler fastglue.FastRequestHandler, perm string) fastglue.FastRequest
 			return sendErrorEnvelope(r, err)
 		}
 
-		// Split the permission string into object and action and enforce it.
-		parts := strings.Split(perm, ":")
-		if len(parts) != 2 {
-			return r.SendErrorEnvelope(http.StatusInternalServerError, app.i18n.T("validation.invalidPermission"), nil, envelope.GeneralError)
-		}
-		object, action := parts[0], parts[1]
-		ok, err := app.authz.Enforce(user, object, action)
-		if err != nil {
-			app.lo.Error("error checking permission", "error", err)
-			return r.SendErrorEnvelope(http.StatusInternalServerError, app.i18n.T("globals.messages.somethingWentWrong"), nil, envelope.GeneralError)
+		// Split each permission string into object and action and enforce it.
+		ok := false
+		for _, p := range perms {
+			parts := strings.Split(p, ":")
+			if len(parts) != 2 {
+				return r.SendErrorEnvelope(http.StatusInternalServerError, app.i18n.T("validation.invalidPermission"), nil, envelope.GeneralError)
+			}
+			allowed, err := app.authz.Enforce(user, parts[0], parts[1])
+			if err != nil {
+				app.lo.Error("error checking permission", "error", err)
+				return r.SendErrorEnvelope(http.StatusInternalServerError, app.i18n.T("globals.messages.somethingWentWrong"), nil, envelope.GeneralError)
+			}
+			if allowed {
+				ok = true
+				break
+			}
 		}
 		if !ok {
 			return r.SendErrorEnvelope(http.StatusForbidden, app.i18n.T("status.deniedPermission"), nil, envelope.PermissionError)

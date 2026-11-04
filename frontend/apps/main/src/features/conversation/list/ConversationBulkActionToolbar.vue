@@ -91,7 +91,7 @@
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         <DropdownMenuItem
-          v-for="status in conversationStore.statusOptionsNoSnooze"
+          v-for="status in allowedStatusOptions"
           :key="status.value"
           @click="bulkUpdateStatus(status.label)"
         >
@@ -136,7 +136,8 @@ const conversationStore = useConversationStore()
 const { t } = useI18n()
 const { bulkLoading, bulkAssign, bulkAddTag, bulkUpdateStatus } = useBulkActions()
 
-const { canAssignAgent, canAssignTeam, canUpdateStatus, canUpdateTags } = useBulkActionPermissions()
+const { canAssignAgent, canAssignTeam, canUpdateStatus, allowedStatusOptions, canUpdateTags } =
+  useBulkActionPermissions()
 
 const toggleSelectAll = () => {
   if (conversationStore.allSelected) {

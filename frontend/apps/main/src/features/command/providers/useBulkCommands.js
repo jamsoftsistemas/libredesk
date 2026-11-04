@@ -6,7 +6,7 @@ import { useUsersStore } from '@main/stores/users'
 import { useTeamStore } from '@main/stores/team'
 import { useTagStore } from '@main/stores/tag'
 import { useBulkActions } from '@main/composables/useBulkActions'
-import { permissions as perms } from '@main/constants/permissions'
+import { permissions as perms, STATUS_UPDATE_PERMISSIONS } from '@main/constants/permissions'
 import { SECTIONS } from '../sections'
 
 export function useBulkCommands() {
@@ -28,10 +28,11 @@ export function useBulkCommands() {
         keywords: [t('globals.terms.status')],
         section,
         icon: CircleDot,
-        permission: perms.CONVERSATIONS_UPDATE_STATUS,
+        permission: STATUS_UPDATE_PERMISSIONS,
         group: true
       },
       ...conversationStore.statusOptionsNoSnooze.map((status) => ({
+        permission: status.permission,
         id: `bulk.status.${status.value}`,
         label: conversationStore.translateStatusLabel(status.label),
         parent: 'bulk.status',

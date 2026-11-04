@@ -424,7 +424,8 @@ type queries struct {
 	UpdateContinuityEmailTracking   *sqlx.Stmt `query:"update-continuity-email-tracking"`
 
 	// Mention queries.
-	InsertMention *sqlx.Stmt `query:"insert-mention"`
+	InsertMention   *sqlx.Stmt `query:"insert-mention"`
+	IsUserMentioned *sqlx.Stmt `query:"is-user-mentioned"`
 
 	// Broadcast queries.
 	GetActiveLivechatConversationsByAgent *sqlx.Stmt `query:"get-active-livechat-conversations-by-agent"`
@@ -749,6 +750,16 @@ func (c *Manager) GetTeamAllConversationsList(viewingUserID, teamID int, order, 
 // GetMentionedConversationsList retrieves conversations where the user is mentioned (directly or via team).
 func (c *Manager) GetMentionedConversationsList(viewingUserID int, order, orderBy, filters string, page, pageSize int) ([]models.ConversationListItem, error) {
 	return c.GetConversations(viewingUserID, 0, []int{}, []string{models.MentionedConversations}, order, orderBy, filters, page, pageSize)
+}
+
+// IsUserMentioned returns true if the user is mentioned in the conversation, directly or via team.
+func (c *Manager) IsUserMentioned(conversationID, userID int) (bool, error) {
+	var mentioned bool
+	if err := c.q.IsUserMentioned.Get(&mentioned, conversationID, userID); err != nil {
+		c.lo.Error("error checking user mention", "conversation_id", conversationID, "user_id", userID, "error", err)
+		return false, envelope.NewError(envelope.GeneralError, c.i18n.T("globals.messages.somethingWentWrong"), nil)
+	}
+	return mentioned, nil
 }
 
 // InsertMentions inserts mentions for a message.

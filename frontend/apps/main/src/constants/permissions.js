@@ -8,8 +8,12 @@ export const permissions = {
   CONVERSATIONS_READ_TEAM_ALL: 'conversations:read_team_all',
   CONVERSATIONS_UPDATE_USER_ASSIGNEE: 'conversations:update_user_assignee',
   CONVERSATIONS_UPDATE_TEAM_ASSIGNEE: 'conversations:update_team_assignee',
+  CONVERSATIONS_ASSIGN_SELF_FROM_OTHER: 'conversations:assign_self_from_other',
   CONVERSATIONS_UPDATE_PRIORITY: 'conversations:update_priority',
-  CONVERSATIONS_UPDATE_STATUS: 'conversations:update_status',
+  CONVERSATIONS_UPDATE_STATUS_OPEN: 'conversations:update_status_open',
+  CONVERSATIONS_UPDATE_STATUS_SNOOZED: 'conversations:update_status_snoozed',
+  CONVERSATIONS_UPDATE_STATUS_RESOLVED: 'conversations:update_status_resolved',
+  CONVERSATIONS_UPDATE_STATUS_CLOSED: 'conversations:update_status_closed',
   CONVERSATIONS_UPDATE_TAGS: 'conversations:update_tags',
   MESSAGES_READ: 'messages:read',
   MESSAGES_WRITE: 'messages:write',
@@ -50,4 +54,29 @@ export const permissions = {
   ACTIVITY_LOGS_MANAGE: 'activity_logs:manage',
   WEBHOOKS_MANAGE: 'webhooks:manage',
   CONTEXT_LINKS_MANAGE: 'context_links:manage'
+}
+
+// Every permission that allows moving a conversation to some status.
+export const STATUS_UPDATE_PERMISSIONS = [
+  permissions.CONVERSATIONS_UPDATE_STATUS_OPEN,
+  permissions.CONVERSATIONS_UPDATE_STATUS_SNOOZED,
+  permissions.CONVERSATIONS_UPDATE_STATUS_RESOLVED,
+  permissions.CONVERSATIONS_UPDATE_STATUS_CLOSED
+]
+
+// Permission needed to move a conversation to a status. Custom statuses follow their category.
+export const statusPermission = (name, category) => {
+  switch (name) {
+    case 'Open':
+      return permissions.CONVERSATIONS_UPDATE_STATUS_OPEN
+    case 'Snoozed':
+      return permissions.CONVERSATIONS_UPDATE_STATUS_SNOOZED
+    case 'Resolved':
+      return permissions.CONVERSATIONS_UPDATE_STATUS_RESOLVED
+    case 'Closed':
+      return permissions.CONVERSATIONS_UPDATE_STATUS_CLOSED
+  }
+  if (category === 'waiting') return permissions.CONVERSATIONS_UPDATE_STATUS_SNOOZED
+  if (category === 'resolved') return permissions.CONVERSATIONS_UPDATE_STATUS_RESOLVED
+  return permissions.CONVERSATIONS_UPDATE_STATUS_OPEN
 }

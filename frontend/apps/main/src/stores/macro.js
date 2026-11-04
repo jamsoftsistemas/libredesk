@@ -7,7 +7,7 @@ import { useUserStore } from '@/stores/user'
 import api from '@/api'
 import { MACRO_CONTEXT } from '@main/constants/conversation'
 import { useCommandPalette } from '@main/features/command/useCommandPalette'
-import { permissions as perms } from '@/constants/permissions.js'
+import { permissions as perms, statusPermission, STATUS_UPDATE_PERMISSIONS } from '@/constants/permissions.js'
 
 export const useMacroStore = defineStore('macroStore', () => {
     const searchResults = ref([])
@@ -30,7 +30,7 @@ export const useMacroStore = defineStore('macroStore', () => {
     const actionPermissions = {
         assign_team: perms.CONVERSATIONS_UPDATE_TEAM_ASSIGNEE,
         assign_user: perms.CONVERSATIONS_UPDATE_USER_ASSIGNEE,
-        set_status: perms.CONVERSATIONS_UPDATE_STATUS,
+        set_status: perms.CONVERSATIONS_UPDATE_STATUS_OPEN,
         set_priority: perms.CONVERSATIONS_UPDATE_PRIORITY,
         send_private_note: perms.MESSAGES_WRITE_PRIVATE,
         send_reply: perms.MESSAGES_WRITE,
@@ -43,6 +43,11 @@ export const useMacroStore = defineStore('macroStore', () => {
         let filtered = searchResults.value.map(macro => ({
             ...macro,
             actions: macro.actions.filter(action => {
+                // Status changes are gated per target status, which the backend decorates as display_value.
+                if (action.type === 'set_status') {
+                    const target = action.display_value?.[0]
+                    return target ? userStore.can(statusPermission(target)) : STATUS_UPDATE_PERMISSIONS.some(p => userStore.can(p))
+                }
                 const permission = actionPermissions[action.type]
                 if (!permission) return true
                 return userStore.can(permission)

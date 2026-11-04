@@ -81,8 +81,11 @@ import { Users, User, Pin, Rocket, Tags } from 'lucide-vue-next'
 import { CommandGroup, CommandItem } from '@shared-ui/components/ui/command'
 import { Spinner } from '@shared-ui/components/ui/spinner'
 import { handleHTTPError } from '@shared-ui/utils/http.js'
+import { renderTemplate } from '@shared-ui/utils/string.js'
 import { useConversationStore } from '@main/stores/conversation'
 import { useMacroStore } from '@main/stores/macro'
+import { useUserStore } from '@main/stores/user'
+import { MACRO_CONTEXT } from '@main/constants/conversation'
 import { useEmitter } from '@main/composables/useEmitter'
 import { EMITTER_EVENTS } from '@main/constants/emitterEvents'
 
@@ -105,6 +108,7 @@ const { t } = useI18n()
 const emitter = useEmitter()
 const conversationStore = useConversationStore()
 const macroStore = useMacroStore()
+const userStore = useUserStore()
 
 const macros = computed(() => macroStore.macroOptions)
 const itemValue = (macro) => MACRO_VALUE_PREFIX + macro.value
@@ -166,6 +170,30 @@ const actionLabel = (action) => {
   return `${t(ACTION_LABEL_KEYS[action.type])}: ${values.join(', ')}`
 }
 
+// Variables available in macro messages, e.g. Hi {{.FirstName | there}} or <img src="{{.AvatarURL}}">.
+// Contact variables resolve only when replying, since a new conversation has no contact yet.
+const macroVariables = () => {
+  const agent = userStore.user
+  const vars = {
+    AgentFirstName: agent.first_name,
+    AgentLastName: agent.last_name,
+    AgentFullName: userStore.getFullName
+  }
+  if (props.macroContext === MACRO_CONTEXT.NEW_CONVERSATION) return vars
+  const conversation = conversationStore.current
+  const contact = conversation?.contact || {}
+  return {
+    ...vars,
+    FirstName: contact.first_name,
+    LastName: contact.last_name,
+    FullName: [contact.first_name, contact.last_name].filter(Boolean).join(' '),
+    Email: contact.email,
+    PhoneNumber: contact.phone_number,
+    AvatarURL: contact.avatar_url,
+    ReferenceNumber: conversation?.reference_number
+  }
+}
+
 const onSelect = async (event, macro) => {
   event.preventDefault()
   let messageContent = ''
@@ -181,7 +209,7 @@ const onSelect = async (event, macro) => {
     }
   }
   const plainMacro = JSON.parse(JSON.stringify(macro))
-  plainMacro.message_content = messageContent
+  plainMacro.message_content = renderTemplate(messageContent, macroVariables())
   conversationStore.setMacro(plainMacro, props.macroContext)
   emit('applied')
 }

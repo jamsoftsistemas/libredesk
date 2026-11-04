@@ -233,6 +233,7 @@ type Conversation struct {
 	CSATFeedback              null.String            `db:"csat_feedback" json:"csat_feedback"`
 	CSATRespondedAt           null.Time              `db:"csat_responded_at" json:"csat_responded_at"`
 	PreviousConversations     []PreviousConversation `db:"-" json:"previous_conversations"`
+	IsMentioned               bool                   `db:"-" json:"is_mentioned"`
 	IncomingTo                []string               `db:"-" json:"-"`
 }
 

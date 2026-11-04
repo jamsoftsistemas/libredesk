@@ -31,7 +31,7 @@ import { useTeamStore } from '@main/stores/team'
 import { useTagStore } from '@main/stores/tag'
 import { useEmitter } from '@main/composables/useEmitter'
 import { EMITTER_EVENTS, CONVERSATION_ACTIONS } from '@main/constants/emitterEvents'
-import { permissions as perms } from '@main/constants/permissions'
+import { permissions as perms, STATUS_UPDATE_PERMISSIONS } from '@main/constants/permissions'
 import { CONVERSATION_DEFAULT_STATUSES, TAG_ACTION } from '@main/constants/conversation'
 import { MACROS_COMMAND } from '../useCommandPalette'
 import { SECTIONS } from '../sections'
@@ -77,7 +77,7 @@ export function useConversationCommands({ openSnoozeDatePicker }) {
       label: t('globals.terms.snooze'),
       section,
       icon: CalendarClock,
-      permission: perms.CONVERSATIONS_UPDATE_STATUS,
+      permission: perms.CONVERSATIONS_UPDATE_STATUS_SNOOZED,
       group: true,
       shortcut: ['Alt', 'Z'],
       placeholder: t('command.snoozeFor')
@@ -108,7 +108,7 @@ export function useConversationCommands({ openSnoozeDatePicker }) {
         keywords: ['close', 'done'],
         section,
         icon: CheckCircle2,
-        permission: perms.CONVERSATIONS_UPDATE_STATUS,
+        permission: perms.CONVERSATIONS_UPDATE_STATUS_RESOLVED,
         shortcut: ['Alt', 'E'],
         run: () => conversationStore.requestStatusUpdate(CONVERSATION_DEFAULT_STATUSES.RESOLVED)
       })
@@ -120,7 +120,7 @@ export function useConversationCommands({ openSnoozeDatePicker }) {
         keywords: [t('globals.terms.open')],
         section,
         icon: RotateCcw,
-        permission: perms.CONVERSATIONS_UPDATE_STATUS,
+        permission: perms.CONVERSATIONS_UPDATE_STATUS_OPEN,
         shortcut: ['Alt', 'O'],
         run: () => conversationStore.updateStatus(CONVERSATION_DEFAULT_STATUSES.OPEN)
       })
@@ -132,7 +132,7 @@ export function useConversationCommands({ openSnoozeDatePicker }) {
       keywords: [t('globals.terms.status')],
       section,
       icon: CircleDot,
-      permission: perms.CONVERSATIONS_UPDATE_STATUS,
+      permission: STATUS_UPDATE_PERMISSIONS,
       group: true
     })
     for (const status of conversationStore.statusOptions) {
@@ -140,6 +140,7 @@ export function useConversationCommands({ openSnoozeDatePicker }) {
       const isSnooze = status.label === CONVERSATION_DEFAULT_STATUSES.SNOOZED
       commands.push({
         id: `conv.status.${status.value}`,
+        permission: status.permission,
         label: conversationStore.translateStatusLabel(status.label),
         parent: 'conv.status',
         icon: isSnooze ? CalendarClock : CircleDot,
@@ -190,7 +191,10 @@ export function useConversationCommands({ openSnoozeDatePicker }) {
         keywords: ['self', 'me'],
         section,
         icon: UserCheck,
-        permission: perms.CONVERSATIONS_UPDATE_USER_ASSIGNEE,
+        // The self-assign-from-other permission only applies while another agent holds the conversation.
+        permission: conv.assigned_user_id
+          ? [perms.CONVERSATIONS_UPDATE_USER_ASSIGNEE, perms.CONVERSATIONS_ASSIGN_SELF_FROM_OTHER]
+          : perms.CONVERSATIONS_UPDATE_USER_ASSIGNEE,
         run: () => assignAgent(userStore.userID)
       })
     }

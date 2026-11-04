@@ -421,6 +421,11 @@ func handleGetConversation(r *fastglue.Request) error {
 		return sendErrorEnvelope(r, err)
 	}
 	conv.PreviousConversations = filterCurrentPreviousConv(prev, conv.UUID)
+
+	// Mentioned agents can reply even when the conversation is assigned to someone else.
+	if conv.IsMentioned, err = app.conversation.IsUserMentioned(conv.ID, user.ID); err != nil {
+		return sendErrorEnvelope(r, err)
+	}
 	return r.SendEnvelope(conv)
 }
 
@@ -606,6 +611,14 @@ func handleUpdateUserAssignee(r *fastglue.Request) error {
 		return r.SendEnvelope(true)
 	}
 
+	// Without the full assign permission, an agent may only take a conversation currently held by another agent.
+	if !slices.Contains(user.Permissions, authzModels.PermConversationsUpdateUserAssignee) {
+		takingFromOther := req.AssigneeID == user.ID && conversation.AssignedUserID.Valid && conversation.AssignedUserID.Int != user.ID
+		if !takingFromOther {
+			return r.SendErrorEnvelope(fasthttp.StatusForbidden, app.i18n.T("status.deniedPermission"), nil, envelope.PermissionError)
+		}
+	}
+
 	if err := app.conversation.UpdateConversationUserAssignee(uuid, req.AssigneeID, user); err != nil {
 		return sendErrorEnvelope(r, err)
 	}
@@ -728,6 +741,16 @@ func handleUpdateConversationStatus(r *fastglue.Request) error {
 	conversation, err := enforceConversationAccess(app, uuid, user)
 	if err != nil {
 		return sendErrorEnvelope(r, err)
+	}
+
+	// Each target status has its own permission, e.g. resolving is allowed but closing is not.
+	if !canSetConversationStatus(app, user, status) {
+		return r.SendErrorEnvelope(fasthttp.StatusForbidden, app.i18n.T("status.deniedPermission"), nil, envelope.PermissionError)
+	}
+
+	// A conversation must belong to a team before it can be resolved.
+	if status == cmodels.StatusResolved && !conversation.AssignedTeamID.Valid {
+		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, app.i18n.T("conversation.resolveRequiresTeam"), nil, envelope.InputError)
 	}
 
 	// Update conversation status.
@@ -1293,4 +1316,19 @@ func accessibleConversationUUID(app *App, uuid string, user umodels.User) (strin
 		return "", err
 	}
 	return uuid, nil
+}
+
+// canSetConversationStatus reports whether the user may move a conversation to the named status.
+// Each status has its own permission, so an agent can be allowed to resolve but not to close or reopen.
+func canSetConversationStatus(app *App, user umodels.User, statusName string) bool {
+	category := ""
+	if statuses, err := app.status.GetAll(); err == nil {
+		for _, s := range statuses {
+			if s.Name == statusName {
+				category = s.Category
+				break
+			}
+		}
+	}
+	return slices.Contains(user.Permissions, authzModels.StatusUpdatePermission(statusName, category))
 }

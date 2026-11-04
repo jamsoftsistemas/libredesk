@@ -94,14 +94,14 @@ const (
 var ActionPermissions = map[string]string{
 	ActionAssignTeam:      authzModels.PermConversationsUpdateTeamAssignee,
 	ActionAssignUser:      authzModels.PermConversationsUpdateUserAssignee,
-	ActionSetStatus:       authzModels.PermConversationsUpdateStatus,
+	ActionSetStatus:       authzModels.PermConversationsUpdateStatusOpen, // Placeholder: the target status is checked separately.
 	ActionSetPriority:     authzModels.PermConversationsUpdatePriority,
 	ActionSendPrivateNote: authzModels.PermMessagesWritePrivate,
 	ActionReply:           authzModels.PermMessagesWrite,
 	ActionAddTags:         authzModels.PermConversationsUpdateTags,
 	ActionSetTags:         authzModels.PermConversationsUpdateTags,
 	ActionRemoveTags:      authzModels.PermConversationsUpdateTags,
-	ActionSnooze:          authzModels.PermConversationsUpdateStatus,
+	ActionSnooze:          authzModels.PermConversationsUpdateStatusSnoozed,
 }
 
 // RuleRecord represents a rule record in the database

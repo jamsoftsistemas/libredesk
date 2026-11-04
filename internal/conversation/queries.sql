@@ -1238,6 +1238,16 @@ WHERE created_at < $1;
 INSERT INTO conversation_mentions (conversation_id, message_id, mentioned_user_id, mentioned_team_id, mentioned_by_user_id)
 VALUES ($1, $2, $3, $4, $5);
 
+-- name: is-user-mentioned
+SELECT EXISTS (
+    SELECT 1 FROM conversation_mentions cm
+    WHERE cm.conversation_id = $1
+      AND (cm.mentioned_user_id = $2 OR EXISTS (
+          SELECT 1 FROM team_members tm
+          WHERE tm.team_id = cm.mentioned_team_id AND tm.user_id = $2
+      ))
+);
+
 -- name: mark-conversation-unread
 WITH target AS (
     SELECT id FROM conversations WHERE uuid = $2

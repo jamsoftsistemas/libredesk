@@ -6,19 +6,21 @@ WITH matched_conversations AS (
 
     UNION ALL
 
+    -- $10: LIKE patterns of the search words, longest first. $11: the raw words, same order.
+    -- Candidates are found with the longest word so the unaccent trigram indexes are used; the
+    -- final WHERE then requires every word to match (any field, any order).
     SELECT id
     FROM conversations
-    WHERE subject ILIKE $10 ESCAPE '\'
+    WHERE f_unaccent(subject) ILIKE f_unaccent(($10::text[])[1]) ESCAPE '\'
 
     UNION ALL
 
     SELECT conversations.id
     FROM users
     JOIN conversations ON conversations.contact_id = users.id
-    WHERE users.email ILIKE $10 ESCAPE '\'
-       OR users.first_name ILIKE $10 ESCAPE '\'
-       OR users.last_name ILIKE $10 ESCAPE '\'
-       OR (users.first_name || ' ' || users.last_name) ILIKE $10 ESCAPE '\'
+    WHERE f_unaccent(users.email) ILIKE f_unaccent(($10::text[])[1]) ESCAPE '\'
+       OR f_unaccent(users.first_name) ILIKE f_unaccent(($10::text[])[1]) ESCAPE '\'
+       OR f_unaccent(users.last_name) ILIKE f_unaccent(($10::text[])[1]) ESCAPE '\'
        OR users.id::text = $1
 )
 SELECT
@@ -56,6 +58,20 @@ LEFT JOIN inboxes ON conversations.inbox_id = inboxes.id
 LEFT JOIN conversation_statuses ON conversations.status_id = conversation_statuses.id
 LEFT JOIN conversation_priorities ON conversations.priority_id = conversation_priorities.id
 WHERE conversations.id IN (SELECT id FROM matched_conversations)
+  AND (
+       conversations.reference_number = $1
+    OR users.id::text = $1
+    OR NOT EXISTS (
+        SELECT 1 FROM unnest($10::text[]) AS word(pattern)
+        WHERE NOT (
+               f_unaccent(conversations.subject) ILIKE f_unaccent(word.pattern) ESCAPE '\'
+            OR f_unaccent(users.email) ILIKE f_unaccent(word.pattern) ESCAPE '\'
+            OR f_unaccent(users.first_name) ILIKE f_unaccent(word.pattern) ESCAPE '\'
+            OR f_unaccent(users.last_name) ILIKE f_unaccent(word.pattern) ESCAPE '\'
+        )
+    )
+  )
+  AND $11::text[] IS NOT NULL
   AND $3
   AND (
        $4
@@ -73,10 +89,10 @@ SELECT
     conversation_messages.type,
     conversation_messages.private,
     LEFT(conversation_messages.text_content, 200) AS text_content,
-    CASE WHEN POSITION(LOWER($1) IN LOWER(conversation_messages.text_content)) > 81 THEN '…' ELSE '' END
+    CASE WHEN POSITION(LOWER(f_unaccent(($11::text[])[1])) IN LOWER(f_unaccent(conversation_messages.text_content))) > 81 THEN '…' ELSE '' END
         || SUBSTRING(
             conversation_messages.text_content
-            FROM GREATEST(POSITION(LOWER($1) IN LOWER(conversation_messages.text_content)) - 80, 1)
+            FROM GREATEST(POSITION(LOWER(f_unaccent(($11::text[])[1])) IN LOWER(f_unaccent(conversation_messages.text_content))) - 80, 1)
             FOR 300
         ) AS snippet,
     sender.first_name AS "sender.first_name",
@@ -109,7 +125,12 @@ LEFT JOIN inboxes ON conversations.inbox_id = inboxes.id
 LEFT JOIN conversation_statuses ON conversations.status_id = conversation_statuses.id
 LEFT JOIN conversation_priorities ON conversations.priority_id = conversation_priorities.id
 WHERE conversation_messages.type != 'activity'
-  AND conversation_messages.text_content ILIKE $10 ESCAPE '\'
+  AND $1::text IS NOT NULL
+  AND f_unaccent(conversation_messages.text_content) ILIKE f_unaccent(($10::text[])[1]) ESCAPE '\'
+  AND NOT EXISTS (
+      SELECT 1 FROM unnest($10::text[]) AS word(pattern)
+      WHERE f_unaccent(conversation_messages.text_content) NOT ILIKE f_unaccent(word.pattern) ESCAPE '\'
+  )
   AND $3
   AND (
        $4
@@ -132,5 +153,20 @@ SELECT
 FROM users
 WHERE type = 'contact'
 AND deleted_at IS NULL
-AND (email ILIKE $1 ESCAPE '\' OR phone_number ILIKE $1 ESCAPE '\')
+-- $1: LIKE patterns of the search words, longest first. Every word must match some field.
+AND (
+       f_unaccent(email) ILIKE f_unaccent(($1::text[])[1]) ESCAPE '\'
+    OR f_unaccent(phone_number) ILIKE f_unaccent(($1::text[])[1]) ESCAPE '\'
+    OR f_unaccent(first_name) ILIKE f_unaccent(($1::text[])[1]) ESCAPE '\'
+    OR f_unaccent(last_name) ILIKE f_unaccent(($1::text[])[1]) ESCAPE '\'
+)
+AND NOT EXISTS (
+    SELECT 1 FROM unnest($1::text[]) AS word(pattern)
+    WHERE NOT (
+           f_unaccent(email) ILIKE f_unaccent(word.pattern) ESCAPE '\'
+        OR f_unaccent(phone_number) ILIKE f_unaccent(word.pattern) ESCAPE '\'
+        OR f_unaccent(first_name) ILIKE f_unaccent(word.pattern) ESCAPE '\'
+        OR f_unaccent(last_name) ILIKE f_unaccent(word.pattern) ESCAPE '\'
+    )
+)
 LIMIT $2;

@@ -50,7 +50,7 @@
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem
-              v-for="status in conversationStore.statusOptions"
+              v-for="status in allowedStatusOptions"
               :key="status.value"
               @click="handleUpdateStatus(status.label)"
             >
@@ -182,7 +182,7 @@ const isAssignedToOther = computed(() => {
 const canCompose = computed(
   () =>
     (userStore.can(perms.MESSAGES_WRITE) || userStore.can(perms.MESSAGES_WRITE_PRIVATE)) &&
-    !isAssignedToOther.value
+    (!isAssignedToOther.value || Boolean(conversationStore.current?.is_mentioned))
 )
 
 // Each detail route is `<list route name>-conversation`.
@@ -209,11 +209,14 @@ const onKeydown = (event) => {
 onMounted(() => window.addEventListener('keydown', onKeydown))
 onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 
-const canAssignToMe = computed(
-  () =>
-    userStore.can(perms.CONVERSATIONS_UPDATE_USER_ASSIGNEE) &&
-    conversationStore.current?.assigned_user_id !== userStore.userID
-)
+const canAssignToMe = computed(() => {
+  const assigneeID = conversationStore.current?.assigned_user_id
+  if (assigneeID === userStore.userID) return false
+  return (
+    userStore.can(perms.CONVERSATIONS_UPDATE_USER_ASSIGNEE) ||
+    (userStore.can(perms.CONVERSATIONS_ASSIGN_SELF_FROM_OTHER) && Boolean(assigneeID))
+  )
+})
 const assignToSelf = () => {
   conversationStore.updateAssignee('user', { assignee_id: userStore.userID })
 }
@@ -271,6 +274,10 @@ const summarize = async () => {
     isSummarizing.value = false
   }
 }
+
+const allowedStatusOptions = computed(() =>
+  conversationStore.statusOptions.filter((status) => userStore.can(status.permission))
+)
 
 const handleUpdateStatus = (status) => {
   if (status === CONVERSATION_DEFAULT_STATUSES.SNOOZED) {

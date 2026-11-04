@@ -7,6 +7,8 @@ import (
 
 	amodels "github.com/abhinavxd/libredesk/internal/auth/models"
 	autoModels "github.com/abhinavxd/libredesk/internal/automation/models"
+	authzModels "github.com/abhinavxd/libredesk/internal/authz/models"
+	umodels "github.com/abhinavxd/libredesk/internal/user/models"
 	"github.com/abhinavxd/libredesk/internal/envelope"
 	"github.com/abhinavxd/libredesk/internal/macro/models"
 	"github.com/valyala/fasthttp"
@@ -221,6 +223,11 @@ func handleApplyMacro(r *fastglue.Request) error {
 			app.lo.Warn("no permission to execute macro action", "action", act.Type, "user_id", user.ID)
 			return r.SendErrorEnvelope(fasthttp.StatusForbidden, app.i18n.T("macro.permissionDenied"), nil, envelope.PermissionError)
 		}
+		// Setting a status needs the permission of the specific target status.
+		if act.Type == autoModels.ActionSetStatus && !canSetMacroStatus(app, user, act) {
+			app.lo.Warn("no permission to set macro action status", "value", act.Value, "user_id", user.ID)
+			return r.SendErrorEnvelope(fasthttp.StatusForbidden, app.i18n.T("macro.permissionDenied"), nil, envelope.PermissionError)
+		}
 	}
 
 	// Apply actions.
@@ -251,11 +258,33 @@ func handleApplyMacro(r *fastglue.Request) error {
 
 // hasActionPermission checks user permission for given action
 func hasActionPermission(action string, userPerms []string) bool {
+	// Status changes are gated per target status, so any of the status permissions passes this first check.
+	if action == autoModels.ActionSetStatus {
+		return slices.ContainsFunc(authzModels.StatusUpdatePermissions, func(p string) bool {
+			return slices.Contains(userPerms, p)
+		})
+	}
 	requiredPerm, exists := autoModels.ActionPermissions[action]
 	if !exists {
 		return false
 	}
 	return slices.Contains(userPerms, requiredPerm)
+}
+
+// canSetMacroStatus checks the user may move the conversation to the status a set_status action targets.
+func canSetMacroStatus(app *App, user umodels.User, act autoModels.RuleAction) bool {
+	if len(act.Value) == 0 {
+		return false
+	}
+	id, err := strconv.Atoi(act.Value[0])
+	if err != nil {
+		return false
+	}
+	s, err := app.status.Get(id)
+	if err != nil {
+		return false
+	}
+	return canSetConversationStatus(app, user, s.Name)
 }
 
 // decorateMacroActions resolves display values for action IDs and re-marshals the actions.

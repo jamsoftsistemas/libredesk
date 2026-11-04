@@ -263,6 +263,25 @@ func TestConversationSearchFieldsAndRanking(t *testing.T) {
 		t.Fatal("conversation-only sort was accepted for messages")
 	}
 
+	insertSearchConversation(t, db, "777", "joao@example.com", "João", "Silva", "Pedido atrasado", oldest)
+	for _, term := range []string{"joao", "JOÃO silva", "silva joao", "silva pedido", "atrasado pedido joao", "pedido  atras"} {
+		results, _, _, err = manager.Conversations(models.Query{Term: term, PageSize: 10}, scope)
+		if err != nil {
+			t.Fatalf("searching conversations for %q: %v", term, err)
+		}
+		if len(results) != 1 || results[0].ReferenceNumber != "777" {
+			t.Fatalf("conversation search for %q returned %+v, want only 777", term, results)
+		}
+	}
+	results, _, _, err = manager.Conversations(models.Query{Term: "joao inexistente", PageSize: 10}, scope)
+	if err != nil || len(results) != 0 {
+		t.Fatalf("unmatched word still returned results %+v (err %v)", results, err)
+	}
+	contacts, err := manager.Contacts("silva joão", 10)
+	if err != nil || len(contacts) != 1 {
+		t.Fatalf("contact search by name returned %+v (err %v), want 1", contacts, err)
+	}
+
 	for _, term := range []string{"%%%", "___", "%_%"} {
 		results, hasMore, cursor, err = manager.Conversations(models.Query{Term: term, PageSize: 10}, scope)
 		if err != nil {

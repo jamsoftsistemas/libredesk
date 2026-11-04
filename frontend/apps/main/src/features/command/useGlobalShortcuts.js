@@ -6,7 +6,7 @@ import { useEmitter } from '@main/composables/useEmitter'
 import { useKeyboardShortcutsDialog } from '@main/composables/useKeyboardShortcutsDialog'
 import { useBulkActionPermissions } from '@main/composables/useBulkActionPermissions'
 import { EMITTER_EVENTS } from '@main/constants/emitterEvents'
-import { permissions as perms } from '@main/constants/permissions'
+import { permissions as perms, statusPermission } from '@main/constants/permissions'
 import { CONVERSATION_DEFAULT_STATUSES, MACRO_CONTEXT } from '@main/constants/conversation'
 import { MACROS_COMMAND, useCommandPalette } from './useCommandPalette'
 import { SNOOZE_COMMAND } from './providers/useConversationCommands'
@@ -53,7 +53,7 @@ export function useGlobalShortcuts() {
   }
 
   const setStatus = (status) => () => {
-    if (!conversationOpen() || !userStore.can(perms.CONVERSATIONS_UPDATE_STATUS)) return false
+    if (!conversationOpen() || !userStore.can(statusPermission(status))) return false
     if (conversationStore.current.status !== status) conversationStore.requestStatusUpdate(status)
     return true
   }
@@ -93,7 +93,7 @@ export function useGlobalShortcuts() {
   const altKeys = {
     KeyJ: stepConversation(-1),
     KeyK: stepConversation(1),
-    KeyZ: openGroup(SNOOZE_COMMAND, perms.CONVERSATIONS_UPDATE_STATUS),
+    KeyZ: openGroup(SNOOZE_COMMAND, perms.CONVERSATIONS_UPDATE_STATUS_SNOOZED),
     KeyP: openGroup('conv.priority', perms.CONVERSATIONS_UPDATE_PRIORITY),
     KeyA: openGroup('conv.assign-agent', perms.CONVERSATIONS_UPDATE_USER_ASSIGNEE),
     KeyR: compose('reply', perms.MESSAGES_WRITE),

@@ -13,7 +13,7 @@ import { playNotificationSound } from '@shared-ui/composables/useNotificationSou
 import MessageCache from '@main/utils/conversation-message-cache'
 import { getI18n } from '@main/i18n'
 import { CONVERSATION_LIST_TYPE, CONVERSATION_DEFAULT_STATUSES, TAG_ACTION } from '@/constants/conversation'
-import { permissions as PERMISSIONS } from '@/constants/permissions'
+import { permissions as PERMISSIONS, statusPermission } from '@/constants/permissions'
 import { useThrottleFn, useStorage } from '@vueuse/core'
 import { useUserStore } from '@/stores/user'
 import { useNotificationStore } from '@/stores/notification'
@@ -137,12 +137,13 @@ export const useConversationStore = defineStore('conversation', () => {
   // label stays the raw status name: it's used as the literal value in filters,
   // comparisons and API calls elsewhere, not just for display.
   const statusOptions = computed(() => {
-    return statuses.value.map(s => ({ label: s.name, value: s.id }))
+    return statuses.value.map(s => ({ label: s.name, value: s.id, permission: statusPermission(s.name, s.category) }))
   })
   const statusOptionsNoSnooze = computed(() =>
     statuses.value.filter(s => s.name !== CONVERSATION_DEFAULT_STATUSES.SNOOZED).map(s => ({
       label: s.name,
-      value: s.id
+      value: s.id,
+      permission: statusPermission(s.name, s.category)
     }))
   )
 

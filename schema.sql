@@ -1,4 +1,9 @@
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS unaccent;
+-- IMMUTABLE wrapper around unaccent() so it can be used in (trigram) indexes. Used by search.
+CREATE OR REPLACE FUNCTION f_unaccent(text) RETURNS text AS $$
+    SELECT public.unaccent('public.unaccent', $1)
+$$ LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT;
 
 DROP TYPE IF EXISTS "channels" CASCADE; CREATE TYPE "channels" AS ENUM ('email', 'livechat', 'whatsapp', 'uazapi');
 DROP TYPE IF EXISTS "message_type" CASCADE; CREATE TYPE "message_type" AS ENUM ('incoming','outgoing','activity');
@@ -237,6 +242,10 @@ CREATE INDEX index_tgrm_users_on_email ON users USING GIN (email gin_trgm_ops);
 CREATE INDEX index_tgrm_users_on_phone_number ON users USING GIN (phone_number gin_trgm_ops);
 CREATE INDEX index_tgrm_users_on_first_name ON users USING GIN (first_name gin_trgm_ops);
 CREATE INDEX index_tgrm_users_on_last_name ON users USING GIN (last_name gin_trgm_ops);
+CREATE INDEX index_tgrm_unaccent_users_on_email ON users USING GIN (f_unaccent(email) gin_trgm_ops);
+CREATE INDEX index_tgrm_unaccent_users_on_phone_number ON users USING GIN (f_unaccent(phone_number) gin_trgm_ops);
+CREATE INDEX index_tgrm_unaccent_users_on_first_name ON users USING GIN (f_unaccent(first_name) gin_trgm_ops);
+CREATE INDEX index_tgrm_unaccent_users_on_last_name ON users USING GIN (f_unaccent(last_name) gin_trgm_ops);
 CREATE INDEX index_users_on_api_key ON users(api_key);
 CREATE INDEX index_users_on_company_id ON users(company_id) WHERE company_id IS NOT NULL;
 CREATE INDEX index_users_on_availability_status_when_agent ON users(availability_status) WHERE type = 'agent' AND deleted_at IS NULL;
@@ -345,7 +354,7 @@ CREATE INDEX index_conversations_on_next_sla_deadline_at ON conversations (next_
 CREATE INDEX index_conversations_on_waiting_since ON conversations (waiting_since);
 CREATE INDEX index_conversations_on_last_continuity_email_sent_at ON conversations (last_continuity_email_sent_at);
 CREATE INDEX index_conversations_on_last_inbound_at ON conversations (last_inbound_at);
-CREATE INDEX index_tgrm_conversations_on_subject ON conversations USING GIN (subject gin_trgm_ops);
+CREATE INDEX index_tgrm_unaccent_conversations_on_subject ON conversations USING GIN (f_unaccent(subject) gin_trgm_ops);
 
 DROP TABLE IF EXISTS conversation_messages CASCADE;
 CREATE TABLE conversation_messages (
@@ -365,7 +374,7 @@ CREATE TABLE conversation_messages (
     sender_type message_sender_type NOT NULL,
     meta JSONB DEFAULT '{}'::JSONB NULL
 );
-CREATE INDEX index_trgm_conversation_messages_on_text_content ON conversation_messages USING GIN (text_content gin_trgm_ops);
+CREATE INDEX index_tgrm_unaccent_conversation_messages_on_text_content ON conversation_messages USING GIN (f_unaccent(text_content) gin_trgm_ops);
 CREATE INDEX index_conversation_messages_on_conversation_id ON conversation_messages (conversation_id);
 CREATE INDEX index_conversation_messages_on_created_at ON conversation_messages (created_at);
 CREATE INDEX index_conversation_messages_on_source_id ON conversation_messages (source_id);
@@ -1204,7 +1213,7 @@ VALUES
 	(
 		'Agent',
 		'Role for all agents with limited access to conversations.',
-		'{conversations:read_all,conversations:read_unassigned,conversations:read_assigned,conversations:read_team_inbox,conversations:read_team_all,conversations:read,conversations:update_user_assignee,conversations:update_team_assignee,conversations:update_priority,conversations:update_status,conversations:update_tags,messages:read,messages:write,messages:write_private,view:manage}'
+		'{conversations:read_all,conversations:read_unassigned,conversations:read_assigned,conversations:read_team_inbox,conversations:read_team_all,conversations:read,conversations:update_user_assignee,conversations:update_team_assignee,conversations:update_priority,conversations:update_status_open,conversations:update_status_snoozed,conversations:update_status_resolved,conversations:update_status_closed,conversations:update_tags,messages:read,messages:write,messages:write_private,view:manage}'
 	);
 
 INSERT INTO
@@ -1213,7 +1222,7 @@ VALUES
 	(
 		'Admin',
 		'Role for users who have complete access to everything.',
-		'{webhooks:manage,context_links:manage,activity_logs:manage,custom_attributes:manage,contacts:read_all,contacts:read,contacts:write,contacts:block,contacts:delete,contacts:export,contact_notes:read,contact_notes:write,contact_notes:delete,conversations:write,ai:manage,help_center:manage,general_settings:manage,notification_settings:manage,oidc:manage,conversations:read_all,conversations:read_unassigned,conversations:read_assigned,conversations:read_team_inbox,conversations:read_team_all,conversations:read,conversations:update_user_assignee,conversations:update_team_assignee,conversations:update_priority,conversations:update_status,conversations:update_tags,messages:read,messages:write,messages:write_private,view:manage,shared_views:manage,status:manage,tags:manage,macros:manage,users:manage,teams:manage,automations:manage,inboxes:manage,roles:manage,reports:manage,templates:manage,business_hours:manage,sla:manage,companies:read_all,companies:write,companies:delete}'
+		'{webhooks:manage,context_links:manage,activity_logs:manage,custom_attributes:manage,contacts:read_all,contacts:read,contacts:write,contacts:block,contacts:delete,contacts:export,contact_notes:read,contact_notes:write,contact_notes:delete,conversations:write,ai:manage,help_center:manage,general_settings:manage,notification_settings:manage,oidc:manage,conversations:read_all,conversations:read_unassigned,conversations:read_assigned,conversations:read_team_inbox,conversations:read_team_all,conversations:read,conversations:update_user_assignee,conversations:update_team_assignee,conversations:assign_self_from_other,conversations:update_priority,conversations:update_status_open,conversations:update_status_snoozed,conversations:update_status_resolved,conversations:update_status_closed,conversations:update_tags,messages:read,messages:write,messages:write_private,view:manage,shared_views:manage,status:manage,tags:manage,macros:manage,users:manage,teams:manage,automations:manage,inboxes:manage,roles:manage,reports:manage,templates:manage,business_hours:manage,sla:manage,companies:read_all,companies:write,companies:delete}'
 	);
 
 

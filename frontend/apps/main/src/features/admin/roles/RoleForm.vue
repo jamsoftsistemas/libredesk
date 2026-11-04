@@ -135,6 +135,10 @@ const permissions = ref([
         label: t('admin.role.conversations.updateUserAssignee')
       },
       {
+        name: perms.CONVERSATIONS_ASSIGN_SELF_FROM_OTHER,
+        label: t('admin.role.conversations.assignSelfFromOther')
+      },
+      {
         name: perms.CONVERSATIONS_UPDATE_TEAM_ASSIGNEE,
         label: t('admin.role.conversations.updateTeamAssignee')
       },
@@ -143,8 +147,20 @@ const permissions = ref([
         label: t('admin.role.conversations.updatePriority')
       },
       {
-        name: perms.CONVERSATIONS_UPDATE_STATUS,
-        label: t('admin.role.conversations.updateStatus')
+        name: perms.CONVERSATIONS_UPDATE_STATUS_OPEN,
+        label: t('admin.role.conversations.updateStatusOpen')
+      },
+      {
+        name: perms.CONVERSATIONS_UPDATE_STATUS_SNOOZED,
+        label: t('admin.role.conversations.updateStatusSnoozed')
+      },
+      {
+        name: perms.CONVERSATIONS_UPDATE_STATUS_RESOLVED,
+        label: t('admin.role.conversations.updateStatusResolved')
+      },
+      {
+        name: perms.CONVERSATIONS_UPDATE_STATUS_CLOSED,
+        label: t('admin.role.conversations.updateStatusClosed')
       },
       { name: perms.CONVERSATIONS_UPDATE_TAGS, label: t('admin.role.conversations.updateTags') },
       { name: perms.MESSAGES_READ, label: t('admin.role.messages.read') },

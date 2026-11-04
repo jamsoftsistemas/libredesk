@@ -6,7 +6,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/abhinavxd/libredesk/internal/dbutil"
 	"github.com/abhinavxd/libredesk/internal/envelope"
@@ -22,6 +25,7 @@ const (
 	maxPageSize                  = 100
 	maxConversationFirstPageSize = 1000
 	maxMessageFirstPageSize      = 30
+	maxSearchWords               = 6
 )
 
 var (
@@ -112,7 +116,8 @@ func (s *Manager) MessageFirstPage(term string, scope models.ReadScope, limit in
 // Contacts searches contacts based on the query
 func (s *Manager) Contacts(query string, limit int) ([]models.ContactResult, error) {
 	var results = make([]models.ContactResult, 0)
-	if err := s.q.SearchContacts.Select(&results, dbutil.ContainsPattern(query), limit); err != nil {
+	patterns, _ := searchWords(query)
+	if err := s.q.SearchContacts.Select(&results, pq.Array(patterns), limit); err != nil {
 		s.lo.Error("error searching contacts", "error", err)
 		return nil, envelope.NewError(envelope.GeneralError, s.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}
@@ -191,8 +196,9 @@ func (s *Manager) searchMessages(query models.Query, scope models.ReadScope, pag
 }
 
 func (s *Manager) buildQuery(base string, query models.Query, scope models.ReadScope, orderBy string, fields dbutil.AllowedFields, cursorWhere cursorCondition) (string, []any, error) {
+	patterns, words := searchWords(query.Term)
 	baseArgs := append([]any{query.Term}, scopeArgs(scope)...)
-	baseArgs = append(baseArgs, dbutil.ContainsPattern(query.Term))
+	baseArgs = append(baseArgs, pq.Array(patterns), pq.Array(words))
 	sql, args, err := dbutil.BuildFilterQuery(base, baseArgs, query.Filters, fields, s.filterRenderers, s.filterLocation())
 	if err != nil {
 		s.lo.Error("error building search query", "error", err)
@@ -211,6 +217,27 @@ func (s *Manager) buildQuery(base string, query models.Query, scope models.ReadS
 	sql += fmt.Sprintf(" LIMIT $%d", len(args)+1)
 	args = append(args, query.PageSize+1)
 	return sql, args, nil
+}
+
+// searchWords splits a search term into words and returns, longest word first, their escaped
+// LIKE patterns and the raw words. Every word must match for a result to be returned, in any
+// field and any order. The longest word comes first because the queries use it to pick
+// candidates through the trigram indexes. An empty term yields a single match-all pattern
+// (filters-only browsing).
+func searchWords(term string) (patterns, words []string) {
+	words = strings.Fields(term)
+	if len(words) > maxSearchWords {
+		words = words[:maxSearchWords]
+	}
+	if len(words) == 0 {
+		return []string{dbutil.ContainsPattern("")}, []string{""}
+	}
+	sort.SliceStable(words, func(i, j int) bool { return utf8.RuneCountInString(words[i]) > utf8.RuneCountInString(words[j]) })
+	patterns = make([]string, len(words))
+	for i, w := range words {
+		patterns[i] = dbutil.ContainsPattern(w)
+	}
+	return patterns, words
 }
 
 func normalizeQuery(query models.Query, pageSizeLimit int) models.Query {
