@@ -19,6 +19,7 @@ WITH convs AS (
         INNER JOIN conversation_statuses s ON c.status_id = s.id
     WHERE
         s.category != 'resolved'
+        AND ($1::bigint IS NULL OR c.assigned_user_id = $1)
 ),
 agents AS (
     SELECT
@@ -62,15 +63,19 @@ FROM
 -- name: get-overview-sla-counts
 -- Count only each conversation's latest applied SLA; superseded rows are kept as history and would double-count.
 WITH latest_applied AS (
-    SELECT DISTINCT ON (conversation_id)
-        created_at, first_response_met_at, first_response_breached_at,
-        resolution_met_at, resolution_breached_at
-    FROM applied_slas
-    WHERE created_at >= CASE
+    SELECT DISTINCT ON (a.conversation_id)
+        a.created_at, a.first_response_met_at, a.first_response_breached_at,
+        a.resolution_met_at, a.resolution_breached_at
+    FROM applied_slas a
+    WHERE a.created_at >= CASE
         WHEN %d = 0 THEN CURRENT_DATE
         ELSE NOW() - INTERVAL '%d days'
     END
-    ORDER BY conversation_id, created_at DESC, id DESC
+    AND ($1::bigint IS NULL OR EXISTS (
+        SELECT 1 FROM conversations c
+        WHERE c.id = a.conversation_id AND c.assigned_user_id = $1
+    ))
+    ORDER BY a.conversation_id, a.created_at DESC, a.id DESC
 ),
 first_and_resolution AS (
     SELECT
@@ -152,6 +157,11 @@ next_response AS (
             ELSE NOW() - INTERVAL '%d days'
         END
         AND type = 'next_response'
+        AND ($1::bigint IS NULL OR EXISTS (
+            SELECT 1 FROM applied_slas a
+            JOIN conversations c ON c.id = a.conversation_id
+            WHERE a.id = sla_events.applied_sla_id AND c.assigned_user_id = $1
+        ))
 )
 SELECT
     fas.first_response_met_count,
@@ -198,6 +208,7 @@ WITH new_conversations AS (
                     WHEN %d = 0 THEN CURRENT_DATE
                     ELSE NOW() - INTERVAL '%d days'
                 END
+                AND ($1::bigint IS NULL OR c.assigned_user_id = $1)
             GROUP BY
                 date
             ORDER BY
@@ -219,6 +230,7 @@ resolved_conversations AS (
                     WHEN %d = 0 THEN CURRENT_DATE
                     ELSE NOW() - INTERVAL '%d days'
                 END
+                AND ($1::bigint IS NULL OR c.assigned_user_id = $1)
             GROUP BY
                 date
             ORDER BY
@@ -246,11 +258,15 @@ SELECT
 -- name: get-overview-csat
 WITH filtered AS (
     SELECT rating
-    FROM csat_responses
-    WHERE created_at >= CASE
+    FROM csat_responses cr
+    WHERE cr.created_at >= CASE
         WHEN %d = 0 THEN CURRENT_DATE
         ELSE NOW() - INTERVAL '%d days'
     END
+    AND ($1::bigint IS NULL OR EXISTS (
+        SELECT 1 FROM conversations c
+        WHERE c.id = cr.conversation_id AND c.assigned_user_id = $1
+    ))
 ),
 distribution AS (
     SELECT
@@ -305,6 +321,10 @@ WITH per_conversation AS (
             WHEN %d = 0 THEN CURRENT_DATE
             ELSE NOW() - INTERVAL '%d days'
         END
+        AND ($1::bigint IS NULL OR EXISTS (
+            SELECT 1 FROM conversations c
+            WHERE c.id = conversation_messages.conversation_id AND c.assigned_user_id = $1
+        ))
     GROUP BY
         conversation_id
 ),
@@ -345,6 +365,7 @@ WITH tag_counts AS (
                 WHEN %d = 0 THEN CURRENT_DATE
                 ELSE NOW() - INTERVAL '%d days'
             END
+            AND ($1::bigint IS NULL OR c.assigned_user_id = $1)
     GROUP BY
         t.id, t.name
     ORDER BY
@@ -367,6 +388,7 @@ tagging AS (
             WHEN %d = 0 THEN CURRENT_DATE
             ELSE NOW() - INTERVAL '%d days'
         END
+        AND ($1::bigint IS NULL OR c.assigned_user_id = $1)
 )
 SELECT
     json_build_object(

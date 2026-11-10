@@ -62,6 +62,7 @@ const (
 
 	// Reports
 	PermReportsManage = "reports:manage"
+	PermReportsViewOwn = "reports:view_own"
 
 	// Business Hours
 	PermBusinessHoursManage = "business_hours:manage"
@@ -142,6 +143,7 @@ var validPermissions = map[string]struct{}{
 	PermRolesManage:                     {},
 	PermTemplatesManage:                 {},
 	PermReportsManage:                   {},
+	PermReportsViewOwn:                  {},
 	PermBusinessHoursManage:             {},
 	PermSLAManage:                       {},
 	PermGeneralSettingsManage:           {},

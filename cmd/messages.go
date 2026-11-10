@@ -75,6 +75,7 @@ func handleGetMessages(r *fastglue.Request) error {
 	for i := range messages {
 		total = messages[i].Total
 		app.conversation.SignAttachmentURLs(messages[i].Attachments)
+		messages[i].ApplyAudioTranscription()
 		resolveQuotedCIDs(app, &messages[i])
 		resolveAttachmentCIDs(&messages[i], rootURL)
 	}
@@ -141,6 +142,7 @@ func handleGetMessage(r *fastglue.Request) error {
 	rootURL, _ := app.setting.GetAppRootURL()
 	app.conversation.RenderArticleReferences(&message)
 	app.conversation.SignAttachmentURLs(message.Attachments)
+	message.ApplyAudioTranscription()
 	resolveQuotedCIDs(app, &message)
 	resolveAttachmentCIDs(&message, rootURL)
 
@@ -292,8 +294,11 @@ func handleSendMessage(r *fastglue.Request) error {
 	}
 
 	// Auto-assign the conversation to the replying agent if not already assigned to them.
-	if !conv.AssignedUserID.Valid || conv.AssignedUserID.Int != user.ID {
-		if err := app.conversation.UpdateConversationUserAssignee(cuuid, user.ID, user); err != nil {
+	// A conversation held by another agent is only taken over if the agent may assign it to themselves.
+	heldByOther := conv.AssignedUserID.Valid && conv.AssignedUserID.Int != user.ID
+	canTakeOver := slices.Contains(user.Permissions, authzModels.PermConversationsAssignSelfFromOther)
+	if !conv.AssignedUserID.Valid || (heldByOther && canTakeOver) {
+		if err :=app.conversation.UpdateConversationUserAssignee(cuuid, user.ID, user); err != nil {
 			app.lo.Error("error auto-assigning conversation to replying agent", "uuid", cuuid, "error", err)
 		}
 	}

@@ -212,10 +212,10 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 const canAssignToMe = computed(() => {
   const assigneeID = conversationStore.current?.assigned_user_id
   if (assigneeID === userStore.userID) return false
-  return (
-    userStore.can(perms.CONVERSATIONS_UPDATE_USER_ASSIGNEE) ||
-    (userStore.can(perms.CONVERSATIONS_ASSIGN_SELF_FROM_OTHER) && Boolean(assigneeID))
-  )
+  // Taking a conversation held by another agent needs its own permission.
+  return assigneeID
+    ? userStore.can(perms.CONVERSATIONS_ASSIGN_SELF_FROM_OTHER)
+    : userStore.can(perms.CONVERSATIONS_UPDATE_USER_ASSIGNEE)
 })
 const assignToSelf = () => {
   conversationStore.updateAssignee('user', { assignee_id: userStore.userID })

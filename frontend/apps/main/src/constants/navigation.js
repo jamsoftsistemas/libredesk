@@ -2,7 +2,7 @@ export const reportsNavItems = [
   {
     titleKey: 'globals.terms.overview',
     href: '/reports/overview',
-    permission: 'reports:manage',
+    permissionAny: ['reports:manage', 'reports:view_own'],
     icon: 'BarChart3'
   }
 ]

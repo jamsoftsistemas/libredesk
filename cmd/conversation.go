@@ -611,12 +611,15 @@ func handleUpdateUserAssignee(r *fastglue.Request) error {
 		return r.SendEnvelope(true)
 	}
 
-	// Without the full assign permission, an agent may only take a conversation currently held by another agent.
-	if !slices.Contains(user.Permissions, authzModels.PermConversationsUpdateUserAssignee) {
-		takingFromOther := req.AssigneeID == user.ID && conversation.AssignedUserID.Valid && conversation.AssignedUserID.Int != user.ID
-		if !takingFromOther {
-			return r.SendErrorEnvelope(fasthttp.StatusForbidden, app.i18n.T("status.deniedPermission"), nil, envelope.PermissionError)
-		}
+	// Taking a conversation held by another agent requires assign_self_from_other, even with the full assign
+	// permission. Any other assignment requires update_user_assignee.
+	takingFromOther := req.AssigneeID == user.ID && conversation.AssignedUserID.Valid && conversation.AssignedUserID.Int != user.ID
+	required := authzModels.PermConversationsUpdateUserAssignee
+	if takingFromOther {
+		required = authzModels.PermConversationsAssignSelfFromOther
+	}
+	if !slices.Contains(user.Permissions, required) {
+		return r.SendErrorEnvelope(fasthttp.StatusForbidden, app.i18n.T("status.deniedPermission"), nil, envelope.PermissionError)
 	}
 
 	if err := app.conversation.UpdateConversationUserAssignee(uuid, req.AssigneeID, user); err != nil {

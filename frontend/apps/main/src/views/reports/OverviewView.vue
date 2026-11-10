@@ -9,6 +9,8 @@
       <div class="space-y-6">
         <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div class="flex items-center gap-3">
+            <span v-if="!isAdminView" class="text-sm font-medium">{{ $t('report.myMetrics') }}</span>
+            <Separator v-if="!isAdminView" orientation="vertical" class="h-4" />
             <span class="text-sm text-muted-foreground">
               {{ $t('globals.terms.lastUpdated') }}: {{ lastUpdateFormatted }}
             </span>
@@ -73,6 +75,7 @@
             size="large"
           />
           <Card
+            v-if="isAdminView"
             class="flex-1"
             :title="$t('report.agentStatus')"
             :counts="agentStatusCounts"
@@ -325,8 +328,13 @@ import { Input } from '@shared-ui/components/ui/input'
 import { Separator } from '@shared-ui/components/ui/separator'
 import { useI18n } from 'vue-i18n'
 import api from '../../api'
+import { useUserStore } from '@/stores/user'
+import { permissions as perms } from '@/constants/permissions'
 
 const emitter = useEmitter()
+const userStore = useUserStore()
+// Agents without reports:manage see only metrics for conversations assigned to them.
+const isAdminView = computed(() => userStore.can(perms.REPORTS_MANAGE))
 const { t } = useI18n()
 const isLoading = ref(false)
 const lastUpdate = ref(new Date())

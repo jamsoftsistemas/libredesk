@@ -65,7 +65,7 @@ func New(opts Opts) (*Manager, error) {
 }
 
 // GetOverViewCounts returns overview counts
-func (m *Manager) GetOverViewCounts() (json.RawMessage, error) {
+func (m *Manager) GetOverViewCounts(agentID *int) (json.RawMessage, error) {
 	var counts = json.RawMessage{}
 	tx, err := m.db.BeginTxx(context.Background(), &sql.TxOptions{
 		ReadOnly: true,
@@ -76,7 +76,7 @@ func (m *Manager) GetOverViewCounts() (json.RawMessage, error) {
 	}
 	defer tx.Rollback()
 
-	if err := tx.Get(&counts, m.q.GetOverviewCounts); err != nil {
+	if err := tx.Get(&counts, m.q.GetOverviewCounts, agentID); err != nil {
 		m.lo.Error("error fetching overview counts", "error", err)
 		return nil, envelope.NewError(envelope.GeneralError, m.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}
@@ -90,7 +90,7 @@ func (m *Manager) GetOverViewCounts() (json.RawMessage, error) {
 }
 
 // GetOverviewSLA returns overview SLA data
-func (m *Manager) GetOverviewSLA(days int) (json.RawMessage, error) {
+func (m *Manager) GetOverviewSLA(days int, agentID *int) (json.RawMessage, error) {
 	days = clampDays(days)
 	tx, err := m.db.BeginTxx(context.Background(), &sql.TxOptions{
 		ReadOnly: true,
@@ -104,7 +104,7 @@ func (m *Manager) GetOverviewSLA(days int) (json.RawMessage, error) {
 	var result models.OverviewSLA
 	// Format query with days parameter for both CTEs
 	query := fmt.Sprintf(m.q.GetOverviewSLA, days, days, days, days)
-	if err := tx.Get(&result, query); err != nil {
+	if err := tx.Get(&result, query, agentID); err != nil {
 		m.lo.Error("error fetching overview SLA data", "error", err)
 		return nil, envelope.NewError(envelope.GeneralError, m.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}
@@ -124,7 +124,7 @@ func (m *Manager) GetOverviewSLA(days int) (json.RawMessage, error) {
 }
 
 // GetOverviewChart returns overview chart data
-func (m *Manager) GetOverviewChart(days int) (json.RawMessage, error) {
+func (m *Manager) GetOverviewChart(days int, agentID *int) (json.RawMessage, error) {
 	days = clampDays(days)
 	var stats = json.RawMessage{}
 	tx, err := m.db.BeginTxx(context.Background(), &sql.TxOptions{
@@ -137,7 +137,7 @@ func (m *Manager) GetOverviewChart(days int) (json.RawMessage, error) {
 	defer tx.Rollback()
 
 	query := fmt.Sprintf(m.q.GetOverviewCharts, days, days, days, days)
-	if err := tx.Get(&stats, query); err != nil {
+	if err := tx.Get(&stats, query, agentID); err != nil {
 		m.lo.Error("error fetching overview charts", "error", err)
 		return nil, envelope.NewError(envelope.GeneralError, m.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}
@@ -145,7 +145,7 @@ func (m *Manager) GetOverviewChart(days int) (json.RawMessage, error) {
 }
 
 // GetOverviewCSAT returns CSAT metrics for the overview dashboard
-func (m *Manager) GetOverviewCSAT(days int) (json.RawMessage, error) {
+func (m *Manager) GetOverviewCSAT(days int, agentID *int) (json.RawMessage, error) {
 	days = clampDays(days)
 	var stats = json.RawMessage{}
 	tx, err := m.db.BeginTxx(context.Background(), &sql.TxOptions{
@@ -158,7 +158,7 @@ func (m *Manager) GetOverviewCSAT(days int) (json.RawMessage, error) {
 	defer tx.Rollback()
 
 	query := fmt.Sprintf(m.q.GetOverviewCSAT, days, days)
-	if err := tx.Get(&stats, query); err != nil {
+	if err := tx.Get(&stats, query, agentID); err != nil {
 		m.lo.Error("error fetching overview CSAT", "error", err)
 		return nil, envelope.NewError(envelope.GeneralError, m.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}
@@ -166,7 +166,7 @@ func (m *Manager) GetOverviewCSAT(days int) (json.RawMessage, error) {
 }
 
 // GetOverviewMessageVolume returns message volume metrics for the overview dashboard
-func (m *Manager) GetOverviewMessageVolume(days int) (json.RawMessage, error) {
+func (m *Manager) GetOverviewMessageVolume(days int, agentID *int) (json.RawMessage, error) {
 	days = clampDays(days)
 	var stats = json.RawMessage{}
 	tx, err := m.db.BeginTxx(context.Background(), &sql.TxOptions{
@@ -179,7 +179,7 @@ func (m *Manager) GetOverviewMessageVolume(days int) (json.RawMessage, error) {
 	defer tx.Rollback()
 
 	query := fmt.Sprintf(m.q.GetOverviewMessageVolume, days, days)
-	if err := tx.Get(&stats, query); err != nil {
+	if err := tx.Get(&stats, query, agentID); err != nil {
 		m.lo.Error("error fetching overview message volume", "error", err)
 		return nil, envelope.NewError(envelope.GeneralError, m.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}
@@ -187,7 +187,7 @@ func (m *Manager) GetOverviewMessageVolume(days int) (json.RawMessage, error) {
 }
 
 // GetOverviewTagDistribution returns tag distribution metrics for the overview dashboard
-func (m *Manager) GetOverviewTagDistribution(days int) (json.RawMessage, error) {
+func (m *Manager) GetOverviewTagDistribution(days int, agentID *int) (json.RawMessage, error) {
 	days = clampDays(days)
 	var stats = json.RawMessage{}
 	tx, err := m.db.BeginTxx(context.Background(), &sql.TxOptions{
@@ -200,7 +200,7 @@ func (m *Manager) GetOverviewTagDistribution(days int) (json.RawMessage, error) 
 	defer tx.Rollback()
 
 	query := fmt.Sprintf(m.q.GetOverviewTagDistribution, days, days, days, days)
-	if err := tx.Get(&stats, query); err != nil {
+	if err := tx.Get(&stats, query, agentID); err != nil {
 		m.lo.Error("error fetching overview tag distribution", "error", err)
 		return nil, envelope.NewError(envelope.GeneralError, m.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}

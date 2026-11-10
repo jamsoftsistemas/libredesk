@@ -242,12 +242,12 @@ func initHandlers(g *fastglue.Fastglue, hub *ws.Hub) {
 	g.GET("/api/v1/context-links/{id}/url", auth(handleGetContextLinkURL))
 
 	// Reports.
-	g.GET("/api/v1/reports/overview/sla", perm(handleOverviewSLA, "reports:manage"))
-	g.GET("/api/v1/reports/overview/counts", perm(handleOverviewCounts, "reports:manage"))
-	g.GET("/api/v1/reports/overview/charts", perm(handleOverviewCharts, "reports:manage"))
-	g.GET("/api/v1/reports/overview/csat", perm(handleOverviewCSAT, "reports:manage"))
-	g.GET("/api/v1/reports/overview/messages", perm(handleOverviewMessageVolume, "reports:manage"))
-	g.GET("/api/v1/reports/overview/tags", perm(handleOverviewTagDistribution, "reports:manage"))
+	g.GET("/api/v1/reports/overview/sla", permAny(handleOverviewSLA, "reports:manage", "reports:view_own"))
+	g.GET("/api/v1/reports/overview/counts", permAny(handleOverviewCounts, "reports:manage", "reports:view_own"))
+	g.GET("/api/v1/reports/overview/charts", permAny(handleOverviewCharts, "reports:manage", "reports:view_own"))
+	g.GET("/api/v1/reports/overview/csat", permAny(handleOverviewCSAT, "reports:manage", "reports:view_own"))
+	g.GET("/api/v1/reports/overview/messages", permAny(handleOverviewMessageVolume, "reports:manage", "reports:view_own"))
+	g.GET("/api/v1/reports/overview/tags", permAny(handleOverviewTagDistribution, "reports:manage", "reports:view_own"))
 
 	// Templates.
 	g.GET("/api/v1/templates", perm(handleGetTemplates, "templates:manage"))

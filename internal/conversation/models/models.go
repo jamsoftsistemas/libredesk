@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"html"
 	"strings"
 	"time"
 
@@ -666,6 +667,34 @@ func Transcript(msgs []Message, max int) string {
 		b.WriteString("\n")
 	}
 	return b.String()
+}
+
+// ApplyAudioTranscription fills an audio message's empty content with the transcription of its audio
+// attachments, so API consumers get the spoken text as the message body. Messages that already have
+// content are left untouched, and nothing is persisted (the response copy is modified only).
+func (m *Message) ApplyAudioTranscription() {
+	if strings.TrimSpace(m.TextContent) != "" || strings.TrimSpace(m.Content) != "" {
+		return
+	}
+	var parts []string
+	for _, att := range m.Attachments {
+		if !strings.HasPrefix(strings.ToLower(att.ContentType), "audio/") {
+			continue
+		}
+		if text, ok := AudioTranscription(m.Meta, att.UUID); ok {
+			parts = append(parts, strings.TrimSpace(text))
+		}
+	}
+	if len(parts) == 0 {
+		return
+	}
+	text := strings.Join(parts, "\n")
+	m.TextContent = text
+	if m.ContentType == ContentTypeHTML {
+		m.Content = "<p>" + html.EscapeString(text) + "</p>"
+	} else {
+		m.Content = text
+	}
 }
 
 // audioTranscriptionEntry is one entry of meta.transcriptions, keyed by attachment (media) UUID.

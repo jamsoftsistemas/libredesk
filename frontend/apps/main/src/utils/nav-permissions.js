@@ -6,7 +6,9 @@ export const filterNavItems = (navItems, can) => {
                 ? filterNavItems(item.children, can)
                 : undefined
             // Check item's permission
-            const hasAccess = item.permission ? can(item.permission) : true
+            const hasAccess = item.permissionAny
+                ? item.permissionAny.some(can)
+                : item.permission ? can(item.permission) : true
             // Only keep the item if:
             // 1. Has required permission (or none required)
             // 2. Has valid children (if parent item)

@@ -193,7 +193,7 @@ export function useConversationCommands({ openSnoozeDatePicker }) {
         icon: UserCheck,
         // The self-assign-from-other permission only applies while another agent holds the conversation.
         permission: conv.assigned_user_id
-          ? [perms.CONVERSATIONS_UPDATE_USER_ASSIGNEE, perms.CONVERSATIONS_ASSIGN_SELF_FROM_OTHER]
+          ? perms.CONVERSATIONS_ASSIGN_SELF_FROM_OTHER
           : perms.CONVERSATIONS_UPDATE_USER_ASSIGNEE,
         run: () => assignAgent(userStore.userID)
       })

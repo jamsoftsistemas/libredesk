@@ -18,9 +18,13 @@ WITH matched_conversations AS (
     SELECT conversations.id
     FROM users
     JOIN conversations ON conversations.contact_id = users.id
+    LEFT JOIN companies ON companies.id = users.company_id
     WHERE f_unaccent(users.email) ILIKE f_unaccent(($10::text[])[1]) ESCAPE '\'
        OR f_unaccent(users.first_name) ILIKE f_unaccent(($10::text[])[1]) ESCAPE '\'
        OR f_unaccent(users.last_name) ILIKE f_unaccent(($10::text[])[1]) ESCAPE '\'
+       OR f_unaccent(companies.name) ILIKE f_unaccent(($10::text[])[1]) ESCAPE '\'
+       OR companies.document ILIKE ($10::text[])[1] ESCAPE '\'
+       OR companies.external_id ILIKE ($10::text[])[1] ESCAPE '\'
        OR users.id::text = $1
 )
 SELECT
@@ -52,6 +56,7 @@ SELECT
     ) AS tags
 FROM conversations
 JOIN users ON conversations.contact_id = users.id
+LEFT JOIN companies ON companies.id = users.company_id
 LEFT JOIN users assignee ON conversations.assigned_user_id = assignee.id
 LEFT JOIN teams ON conversations.assigned_team_id = teams.id
 LEFT JOIN inboxes ON conversations.inbox_id = inboxes.id
@@ -68,6 +73,9 @@ WHERE conversations.id IN (SELECT id FROM matched_conversations)
             OR f_unaccent(users.email) ILIKE f_unaccent(word.pattern) ESCAPE '\'
             OR f_unaccent(users.first_name) ILIKE f_unaccent(word.pattern) ESCAPE '\'
             OR f_unaccent(users.last_name) ILIKE f_unaccent(word.pattern) ESCAPE '\'
+            OR f_unaccent(companies.name) ILIKE f_unaccent(word.pattern) ESCAPE '\'
+            OR companies.document ILIKE word.pattern ESCAPE '\'
+            OR companies.external_id ILIKE word.pattern ESCAPE '\'
         )
     )
   )
@@ -159,6 +167,13 @@ AND (
     OR f_unaccent(phone_number) ILIKE f_unaccent(($1::text[])[1]) ESCAPE '\'
     OR f_unaccent(first_name) ILIKE f_unaccent(($1::text[])[1]) ESCAPE '\'
     OR f_unaccent(last_name) ILIKE f_unaccent(($1::text[])[1]) ESCAPE '\'
+    OR EXISTS (
+        SELECT 1 FROM companies c
+        WHERE c.id = users.company_id
+          AND (f_unaccent(c.name) ILIKE f_unaccent(($1::text[])[1]) ESCAPE '\'
+            OR c.document ILIKE ($1::text[])[1] ESCAPE '\'
+            OR c.external_id ILIKE ($1::text[])[1] ESCAPE '\')
+    )
 )
 AND NOT EXISTS (
     SELECT 1 FROM unnest($1::text[]) AS word(pattern)
@@ -167,6 +182,13 @@ AND NOT EXISTS (
         OR f_unaccent(phone_number) ILIKE f_unaccent(word.pattern) ESCAPE '\'
         OR f_unaccent(first_name) ILIKE f_unaccent(word.pattern) ESCAPE '\'
         OR f_unaccent(last_name) ILIKE f_unaccent(word.pattern) ESCAPE '\'
+        OR EXISTS (
+            SELECT 1 FROM companies c
+            WHERE c.id = users.company_id
+              AND (f_unaccent(c.name) ILIKE f_unaccent(word.pattern) ESCAPE '\'
+                OR c.document ILIKE word.pattern ESCAPE '\'
+                OR c.external_id ILIKE word.pattern ESCAPE '\')
+        )
     )
 )
 LIMIT $2;

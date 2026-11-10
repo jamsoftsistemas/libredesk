@@ -189,6 +189,7 @@ const permissions = ref([
       { name: perms.ROLES_MANAGE, label: t('admin.role.roles.manage') },
       { name: perms.TEMPLATES_MANAGE, label: t('admin.role.templates.manage') },
       { name: perms.REPORTS_MANAGE, label: t('admin.role.reports.manage') },
+      { name: perms.REPORTS_VIEW_OWN, label: t('admin.role.reports.viewOwn') },
       { name: perms.BUSINESS_HOURS_MANAGE, label: t('admin.role.businessHours.manage') },
       { name: perms.SLA_MANAGE, label: t('admin.role.sla.manage') },
       { name: perms.AI_MANAGE, label: t('admin.role.ai.manage') },
