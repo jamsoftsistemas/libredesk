@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	amodels "github.com/abhinavxd/libredesk/internal/auth/models"
+	authzModels "github.com/abhinavxd/libredesk/internal/authz/models"
 	"github.com/abhinavxd/libredesk/internal/envelope"
 	"github.com/abhinavxd/libredesk/internal/image"
 	mmodels "github.com/abhinavxd/libredesk/internal/media/models"
@@ -138,6 +139,23 @@ func handleUpdateAgentAvailability(r *fastglue.Request) error {
 	if availReq.Source == availabilitySourceIdle &&
 		(agent.AvailabilityStatus == models.AwayManual || agent.AvailabilityStatus == models.AwayAndReassigning) {
 		return r.SendEnvelope(agent)
+	}
+
+	// Entering a manual-away state needs the matching role permission. Going back online is
+	// always allowed so an agent can never get stuck away.
+	needed := ""
+	switch availReq.Status {
+	case models.AwayAndReassigning:
+		needed = authzModels.PermAvailabilitySetReassign
+	case models.AwayManual:
+		if agent.AvailabilityStatus == models.AwayAndReassigning {
+			needed = authzModels.PermAvailabilitySetReassign
+		} else {
+			needed = authzModels.PermAvailabilitySetAway
+		}
+	}
+	if needed != "" && !slices.Contains(agent.Permissions, needed) {
+		return r.SendErrorEnvelope(fasthttp.StatusForbidden, app.i18n.T("status.deniedPermission"), nil, envelope.PermissionError)
 	}
 
 	if err := app.user.UpdateAvailability(auser.ID, availReq.Status); err != nil {

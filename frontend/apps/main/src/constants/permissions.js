@@ -35,6 +35,8 @@ export const permissions = {
   TEMPLATES_MANAGE: 'templates:manage',
   REPORTS_MANAGE: 'reports:manage',
   REPORTS_VIEW_OWN: 'reports:view_own',
+  AVAILABILITY_SET_AWAY: 'availability:set_away',
+  AVAILABILITY_SET_REASSIGN: 'availability:set_reassign',
   BUSINESS_HOURS_MANAGE: 'business_hours:manage',
   SLA_MANAGE: 'sla:manage',
   AI_MANAGE: 'ai:manage',

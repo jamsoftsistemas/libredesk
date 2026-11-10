@@ -47,7 +47,8 @@ export function useAccountCommands() {
         keywords: [t('navigation.away'), t('globals.terms.online'), t('globals.terms.status')],
         section: SECTIONS.ACCOUNT,
         icon: isAway ? CircleCheck : Clock,
-        run: () => userStore.updateUserAvailability(isAway ? 'online' : 'away_manual')
+        run: () => userStore.updateUserAvailability(isAway ? 'online' : 'away_manual'),
+        hidden: !isAway && !userStore.can('availability:set_away')
       },
       {
         id: 'account.reassign',
@@ -56,7 +57,8 @@ export function useAccountCommands() {
         section: SECTIONS.ACCOUNT,
         icon: UserRoundCog,
         run: () =>
-          userStore.updateUserAvailability(isReassigning ? 'away_manual' : 'away_and_reassigning')
+          userStore.updateUserAvailability(isReassigning ? 'away_manual' : 'away_and_reassigning'),
+        hidden: !userStore.can('availability:set_reassign')
       },
       {
         id: 'account.shortcuts',
@@ -74,6 +76,6 @@ export function useAccountCommands() {
         icon: LogOut,
         run: logout
       }
-    ]
+    ].filter((c) => !c.hidden)
   })
 }

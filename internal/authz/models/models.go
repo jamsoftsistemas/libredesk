@@ -64,6 +64,10 @@ const (
 	PermReportsManage = "reports:manage"
 	PermReportsViewOwn = "reports:view_own"
 
+	// Availability
+	PermAvailabilitySetAway     = "availability:set_away"
+	PermAvailabilitySetReassign = "availability:set_reassign"
+
 	// Business Hours
 	PermBusinessHoursManage = "business_hours:manage"
 
@@ -144,6 +148,8 @@ var validPermissions = map[string]struct{}{
 	PermTemplatesManage:                 {},
 	PermReportsManage:                   {},
 	PermReportsViewOwn:                  {},
+	PermAvailabilitySetAway:             {},
+	PermAvailabilitySetReassign:         {},
 	PermBusinessHoursManage:             {},
 	PermSLAManage:                       {},
 	PermGeneralSettingsManage:           {},

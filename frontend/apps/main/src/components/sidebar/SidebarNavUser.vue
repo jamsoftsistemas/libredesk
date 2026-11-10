@@ -57,9 +57,9 @@
             />
           </div>
 
-          <div class="border-t border-border pt-3 space-y-3">
+          <div v-if="canSetAway || canSetReassign" class="border-t border-border pt-3 space-y-3">
             <!-- Away toggle -->
-            <div class="flex items-center justify-between text-sm">
+            <div v-if="canSetAway" class="flex items-center justify-between text-sm">
               <span class="text-muted-foreground">{{ t('navigation.away') }}</span>
               <Switch
                 :checked="
@@ -73,7 +73,7 @@
               />
             </div>
             <!-- Reassign toggle -->
-            <div class="flex items-center justify-between text-sm">
+            <div v-if="canSetReassign" class="flex items-center justify-between text-sm">
               <span class="text-muted-foreground">{{ t('navigation.reassignReplies') }}</span>
               <Switch
                 :checked="userStore.user.availability_status === 'away_and_reassigning'"
@@ -111,6 +111,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   DropdownMenu,
@@ -137,6 +138,8 @@ import { useColorMode } from '@vueuse/core'
 const isMobile = useIsMobile()
 const mode = useColorMode()
 const userStore = useUserStore()
+const canSetAway = computed(() => userStore.can('availability:set_away'))
+const canSetReassign = computed(() => userStore.can('availability:set_reassign'))
 const router = useRouter()
 const { t } = useI18n()
 const shortcutsDialog = useKeyboardShortcutsDialog()

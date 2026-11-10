@@ -171,6 +171,13 @@ const permissions = ref([
     ]
   },
   {
+    name: t('admin.role.availability.title'),
+    permissions: [
+      { name: perms.AVAILABILITY_SET_AWAY, label: t('admin.role.availability.setAway') },
+      { name: perms.AVAILABILITY_SET_REASSIGN, label: t('admin.role.availability.setReassign') }
+    ]
+  },
+  {
     name: t('globals.terms.admin'),
     permissions: [
       { name: perms.GENERAL_SETTINGS_MANAGE, label: t('admin.role.generalSettings.manage') },
