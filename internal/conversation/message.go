@@ -1419,6 +1419,18 @@ func (m *Manager) uploadMessageAttachments(message *models.Message) error {
 
 		m.lo.Debug("uploading message attachment", "name", attachment.Name, "content_id", contentID, "size", attachment.Size, "content_type", attachment.ContentType, "disposition", attachment.Disposition)
 
+		// Lightly compress JPEG/PNG images to reduce storage. Keep the original on any failure.
+		if ext := strings.TrimPrefix(strings.ToLower(filepath.Ext(attachment.Name)), "."); slices.Contains(image.Exts, ext) && image.IsImageByContent(bytes.NewReader(attachment.Content)) {
+			if compressed, ok, err := image.CompressForStorage(bytes.NewReader(attachment.Content), len(attachment.Content)); err != nil {
+				m.lo.Warn("could not compress attachment image, keeping original", "name", attachment.Name, "error", err)
+			} else if ok {
+				m.lo.Debug("compressed attachment image", "name", attachment.Name, "from", len(attachment.Content), "to", compressed.Len())
+				attachment.Content = make([]byte, compressed.Len())
+				compressed.Read(attachment.Content)
+				attachment.Size = len(attachment.Content)
+			}
+		}
+
 		// Upload and insert entry in media table.
 		attachReader := bytes.NewReader(attachment.Content)
 		media, err := m.mediaStore.UploadAndInsert(

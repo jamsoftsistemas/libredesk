@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"image"
+	"image/png"
 	"io"
 
 	"github.com/disintegration/imaging"
@@ -25,6 +26,10 @@ const (
 	// AvatarMaxDim caps an avatar's longest edge. The largest render is the 128px `lg` variant, at up to 4x DPI.
 	AvatarMaxDim      = 512
 	avatarJPEGQuality = 85
+	// StorageMaxDim caps the longest edge of stored images; larger ones are downscaled.
+	StorageMaxDim = 2560
+	// StorageJPEGQuality is a visually lossless JPEG quality for stored images.
+	StorageJPEGQuality = 85
 )
 
 var (
@@ -109,6 +114,51 @@ func EncodeForLLM(content []byte) (data string, mediaType string, err error) {
 		return "", "", err
 	}
 	return base64.StdEncoding.EncodeToString(out.Bytes()), "image/jpeg", nil
+}
+
+// CompressForStorage lightly compresses a JPEG or PNG before it is stored: the longest edge is capped
+// at StorageMaxDim and JPEGs are re-encoded at StorageJPEGQuality. GIF (animated) and WebP are left
+// untouched. It returns ok=false, with a nil reader, when the image is not compressible or the result
+// would not be smaller than the original, so callers keep the original bytes.
+func CompressForStorage(r io.ReadSeeker, origSize int) (*bytes.Reader, bool, error) {
+	if _, err := r.Seek(0, io.SeekStart); err != nil {
+		return nil, false, err
+	}
+	cfg, format, err := image.DecodeConfig(r)
+	if err != nil {
+		return nil, false, err
+	}
+	if format != "jpeg" && format != "png" {
+		return nil, false, nil
+	}
+	if cfg.Width <= 0 || cfg.Height <= 0 || cfg.Width > maxDecodePixels/cfg.Height {
+		return nil, false, fmt.Errorf("invalid or too-large image dimensions %dx%d", cfg.Width, cfg.Height)
+	}
+	if _, err := r.Seek(0, io.SeekStart); err != nil {
+		return nil, false, err
+	}
+	// Re-encoding drops EXIF, so bake in the rotation the viewer would otherwise have honoured.
+	img, err := imaging.Decode(r, imaging.AutoOrientation(true))
+	if err != nil {
+		return nil, false, err
+	}
+	if b := img.Bounds(); b.Dx() > StorageMaxDim || b.Dy() > StorageMaxDim {
+		img = imaging.Fit(img, StorageMaxDim, StorageMaxDim, imaging.Lanczos)
+	}
+
+	var out bytes.Buffer
+	if format == "jpeg" {
+		err = imaging.Encode(&out, img, imaging.JPEG, imaging.JPEGQuality(StorageJPEGQuality))
+	} else {
+		err = imaging.Encode(&out, img, imaging.PNG, imaging.PNGCompressionLevel(png.BestCompression))
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	if out.Len() >= origSize {
+		return nil, false, nil
+	}
+	return bytes.NewReader(out.Bytes()), true, nil
 }
 
 // Downscale fits the image within maxDim on both edges and re-encodes it in its source format.

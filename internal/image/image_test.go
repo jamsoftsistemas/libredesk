@@ -105,3 +105,36 @@ func TestCreateThumbInvalid(t *testing.T) {
 		t.Fatal("expected error for invalid data")
 	}
 }
+
+func TestCompressForStorage(t *testing.T) {
+	// Noisy-free large JPEG gets downscaled and shrinks.
+	var jbuf bytes.Buffer
+	if err := jpeg.Encode(&jbuf, image.NewRGBA(image.Rect(0, 0, 4000, 3000)), &jpeg.Options{Quality: 100}); err != nil {
+		t.Fatal(err)
+	}
+	out, ok, err := CompressForStorage(bytes.NewReader(jbuf.Bytes()), jbuf.Len())
+	if err != nil || !ok {
+		t.Fatalf("jpeg: ok=%v err=%v", ok, err)
+	}
+	if out.Len() >= jbuf.Len() {
+		t.Fatalf("jpeg not smaller: %d >= %d", out.Len(), jbuf.Len())
+	}
+	cfg, _, err := image.DecodeConfig(out)
+	if err != nil || cfg.Width != StorageMaxDim {
+		t.Fatalf("expected width %d, got %d (err=%v)", StorageMaxDim, cfg.Width, err)
+	}
+
+	// GIF is left untouched.
+	var gbuf bytes.Buffer
+	if err := gif.Encode(&gbuf, image.NewPaletted(image.Rect(0, 0, 10, 10), []color.Color{color.Black, color.White}), nil); err != nil {
+		t.Fatal(err)
+	}
+	if out, ok, err := CompressForStorage(bytes.NewReader(gbuf.Bytes()), gbuf.Len()); err != nil || ok || out != nil {
+		t.Fatalf("gif should be skipped: ok=%v err=%v", ok, err)
+	}
+
+	// Not smaller than the original => keep original.
+	if _, ok, _ := CompressForStorage(encodePNG(t, 10, 10), 1); ok {
+		t.Fatal("expected original to be kept when result is not smaller")
+	}
+}

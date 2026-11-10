@@ -134,6 +134,17 @@ func handleMediaUpload(r *fastglue.Request) error {
 		content = bytes.NewReader(raw)
 	}
 
+	// Lightly compress JPEG/PNG images to reduce storage. Falls back to the original on any failure.
+	if slices.Contains(image.Exts, srcExt) && image.IsImageByContent(file) {
+		if compressed, ok, err := image.CompressForStorage(file, int(srcFileSize)); err != nil {
+			app.lo.Warn("could not compress uploaded image, keeping original", "error", err)
+		} else if ok {
+			app.lo.Debug("compressed uploaded image", "name", srcFileName, "from", srcFileSize, "to", compressed.Size())
+			srcFileSize = compressed.Size()
+			content = compressed
+		}
+	}
+
 	// Delete files on any error.
 	var uuid = uuid.New()
 	thumbName := image.ThumbPrefix + uuid.String()
@@ -146,8 +157,8 @@ func handleMediaUpload(r *fastglue.Request) error {
 
 	// Generate and upload thumbnail and store image dimensions in the media meta.
 	var meta = []byte("{}")
-	if slices.Contains(image.Exts, srcExt) && image.IsImageByContent(file) {
-		prepared, err := prepareImageUpload(file)
+	if slices.Contains(image.Exts, srcExt) && image.IsImageByContent(content) {
+		prepared, err := prepareImageUpload(content)
 		if err != nil {
 			app.lo.Warn("skipping thumbnail and dimensions, unsupported image format", "error", err)
 		} else {
