@@ -354,7 +354,7 @@ type Message struct {
 	TextContent       string                 `db:"text_content" json:"text_content"`
 	ContentType       string                 `db:"content_type" json:"content_type"`
 	Private           bool                   `db:"private" json:"private"`
-	SourceID          null.String            `db:"source_id" json:"-"`
+	SourceID          null.String            `db:"source_id" json:"source_id"`
 	SenderID          int                    `db:"sender_id" json:"sender_id"`
 	SenderType        string                 `db:"sender_type" json:"sender_type"`
 	InboxID           int                    `db:"inbox_id" json:"-"`

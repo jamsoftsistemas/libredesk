@@ -1022,6 +1022,13 @@ SELECT conversation_id
 FROM conversation_messages
 WHERE source_id = ANY($1::text []);
 
+-- name: get-quoted-message-ref
+SELECT uuid, source_id, type, sender_type, sender_id, text_content, created_at
+FROM conversation_messages
+WHERE conversation_id = $1 AND source_id = ANY($2::text [])
+ORDER BY created_at DESC
+LIMIT 1;
+
 -- name: update-message-status
 UPDATE conversation_messages SET status = $1::message_status, updated_at = NOW()
 WHERE uuid = $2 AND NOT ($1 = 'sent' AND status = 'failed');

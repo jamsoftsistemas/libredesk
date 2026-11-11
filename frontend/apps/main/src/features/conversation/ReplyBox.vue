@@ -725,6 +725,8 @@ const processSendAndSetStatus = (status) => processSend(false, false, status)
 const sendVoiceNote = async (file) => {
   const [valid] = validateWhatsAppFiles([file])
   if (!valid) return
+  // Remember where the note was recorded: the agent may switch conversations while it uploads.
+  const originUUID = currentConversationUUID.value
   const before = mediaFiles.value.length
   _uploadFiles([valid])
   await new Promise((resolve) => {
@@ -738,7 +740,18 @@ const sendVoiceNote = async (file) => {
       }
     )
   })
-  if (mediaFiles.value.length > before) processSend()
+  if (mediaFiles.value.length <= before) return
+  if (currentConversationUUID.value !== originUUID) {
+    // Never send it to the conversation that happens to be open now.
+    const added = new Set(mediaFiles.value.slice(before).map((f) => f.id))
+    setMediaFiles(mediaFiles.value.filter((f) => !added.has(f.id)))
+    emitter.emit(EMITTER_EVENTS.SHOW_TOAST, {
+      variant: 'destructive',
+      description: t('replyBox.voiceNoteDiscardedConversationChanged')
+    })
+    return
+  }
+  processSend()
 }
 
 /**

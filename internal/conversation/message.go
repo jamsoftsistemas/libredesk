@@ -1528,6 +1528,61 @@ func (m *Manager) messageExistsBySourceID(messageSourceIDs []string) (int, error
 	return conversationID, nil
 }
 
+// QuotedMessage is the reference to the message a customer replied to (WhatsApp "reply"), stored under meta.quoted
+// and delivered to external webhooks. Only SourceID is guaranteed; the rest is filled when the original message is known.
+type QuotedMessage struct {
+	SourceID    string     `json:"source_id"`
+	MessageUUID string     `json:"message_uuid,omitempty"`
+	Type        string     `json:"type,omitempty"`
+	SenderType  string     `json:"sender_type,omitempty"`
+	SenderID    int        `json:"sender_id,omitempty"`
+	Text        string     `json:"text,omitempty"`
+	CreatedAt   *time.Time `json:"created_at,omitempty"`
+}
+
+// BuildQuotedMeta returns the meta JSON for an inbound message that quotes another one, or nil when there is no quote.
+// The gateway may prefix the id with the owner ("5511...:3EB0..."), so both forms are matched against stored source ids.
+func (m *Manager) BuildQuotedMeta(conversationID int, quotedID string) json.RawMessage {
+	quotedID = strings.TrimSpace(quotedID)
+	if quotedID == "" {
+		return nil
+	}
+	candidates := []string{quotedID}
+	if _, after, ok := strings.Cut(quotedID, ":"); ok && after != "" {
+		candidates = append(candidates, after)
+	}
+
+	q := QuotedMessage{SourceID: quotedID}
+	var row struct {
+		UUID        string      `db:"uuid"`
+		SourceID    null.String `db:"source_id"`
+		Type        string      `db:"type"`
+		SenderType  string      `db:"sender_type"`
+		SenderID    int         `db:"sender_id"`
+		TextContent string      `db:"text_content"`
+		CreatedAt   time.Time   `db:"created_at"`
+	}
+	err := m.q.GetQuotedMessageRef.Get(&row, conversationID, pq.Array(candidates))
+	switch {
+	case err == nil:
+		q.SourceID = row.SourceID.String
+		q.MessageUUID = row.UUID
+		q.Type = row.Type
+		q.SenderType = row.SenderType
+		q.SenderID = row.SenderID
+		q.Text = stringutil.TruncateUTF8(row.TextContent, 500)
+		q.CreatedAt = &row.CreatedAt
+	case !errors.Is(err, sql.ErrNoRows):
+		m.lo.Warn("error resolving quoted message, keeping bare reference", "conversation_id", conversationID, "quoted_id", quotedID, "error", err)
+	}
+
+	raw, err := json.Marshal(map[string]any{"quoted": q})
+	if err != nil {
+		return nil
+	}
+	return raw
+}
+
 // GetInlineMediaRefs returns media referenced via cid: in the body but linked to other messages (quoted history).
 func (m *Manager) GetInlineMediaRefs(message *models.Message) ([]mmodels.Media, error) {
 	cids := extractInlineContentIDs(message.Content)

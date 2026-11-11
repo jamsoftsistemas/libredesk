@@ -191,6 +191,8 @@ func ingestUazapiMessage(ctx context.Context, app *App, inboxID int, ev *uazapi.
 		ContentType:      cmodels.ContentTypeText,
 		SourceID:         null.StringFrom(m.MessageID),
 		Attachments:      attachments,
+		// Carries meta.quoted so external webhooks (message.created) learn which message the customer replied to.
+		Meta: app.conversation.BuildQuotedMeta(conversationID, m.Quoted),
 	}
 
 	processedMsg, err := app.conversation.ProcessIncomingWhatsAppMessage(msg, isNewConversation, time.UnixMilli(m.MessageTimestamp))

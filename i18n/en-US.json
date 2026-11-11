@@ -1962,6 +1962,7 @@
   "replyBox.recordAudio": "Record audio",
   "replyBox.stopRecording": "Stop and attach",
   "replyBox.cancelRecording": "Cancel recording",
+  "replyBox.voiceNoteDiscardedConversationChanged": "Conversation changed before the audio finished uploading. The audio was not sent; record it again.",
   "replyBox.micPermissionDenied": "Could not access the microphone. Check the browser permissions.",
   "replyBox.micInsecureContext": "The microphone is only available over HTTPS (or localhost). Open this page with https:// to record audio.",
   "replyBox.sendAudio": "Send voice message"
