@@ -625,6 +625,7 @@
   "auth.signIn": "Connectez-vous",
   "auth.signInButton": "Se connecter",
   "automation.deletionConfirmation": "Cette action est irréversible. Cette règle d'automatisation sera définitivement supprimée.",
+  "automation.invalidTransferRule": "Les règles de transfert nécessitent au moins une entreprise et un agent de destination.",
   "automation.editRule": "Modifier la règle",
   "automation.newRule": "Nouvelle règle",
   "businessHour.deletionConfirmation": "Cette action est irréversible. Cet horaire d'ouverture sera définitivement supprimé.",

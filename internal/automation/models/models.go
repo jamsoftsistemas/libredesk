@@ -38,10 +38,15 @@ const (
 	RuleOperatorGreaterThan = "greater than"
 	RuleOperatorLessThan    = "less than"
 	RuleOperatorStartsWith  = "starts with"
+	RuleOperatorIn          = "in"
 
 	RuleTypeNewConversation    = "new_conversation"
 	RuleTypeConversationUpdate = "conversation_update"
 	RuleTypeTimeTrigger        = "time_trigger"
+	RuleTypeTransfer           = "transfer"
+
+	// ContactCompany matches the contact's company (client portfolio) ID.
+	ContactCompany = "contact_company"
 
 	ConversationSubject                = "subject"
 	ConversationContent                = "content"

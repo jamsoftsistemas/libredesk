@@ -52,6 +52,21 @@ func (e *Engine) evalConversationRules(rules []models.Rule, conversation cmodels
 	}
 }
 
+// ruleMatches reports whether the rule's condition groups match the conversation, without applying any action.
+func (e *Engine) ruleMatches(rule models.Rule, conversation cmodels.Conversation) bool {
+	if len(rule.Groups) > 2 {
+		return false
+	}
+	var results []bool
+	for _, group := range rule.Groups {
+		if len(group.Rules) == 0 {
+			continue
+		}
+		results = append(results, e.evaluateGroup(group.Rules, group.LogicalOp, conversation, nil))
+	}
+	return evaluateFinalResult(results, rule.GroupOperator)
+}
+
 // evaluateFinalResult computes the final result of multiple group evaluations
 // based on the specified logical operator (AND/OR).
 func evaluateFinalResult(results []bool, operator string) bool {
@@ -121,6 +136,26 @@ func (e *Engine) evaluateRule(rule models.RuleDetail, conversation cmodels.Conve
 			valueToCompare = conversation.Contact.Email.String
 			// Email addresses are case-insensitive, older rules may still carry the flag.
 			rule.CaseSensitiveMatch = false
+		case models.ContactCompany:
+			// Contacts outside the portfolio never match; membership is by exact company ID.
+			if !conversation.Contact.CompanyID.Valid {
+				return rule.Operator == models.RuleOperatorNotSet
+			}
+			companyID := strconv.Itoa(conversation.Contact.CompanyID.Int)
+			switch rule.Operator {
+			case models.RuleOperatorIn:
+				for id := range strings.SplitSeq(rule.Value, ",") {
+					if strings.TrimSpace(id) == companyID {
+						return true
+					}
+				}
+				return false
+			case models.RuleOperatorSet:
+				return true
+			case models.RuleOperatorNotSet:
+				return false
+			}
+			valueToCompare = companyID
 		case models.ConversationSubject:
 			valueToCompare = conversation.Subject.String
 		case models.ConversationContent:

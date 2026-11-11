@@ -415,6 +415,7 @@
   "auth.signIn": "Faça login em sua conta",
   "auth.signInButton": "Fazer login",
   "automation.deletionConfirmation": "Esta ação não pode ser desfeita. Isso excluirá permanentemente esta regra de automação.",
+  "automation.invalidTransferRule": "As regras de transferência precisam de pelo menos uma empresa e um agente de destino.",
   "automation.editRule": "Editar regra",
   "automation.newRule": "Nova regra",
   "businessHour.deletionConfirmation": "Esta ação não pode ser desfeita. Isso excluirá permanentemente este horário comercial.",

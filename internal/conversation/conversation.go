@@ -878,6 +878,15 @@ func (c *Manager) StartConversationWaitingSince(conversationUUID string, at time
 	return nil
 }
 
+// GetAgentAvailability returns the current availability status of an agent.
+func (c *Manager) GetAgentAvailability(agentID int) (string, error) {
+	agent, err := c.userStore.GetAgentCachedOrLoad(agentID)
+	if err != nil {
+		return "", err
+	}
+	return agent.AvailabilityStatus, nil
+}
+
 // UpdateConversationUserAssignee sets the assignee of a conversation to a specifc user.
 func (c *Manager) UpdateConversationUserAssignee(uuid string, assigneeID int, actor umodels.User) error {
 	previousConversation, err := c.GetConversation(0, uuid, "")
@@ -978,6 +987,11 @@ func (c *Manager) afterUserAssignedHooks(uuid string, assigneeID int, actor umod
 
 // UpdateConversationTeamAssignee sets the assignee of a conversation to a specific team and sets the assigned user id to NULL.
 func (c *Manager) UpdateConversationTeamAssignee(uuid string, teamID int, actor umodels.User) error {
+	return c.updateTeamAssignee(uuid, teamID, actor, false)
+}
+
+// updateTeamAssignee assigns the team; when keepUser is true the current agent is kept instead of being cleared on a team change.
+func (c *Manager) updateTeamAssignee(uuid string, teamID int, actor umodels.User, keepUser bool) error {
 	conversation, err := c.GetConversation(0, uuid, "")
 	if err != nil {
 		return err
@@ -996,9 +1010,11 @@ func (c *Manager) UpdateConversationTeamAssignee(uuid string, teamID int, actor 
 
 	// Team changed?
 	if previousAssignedTeamID != teamID {
-		// Remove assigned user if team has changed.
-		if err := c.RemoveConversationAssignee(uuid, models.AssigneeTypeUser, actor); err != nil {
-			c.lo.Error("error removing conversation assignee after team change", "uuid", uuid, "error", err)
+		// Remove assigned user if team has changed, unless the caller asked to keep them.
+		if !keepUser {
+			if err := c.RemoveConversationAssignee(uuid, models.AssigneeTypeUser, actor); err != nil {
+				c.lo.Error("error removing conversation assignee after team change", "uuid", uuid, "error", err)
+			}
 		}
 
 		updatedConversation, err := c.GetConversation(0, uuid, "")
@@ -1701,7 +1717,16 @@ func (m *Manager) ApplyAction(action amodels.RuleAction, conv models.Conversatio
 		if err != nil {
 			return fmt.Errorf("invalid team ID %q: %w", action.Value[0], err)
 		}
-		return m.UpdateConversationTeamAssignee(conv.UUID, teamID, user)
+		// Keep the agent if they already belong to the target team. Read the current state, as conv may be
+		// stale after an earlier rule assigned the agent.
+		keepUser := false
+		if current, cErr := m.GetConversation(0, conv.UUID, ""); cErr == nil && current.AssignedUserID.Valid {
+			// team.UserBelongsToTeam takes (teamID, userID) despite the interface parameter names.
+			if ok, bErr := m.teamStore.UserBelongsToTeam(teamID, current.AssignedUserID.Int); bErr == nil && ok {
+				keepUser = true
+			}
+		}
+		return m.updateTeamAssignee(conv.UUID, teamID, user, keepUser)
 	case amodels.ActionAssignUser:
 		agentID, err := strconv.Atoi(action.Value[0])
 		if err != nil {

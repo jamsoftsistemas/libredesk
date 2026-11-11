@@ -1,6 +1,6 @@
 <template>
   <Tabs default-value="new_conversation" v-model="selectedTab">
-    <TabsList class="flex w-full justify-start overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden mb-5 sm:grid sm:grid-cols-3">
+    <TabsList class="flex w-full justify-start overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden mb-5 sm:grid sm:grid-cols-4">
       <TabsTrigger value="new_conversation" :class="AUTOMATION_TAB_CLASS">
         {{ $t('conversation.newConversation') }}
       </TabsTrigger>
@@ -10,7 +10,13 @@
       <TabsTrigger value="time_trigger" :class="AUTOMATION_TAB_CLASS">
         {{ $t('admin.automation.timeTriggers') }}
       </TabsTrigger>
+      <TabsTrigger value="transfer" :class="AUTOMATION_TAB_CLASS">
+        {{ $t('admin.automation.transfer') }}
+      </TabsTrigger>
     </TabsList>
+    <TabsContent value="transfer">
+      <TransferTab />
+    </TabsContent>
     <TabsContent value="new_conversation">
       <RuleTab
         type="new_conversation"
@@ -35,6 +41,7 @@ const AUTOMATION_TAB_CLASS = 'shrink-0 sm:min-w-0'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@shared-ui/components/ui/tabs'
 import { useI18n } from 'vue-i18n'
 import RuleTab from './RuleTab.vue'
+import TransferTab from './TransferTab.vue'
 
 const { t } = useI18n()
 const selectedTab = defineModel('automationsTab', {

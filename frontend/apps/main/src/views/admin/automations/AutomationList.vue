@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="flex justify-between mb-5">
-      <div class="ml-auto">
+      <div class="ml-auto" v-if="selectedTab !== 'transfer'">
         <Button @click="newRule">{{
           $t('automation.newRule')
         }}</Button>

@@ -64,6 +64,10 @@ type Engine struct {
 
 	suppressed   map[string]int
 	suppressedMu sync.Mutex
+
+	// transferLast holds the last agent chosen per company for transfer round-robin.
+	transferLast map[int]int
+	transferMu   sync.Mutex
 }
 
 type Opts struct {
@@ -77,6 +81,7 @@ type conversationStore interface {
 	ApplyAction(action models.RuleAction, conversation cmodels.Conversation, user umodels.User) error
 	GetConversation(teamID int, uuid, refNum string) (cmodels.Conversation, error)
 	GetConversationsCreatedAfter(after time.Time, afterID, limit int) ([]cmodels.ConversationRef, error)
+	GetAgentAvailability(agentID int) (string, error)
 }
 
 // businessHoursChecker reports whether support is open at a given time for a team, falling back to the helpdesk defaults when teamID is 0.
@@ -105,6 +110,7 @@ func New(opt Opts) (*Engine, error) {
 			i18n:                    opt.I18n,
 			taskQueue:               make(chan ConversationTask, MaxQueueSize),
 			timeTriggerLookbackDays: opt.TimeTriggerLookbackDays,
+			transferLast:            make(map[int]int),
 		}
 	)
 	if err := dbutil.ScanSQLFile("queries.sql", &q, opt.DB, efs); err != nil {
@@ -236,6 +242,9 @@ func (e *Engine) ToggleRule(id int) (models.RuleRecord, error) {
 
 // UpdateRule updates an existing rule.
 func (e *Engine) UpdateRule(id int, rule models.RuleRecord) (models.RuleRecord, error) {
+	if err := e.validateTransferRule(rule); err != nil {
+		return models.RuleRecord{}, err
+	}
 	if rule.Events == nil {
 		rule.Events = pq.StringArray{}
 	}
@@ -251,6 +260,9 @@ func (e *Engine) UpdateRule(id int, rule models.RuleRecord) (models.RuleRecord, 
 
 // CreateRule creates a new rule.
 func (e *Engine) CreateRule(rule models.RuleRecord) (models.RuleRecord, error) {
+	if err := e.validateTransferRule(rule); err != nil {
+		return models.RuleRecord{}, err
+	}
 	if rule.Events == nil {
 		rule.Events = pq.StringArray{}
 	}
@@ -262,6 +274,37 @@ func (e *Engine) CreateRule(rule models.RuleRecord) (models.RuleRecord, error) {
 	// Reload rules.
 	e.ReloadRules()
 	return result, nil
+}
+
+// validateTransferRule checks that a transfer rule has a company condition and an assign action.
+func (e *Engine) validateTransferRule(rec models.RuleRecord) error {
+	if rec.Type != models.RuleTypeTransfer {
+		return nil
+	}
+	invalid := envelope.NewError(envelope.InputError, e.i18n.T("automation.invalidTransferRule"), nil)
+	var rules []models.Rule
+	if err := json.Unmarshal(rec.Rules, &rules); err != nil || len(rules) == 0 {
+		return invalid
+	}
+	for _, r := range rules {
+		hasCompany, hasAssign := false, false
+		for _, g := range r.Groups {
+			for _, d := range g.Rules {
+				if d.Field == models.ContactCompany && d.Value != "" {
+					hasCompany = true
+				}
+			}
+		}
+		for _, a := range r.Actions {
+			if a.Type == models.ActionAssignUser && len(a.Value) > 0 {
+				hasAssign = true
+			}
+		}
+		if !hasCompany || !hasAssign {
+			return invalid
+		}
+	}
+	return nil
 }
 
 // DeleteRule deletes a rule by ID.
@@ -358,6 +401,11 @@ func (e *Engine) EvaluateConversationUpdateRulesByID(conversationID int, convers
 // handleNewConversation handles new conversation events.
 func (e *Engine) handleNewConversation(conversation cmodels.Conversation) {
 	e.lo.Debug("handling new conversation for automation rule evaluation", "uuid", conversation.UUID)
+	// Portfolio transfers run first so the owner agent is set before generic rules; first match wins.
+	if transferRules := e.filterRulesByType(models.RuleTypeTransfer, ""); len(transferRules) > 0 {
+		e.handleTransfer(transferRules, conversation)
+	}
+
 	rules := e.filterRulesByType(models.RuleTypeNewConversation, "")
 	if len(rules) == 0 {
 		e.lo.Info("no rules to evaluate for new conversation rule evaluation", "uuid", conversation.UUID)

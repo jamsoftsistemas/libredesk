@@ -39,6 +39,11 @@ func (m *mockConversationStore) GetConversationsCreatedAfter(t time.Time, afterI
 	return args.Get(0).([]cmodels.ConversationRef), args.Error(1)
 }
 
+func (m *mockConversationStore) GetAgentAvailability(agentID int) (string, error) {
+	args := m.Called(agentID)
+	return args.String(0), args.Error(1)
+}
+
 // Test Helpers
 func createTestEngine(store *mockConversationStore) *Engine {
 	logger := logf.New(logf.Opts{Level: logf.DebugLevel})
