@@ -349,6 +349,7 @@ type queries struct {
 	GetConversationsCreatedAfter        *sqlx.Stmt `query:"get-conversations-created-after"`
 	GetUnassignedConversations          *sqlx.Stmt `query:"get-unassigned-conversations"`
 	GetConversations                    string     `query:"get-conversations"`
+	GetConversationsEnrich              string     `query:"get-conversations-enrich"`
 	GetContactChatConversations         *sqlx.Stmt `query:"get-contact-chat-conversations"`
 	GetChatConversation                 *sqlx.Stmt `query:"get-chat-conversation"`
 	GetContactPreviousConversations     *sqlx.Stmt `query:"get-contact-previous-conversations"`
@@ -2217,13 +2218,20 @@ func (c *Manager) makeConversationsListQuery(viewingUserID, userID int, teamIDs 
 
 	baseQuery = fmt.Sprintf(baseQuery, whereClause)
 
-	return dbutil.BuildPaginatedQuery(baseQuery, qArgs, dbutil.PaginationOptions{
+	pageQuery, pageArgs, err := dbutil.BuildPaginatedQuery(baseQuery, qArgs, dbutil.PaginationOptions{
 		Order:    order,
 		OrderBy:  orderBy,
 		Page:     page,
 		PageSize: pageSize,
 		Location: c.FilterLocation(),
 	}, filtersJSON, ListFilterAllowedFields, ListFilterRenderers)
+	if err != nil {
+		return "", nil, err
+	}
+
+	// Paginate first with cheap columns, then compute the costly per-row columns
+	// (unread count, mentions, SLA) only for the rows of the requested page.
+	return fmt.Sprintf(c.q.GetConversationsEnrich, pageQuery), pageArgs, nil
 }
 
 // ValidateListFilters structurally validates a conversation view's filters payload.

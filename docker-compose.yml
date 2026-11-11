@@ -25,6 +25,8 @@ services:
     image: postgres:17-alpine
     container_name: libredesk_db
     restart: unless-stopped
+    # Habilita o pg_stat_statements para diagnosticar consultas lentas.
+    command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all
     networks:
       - libredesk
     ports:

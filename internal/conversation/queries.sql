@@ -67,22 +67,36 @@ SELECT
     conversations.priority_id,
     conversations.assigned_user_id,
     conversations.assigned_team_id,
+    conversation_statuses.name as status,
+    conversation_priorities.name as priority
+    FROM conversations
+    JOIN users ON contact_id = users.id
+    JOIN inboxes ON inbox_id = inboxes.id  
+    LEFT JOIN conversation_statuses ON status_id = conversation_statuses.id
+    LEFT JOIN conversation_priorities ON priority_id = conversation_priorities.id
+WHERE 1=1 %s
+
+-- name: get-conversations-enrich
+-- Wraps the paginated get-conversations query (%s) and adds the costly per-row columns
+-- only for the rows of the requested page, instead of for every conversation matching the filters.
+-- $1 = viewing user ID for per-agent unread count
+-- $2 = include mentioned message UUID (true for mentioned inbox, false otherwise)
+SELECT
+    page.*,
     (
     SELECT CASE WHEN COUNT(*) > 9 THEN 10 ELSE COUNT(*) END
     FROM (
         SELECT 1 FROM conversation_messages
-        WHERE conversation_id = conversations.id
+        WHERE conversation_id = page.id
         AND created_at > COALESCE(
             (SELECT last_seen_at FROM conversation_last_seen
-             WHERE conversation_id = conversations.id AND user_id = $1),
+             WHERE conversation_id = page.id AND user_id = $1),
             '1970-01-01'::TIMESTAMPTZ
         )
         AND (meta IS NULL OR NOT COALESCE((meta->>'continuity_email')::boolean, false))
         LIMIT 10
     ) t
     ) as unread_message_count,
-    conversation_statuses.name as status,
-    conversation_priorities.name as priority,
     as_latest.first_response_deadline_at,
     as_latest.resolution_deadline_at,
     as_latest.id as applied_sla_id,
@@ -92,7 +106,7 @@ SELECT
         SELECT msg.uuid
         FROM conversation_mentions cm2
         JOIN conversation_messages msg ON msg.id = cm2.message_id
-        WHERE cm2.conversation_id = conversations.id
+        WHERE cm2.conversation_id = page.id
           AND (cm2.mentioned_user_id = $1 OR EXISTS(
               SELECT 1 FROM team_members tm2
               WHERE tm2.team_id = cm2.mentioned_team_id AND tm2.user_id = $1
@@ -100,26 +114,21 @@ SELECT
         ORDER BY cm2.created_at DESC
         LIMIT 1
     ) ELSE NULL END as mentioned_message_uuid
-    FROM conversations
-    JOIN users ON contact_id = users.id
-    JOIN inboxes ON inbox_id = inboxes.id  
-    LEFT JOIN conversation_statuses ON status_id = conversation_statuses.id
-    LEFT JOIN conversation_priorities ON priority_id = conversation_priorities.id
-    LEFT JOIN LATERAL (
-        SELECT id, first_response_deadline_at, resolution_deadline_at
-        FROM applied_slas 
-        WHERE conversation_id = conversations.id 
-        ORDER BY created_at DESC LIMIT 1
-    ) as_latest ON true
-    LEFT JOIN LATERAL (
-        SELECT se.deadline_at, se.met_at
-        FROM sla_events se
-        WHERE se.applied_sla_id = as_latest.id
-        AND se.type = 'next_response'
-        ORDER BY se.created_at DESC
-        LIMIT 1
-    ) nxt_resp_event ON true
-WHERE 1=1 %s
+FROM (%s) page
+LEFT JOIN LATERAL (
+    SELECT id, first_response_deadline_at, resolution_deadline_at
+    FROM applied_slas
+    WHERE conversation_id = page.id
+    ORDER BY created_at DESC LIMIT 1
+) as_latest ON true
+LEFT JOIN LATERAL (
+    SELECT se.deadline_at, se.met_at
+    FROM sla_events se
+    WHERE se.applied_sla_id = as_latest.id
+    AND se.type = 'next_response'
+    ORDER BY se.created_at DESC
+    LIMIT 1
+) nxt_resp_event ON true
 
 -- name: get-conversation-list-item
 SELECT
