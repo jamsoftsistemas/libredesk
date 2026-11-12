@@ -98,11 +98,37 @@
                 @keydown.enter.prevent
               />
 
+              <!-- Duration input (number + minutes/hours unit) -->
+              <div v-if="isDuration(index)" class="flex space-x-2">
+                <Input
+                  type="number"
+                  min="0"
+                  :placeholder="t('actions.setValue')"
+                  :modelValue="durationParts(rule.value).amount"
+                  @update:modelValue="(v) => handleDurationChange(index, v, durationParts(rule.value).unit)"
+                  @keydown.enter.prevent
+                />
+                <Select
+                  :modelValue="durationParts(rule.value).unit"
+                  @update:modelValue="(u) => handleDurationChange(index, durationParts(rule.value).amount, u)"
+                >
+                  <SelectTrigger class="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="m">{{ $t('globals.messages.unitMinutes') }}</SelectItem>
+                      <SelectItem value="h">{{ $t('globals.messages.unitHours') }}</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <!-- Number input -->
               <Input
                 type="number"
                 :placeholder="t('actions.setValue')"
-                v-if="inputType(index) === 'number'"
+                v-if="inputType(index) === 'number' && !isDuration(index)"
                 v-model="rule.value"
                 @update:modelValue="(value) => handleValueChange(value, index)"
                 @keydown.enter.prevent
@@ -332,6 +358,28 @@ const handleValueChange = (value, ruleIndex) => {
       : val
     : String(val)
 
+  emitUpdate()
+}
+
+// Time-since fields store "<n>m" or "<n>h"; a bare number is hours (legacy rules).
+const isDuration = (index) => {
+  const rule = ruleGroup.value.rules[index]
+  return (
+    (rule?.field_type || fieldTypeConstants.conversation) === fieldTypeConstants.conversation &&
+    typeof rule?.field === 'string' &&
+    rule.field.startsWith('hours_since_') &&
+    !['set', 'not set'].includes(rule.operator)
+  )
+}
+
+const durationParts = (value) => {
+  const m = /^\s*(-?\d*\.?\d*)\s*([mh])?\s*$/i.exec(String(value ?? ''))
+  return { amount: m ? m[1] : '', unit: m && m[2] ? m[2].toLowerCase() : 'h' }
+}
+
+const handleDurationChange = (ruleIndex, amount, unit) => {
+  const a = amount === null || amount === undefined ? '' : String(amount)
+  ruleGroup.value.rules[ruleIndex].value = a === '' ? '' : `${a}${unit}`
   emitUpdate()
 }
 

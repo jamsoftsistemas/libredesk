@@ -21,6 +21,8 @@ type Company struct {
 
 // CompanyCompact is a minimal representation of a company, for use in search and selection pickers.
 type CompanyCompact struct {
-	ID   int    `db:"id" json:"id"`
-	Name string `db:"name" json:"name"`
+	ID         int         `db:"id" json:"id"`
+	Name       string      `db:"name" json:"name"`
+	Document   null.String `db:"document" json:"document"`
+	ExternalID null.String `db:"external_id" json:"external_id"`
 }

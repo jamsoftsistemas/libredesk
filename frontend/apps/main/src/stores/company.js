@@ -20,8 +20,11 @@ export const useCompanyStore = defineStore('company', () => {
         onError: showFetchError
     })
 
+    // Label: "Name - CNPJ - ID", skipping whichever parts are empty.
+    const toLabel = (company) =>
+        [company.name, company.document, company.external_id].filter(Boolean).join(' - ')
     const toOptions = (companies) => companies.map(company => ({
-        label: company.name,
+        label: toLabel(company),
         value: String(company.id),
     }))
     const companies = lookup.rows

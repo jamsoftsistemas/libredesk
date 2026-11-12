@@ -173,22 +173,22 @@ func (e *Engine) evaluateRule(rule models.RuleDetail, conversation cmodels.Conve
 				valueToCompare = strconv.Itoa(conversation.AssignedUserID.Int)
 			}
 		case models.ConversationHoursSinceCreated:
-			valueToCompare = fmt.Sprintf("%.0f", (time.Since(conversation.CreatedAt).Hours()))
+			valueToCompare = elapsedInRuleUnit(time.Since(conversation.CreatedAt), &rule)
 		case models.ConversationHoursSinceFirstReply:
 			if !conversation.FirstReplyAt.IsZero() {
-				valueToCompare = fmt.Sprintf("%.0f", (time.Since(conversation.FirstReplyAt.Time).Hours()))
+				valueToCompare = elapsedInRuleUnit(time.Since(conversation.FirstReplyAt.Time), &rule)
 			}
 		case models.ConversationHoursSinceLastReply:
 			if !conversation.LastReplyAt.IsZero() {
-				valueToCompare = fmt.Sprintf("%.0f", (time.Since(conversation.LastReplyAt.Time).Hours()))
+				valueToCompare = elapsedInRuleUnit(time.Since(conversation.LastReplyAt.Time), &rule)
 			}
 		case models.ConversationHoursSinceResolved:
 			if !conversation.ResolvedAt.IsZero() {
-				valueToCompare = fmt.Sprintf("%.0f", (time.Since(conversation.ResolvedAt.Time).Hours()))
+				valueToCompare = elapsedInRuleUnit(time.Since(conversation.ResolvedAt.Time), &rule)
 			}
 		case models.ConversationHoursSinceLastResolved:
 			if !conversation.LastResolvedAt.IsZero() {
-				valueToCompare = fmt.Sprintf("%.0f", time.Since(conversation.LastResolvedAt.Time).Hours())
+				valueToCompare = elapsedInRuleUnit(time.Since(conversation.LastResolvedAt.Time), &rule)
 			} else if rule.Operator != models.RuleOperatorSet && rule.Operator != models.RuleOperatorNotSet {
 				return false
 			}
@@ -372,6 +372,19 @@ func (e *Engine) evaluateRule(rule models.RuleDetail, conversation cmodels.Conve
 	}
 	e.lo.Debug("conversation automation rule status", "has_met", conditionMet, "conversation_uuid", conversation.UUID)
 	return conditionMet
+}
+
+// elapsedInRuleUnit formats an elapsed duration in the unit used by the rule value and strips the
+// unit from the rule value so both sides compare as plain numbers. Rule values accept an "m"
+// (minutes) or "h" (hours) suffix; a bare number is hours, which keeps existing rules working.
+func elapsedInRuleUnit(elapsed time.Duration, rule *models.RuleDetail) string {
+	v := strings.ToLower(strings.TrimSpace(rule.Value))
+	if strings.HasSuffix(v, "m") {
+		rule.Value = strings.TrimSpace(strings.TrimSuffix(v, "m"))
+		return fmt.Sprintf("%.0f", elapsed.Minutes())
+	}
+	rule.Value = strings.TrimSpace(strings.TrimSuffix(v, "h"))
+	return fmt.Sprintf("%.0f", elapsed.Hours())
 }
 
 func evaluateRecipientRule(recipients []string, rule models.RuleDetail) bool {

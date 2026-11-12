@@ -4,12 +4,12 @@ WHERE ($1 = '' OR "name" ILIKE '%' || $1 || '%' OR "document" ILIKE '%' || $1 ||
 ORDER BY "name" LIMIT NULLIF($2, 0) OFFSET $3;
 
 -- name: get-companies-compact
-SELECT id, "name" FROM companies
-WHERE ($1 = '' OR "name" ILIKE '%' || $1 || '%' OR external_id ILIKE '%' || $1 || '%')
+SELECT id, "name", "document", external_id FROM companies
+WHERE ($1 = '' OR "name" ILIKE '%' || $1 || '%' OR external_id ILIKE '%' || $1 || '%' OR "document" ILIKE '%' || $1 || '%')
 ORDER BY "name" LIMIT NULLIF($2, 0) OFFSET $3;
 
 -- name: get-companies-compact-by-ids
-SELECT id, "name" FROM companies WHERE id = ANY($1) ORDER BY "name";
+SELECT id, "name", "document", external_id FROM companies WHERE id = ANY($1) ORDER BY "name";
 
 -- name: get-company
 SELECT id, created_at, updated_at, external_id, "name", "document", city, "system" FROM companies WHERE id = $1;

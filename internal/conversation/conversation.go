@@ -68,6 +68,9 @@ var (
 const (
 	conversationsListMaxPageSize = 500
 
+	// conversationsListCountCap bounds the pagination total scan; totals above it are a lower bound.
+	conversationsListCountCap = 1000
+
 	automationNotifyEmailContent = `<p style="white-space: pre-line;">{{ .Message }}</p>
 
 <p>
@@ -814,7 +817,53 @@ func (c *Manager) GetConversations(viewingUserID, userID int, teamIDs []int, lis
 		c.lo.Error("error fetching conversations", "error", err)
 		return conversations, envelope.NewError(envelope.GeneralError, c.i18n.T("globals.messages.somethingWentWrong"), nil)
 	}
+
+	if len(conversations) == 0 {
+		return conversations, nil
+	}
+
+	// Total is attached to the first row, which callers read for pagination.
+	conversations[0].Total = c.countConversationsList(viewingUserID, userID, teamIDs, listTypes, filters, page, pageSize, len(conversations))
 	return conversations, nil
+}
+
+// countConversationsList returns the total matching a list, used for pagination.
+// A short page is answered without querying. Otherwise the scan is capped at
+// max(conversationsListCountCap, rows through the next page), so "has more pages" stays correct
+// while the cost stays bounded. Above the cap the total is a lower bound.
+func (c *Manager) countConversationsList(viewingUserID, userID int, teamIDs []int, listTypes []string, filtersJSON string, page, pageSize, fetched int) int {
+	offset := (page - 1) * pageSize
+	if fetched < pageSize {
+		return offset + fetched
+	}
+
+	// Best-effort fallback if the count fails: report one more row than seen so the UI can keep paging.
+	fallback := offset + fetched + 1
+
+	var qArgs []any
+	conditions, err := appendListTypeConditions(listTypes, viewingUserID, userID, teamIDs, &qArgs)
+	if err != nil {
+		c.lo.Error("error building conversations count conditions", "error", err)
+		return fallback
+	}
+	if filtersJSON == "" {
+		filtersJSON = "[]"
+	}
+	baseQuery := fmt.Sprintf(c.q.GetConversationsCountBase, listTypeWhereClause(conditions))
+	countQuery, countArgs, err := dbutil.BuildFilterQuery(baseQuery, qArgs, filtersJSON, ListFilterAllowedFields, ListFilterRenderers, c.FilterLocation())
+	if err != nil {
+		c.lo.Error("error building conversations count query", "error", err)
+		return fallback
+	}
+
+	limit := max(conversationsListCountCap, offset+pageSize+1)
+	var total int
+	query := fmt.Sprintf("SELECT COUNT(*) FROM (%s LIMIT %d) capped", countQuery, limit)
+	if err := c.db.Get(&total, query, countArgs...); err != nil {
+		c.lo.Error("error counting conversations", "error", err)
+		return fallback
+	}
+	return total
 }
 
 // ReOpenConversation reopens a conversation if it's snoozed, resolved or closed.

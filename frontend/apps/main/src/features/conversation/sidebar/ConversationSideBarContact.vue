@@ -66,7 +66,13 @@
     <div class="flex gap-2 items-center">
       <Building2 size="16" class="text-muted-foreground flex-shrink-0" />
       <span class="sidebar-value truncate">
-        {{ conversation?.contact?.company_name || t('company.noCompanyAssigned') }}
+        {{
+          conversation?.contact?.company_name
+            ? [conversation.contact.company_name, conversation.contact.company_external_id]
+                .filter(Boolean)
+                .join(' - ')
+            : t('company.noCompanyAssigned')
+        }}
       </span>
     </div>
     <div class="flex gap-2 items-center">

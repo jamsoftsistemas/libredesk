@@ -35,8 +35,9 @@ RETURNING id, uuid;
 -- name: get-conversations
 -- $1 = viewing user ID for per-agent unread count
 -- $2 = include mentioned message UUID (true for mentioned inbox, false otherwise)
+-- No COUNT(*) OVER() here: a window count forces scanning, joining and sorting every matching row before
+-- LIMIT applies. The total is computed separately (capped) by Manager.countConversationsList.
 SELECT
-    COUNT(*) OVER() as total,
     conversations.id,
     conversations.created_at,
     conversations.updated_at,
@@ -256,6 +257,7 @@ SELECT
    ct.external_user_id as "contact.external_user_id",
    ct.company_id as "contact.company_id",
    comp.name as "contact.company_name",
+   comp.external_id as "contact.company_external_id",
    comp.system as "contact.company_system",
    (SELECT json_agg(json_build_object('channel', cci.channel, 'identifier', cci.identifier))
       FROM contact_channel_identities cci WHERE cci.contact_id = ct.id) as "contact.channel_identities",

@@ -1070,6 +1070,8 @@
   "globals.messages.hoursSinceCreated": "Horas desde criação",
   "globals.messages.hoursSinceFirstReply": "Horas desde primeira resposta",
   "globals.messages.hoursSinceLastReply": "Horas desde última resposta",
+  "globals.messages.unitMinutes": "Minutos",
+  "globals.messages.unitHours": "Horas",
   "globals.messages.hoursSinceLastResolved": "Horas desde a última resolução",
   "globals.messages.hoursSinceResolved": "Horas desde que foi resolvido",
   "globals.messages.import": "Importar",
