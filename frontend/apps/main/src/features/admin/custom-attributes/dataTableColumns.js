@@ -1,6 +1,6 @@
 import { h } from 'vue'
 import dataTableDropdown from '@/features/admin/custom-attributes/dataTableDropdown.vue'
-import { format } from 'date-fns'
+import { format } from '@shared-ui/utils/date-fns'
 
 export const createColumns = (t, { onEdit } = {}) => [
     {

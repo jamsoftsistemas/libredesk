@@ -1,6 +1,6 @@
 import { h } from 'vue'
 import dropdown from './dataTableDropdown.vue'
-import { format } from 'date-fns'
+import { format } from '@shared-ui/utils/date-fns'
 import { CONVERSATION_DEFAULT_STATUSES_LIST } from '@/constants/conversation.js'
 
 const DEFAULT_STATUS_KEY = {

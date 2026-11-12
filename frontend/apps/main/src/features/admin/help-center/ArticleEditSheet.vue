@@ -520,7 +520,7 @@ import { useEmitter } from '@/composables/useEmitter.js'
 import { EMITTER_EVENTS } from '@/constants/emitterEvents.js'
 import { useUserStore } from '@/stores/user'
 import { useAppSettingsStore } from '@/stores/appSettings'
-import { format, isValid } from 'date-fns'
+import { format, isValid } from '@shared-ui/utils/date-fns'
 import { Check, ChevronRight, ExternalLink, Link2, Plus, Unlink } from 'lucide-vue-next'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@shared-ui/components/ui/tooltip'
 

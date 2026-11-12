@@ -20,7 +20,7 @@
         </div>
         <time
           :datetime="timestamp"
-          :title="format(new Date(timestamp), 'MMM d, yyyy HH:mm')"
+          :title="format(new Date(timestamp), 'd MMM yyyy HH:mm')"
           class="text-xs text-muted-foreground whitespace-nowrap tabular-nums shrink-0"
         >
           {{ getRelativeTime(timestamp) }}
@@ -85,7 +85,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { format } from 'date-fns'
+import { format } from '@shared-ui/utils/date-fns'
 import { Mail, Tag, UserRound, UsersRound } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { Avatar, AvatarFallback, AvatarImage } from '@shared-ui/components/ui/avatar'

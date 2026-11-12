@@ -81,7 +81,7 @@
 <script setup>
 import { computed, h, onMounted, ref } from 'vue'
 import { RouterLink, useRouter, useRoute } from 'vue-router'
-import { format } from 'date-fns'
+import { format } from '@shared-ui/utils/date-fns'
 import { useI18n } from 'vue-i18n'
 import { Info, RefreshCw, Trash2 } from 'lucide-vue-next'
 import { Button } from '@shared-ui/components/ui/button'

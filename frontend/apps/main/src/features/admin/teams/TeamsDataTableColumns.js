@@ -1,7 +1,7 @@
 import { h } from 'vue'
 import { RouterLink } from 'vue-router'
 import TeamDataTableDropdown from '@/features/admin/teams/TeamDataTableDropdown.vue'
-import { format } from 'date-fns'
+import { format } from '@shared-ui/utils/date-fns'
 import { getI18n } from '@/i18n'
 
 const t = () => getI18n().global.t

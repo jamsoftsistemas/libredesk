@@ -205,7 +205,7 @@ import api from '@/api'
 import { handleHTTPError } from '@shared-ui/utils/http.js'
 import { useEmitter } from '@/composables/useEmitter.js'
 import { EMITTER_EVENTS } from '@/constants/emitterEvents.js'
-import { format, isValid } from 'date-fns'
+import { format, isValid } from '@shared-ui/utils/date-fns'
 
 const { t } = useI18n()
 const formatDate = (value) => {

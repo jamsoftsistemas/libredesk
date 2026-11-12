@@ -135,7 +135,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { format } from 'date-fns'
+import { format } from '@shared-ui/utils/date-fns'
 import { Mail } from 'lucide-vue-next'
 import { CHANNEL_ICONS } from '@main/constants/channelIcons.js'
 import SlaBadge from '@/features/sla/SlaBadge.vue'

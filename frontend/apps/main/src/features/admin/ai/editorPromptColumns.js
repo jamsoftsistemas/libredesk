@@ -1,5 +1,5 @@
 import { h } from 'vue'
-import { format } from 'date-fns'
+import { format } from '@shared-ui/utils/date-fns'
 import dropdown from './editorPromptDropdown.vue'
 
 export const createEditorPromptColumns = (t, { onEdit } = {}) => [

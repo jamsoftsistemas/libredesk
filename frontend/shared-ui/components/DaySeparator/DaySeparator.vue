@@ -9,7 +9,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { isToday, isYesterday, format } from 'date-fns'
+import { isToday, isYesterday, format } from '@shared-ui/utils/date-fns'
 
 const props = defineProps({
   date: {

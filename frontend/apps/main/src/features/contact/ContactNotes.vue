@@ -183,7 +183,7 @@ const notesCache = new Map()
 
 <script setup>
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
-import { format, formatDistanceToNow } from 'date-fns'
+import { format, formatDistanceToNow } from '@shared-ui/utils/date-fns'
 import { Button } from '@shared-ui/components/ui/button'
 import { Card, CardHeader, CardContent } from '@shared-ui/components/ui/card'
 import { Avatar, AvatarImage, AvatarFallback } from '@shared-ui/components/ui/avatar'

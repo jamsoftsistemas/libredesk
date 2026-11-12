@@ -24,7 +24,7 @@ defineProps({
   disabled: { type: Boolean, required: false }
 })
 
-const df = new DateFormatter('en-US', {
+const df = new DateFormatter('pt-BR', {
   dateStyle: 'long'
 })
 </script>

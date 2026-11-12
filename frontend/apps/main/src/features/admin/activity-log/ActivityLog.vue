@@ -105,7 +105,7 @@ import { ListFilter, ArrowDownWideNarrow } from 'lucide-vue-next'
 import { Popover, PopoverContent, PopoverTrigger } from '@shared-ui/components/ui/popover'
 import { useActivityLogFilters } from '../../../composables/useActivityLogFilters'
 import { useI18n } from 'vue-i18n'
-import { format } from 'date-fns'
+import { format } from '@shared-ui/utils/date-fns'
 import PaginationBar from '@main/components/pagination/PaginationBar.vue'
 import api from '../../../api'
 

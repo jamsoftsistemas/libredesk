@@ -93,7 +93,11 @@ func (c *Client) Put(name string, cType string, file io.ReadSeeker) (string, err
 // GetURL generates a URL to access the file stored in S3.
 // It returns a pre-signed URL for private buckets or a public URL for public buckets.
 func (c *Client) GetURL(name string, disposition, fileName string) string {
-	if c.opts.BucketType == "private" && c.opts.PublicURL == "" {
+	// A public/custom domain URL (e.g. R2) serves the object with the headers it was uploaded with, which carry no filename,
+	// so browsers save attachments under the bare UUID with no extension (a .pfx becomes an extensionless/.oct file).
+	// Presigned URLs can override Content-Disposition, so use them whenever an attachment has a filename.
+	needsFilename := disposition == models.DispositionAttachment && fileName != ""
+	if (c.opts.BucketType == "private" && c.opts.PublicURL == "") || needsFilename {
 		u := c.s3.GeneratePresignedURL(simples3.PresignedInput{
 			Bucket:                     c.opts.Bucket,
 			ObjectKey:                  c.makeBucketPath(name),

@@ -1,7 +1,7 @@
 import { h } from 'vue'
 import { RouterLink } from 'vue-router'
 import dropdown from './dataTableDropdown.vue'
-import { format } from 'date-fns'
+import { format } from '@shared-ui/utils/date-fns'
 import { Badge } from '@shared-ui/components/ui/badge'
 
 export const createColumns = (t) => [

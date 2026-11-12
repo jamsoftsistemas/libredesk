@@ -8,6 +8,7 @@ import api from './api'
 import '@shared-ui/assets/styles/main.scss'
 import '@shared-ui/utils/string.js'
 import Root from './Root.vue'
+import { setDateLocale } from '@shared-ui/utils/date-fns'
 
 const setFavicon = (url) => {
   let link = document.createElement("link")
@@ -20,6 +21,7 @@ async function initApp () {
   const config = (await api.getConfig()).data.data
   const emitter = mitt()
   const lang = config['app.lang'] || 'en-US'
+  setDateLocale(lang)
   const langMessages = await api.getLanguage(lang)
 
   // Set favicon.

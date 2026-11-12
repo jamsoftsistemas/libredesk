@@ -88,11 +88,13 @@ func TestGetURLPreservesPublicURLs(t *testing.T) {
 	}{
 		{"private download", "private", "", models.DispositionAttachment, "storage.example.com", "/test-bucket/uploads/existing-file", true},
 		{"private inline", "private", "", models.DispositionInline, "storage.example.com", "/test-bucket/uploads/existing-file", true},
-		{"private custom download", "private", "https://cdn.example.com", models.DispositionAttachment, "cdn.example.com", "/uploads/existing-file", false},
+		// Attachments with a filename are presigned against the S3 endpoint so Content-Disposition carries the filename;
+		// public/custom domains serve the stored headers, which have no filename.
+		{"private custom download", "private", "https://cdn.example.com", models.DispositionAttachment, "storage.example.com", "/test-bucket/uploads/existing-file", true},
 		{"private custom inline", "private", "https://cdn.example.com", models.DispositionInline, "cdn.example.com", "/uploads/existing-file", false},
-		{"public download", "public", "", models.DispositionAttachment, "storage.example.com", "/test-bucket/uploads/existing-file", false},
+		{"public download", "public", "", models.DispositionAttachment, "storage.example.com", "/test-bucket/uploads/existing-file", true},
 		{"public inline", "public", "", models.DispositionInline, "storage.example.com", "/test-bucket/uploads/existing-file", false},
-		{"public custom download", "public", "https://cdn.example.com", models.DispositionAttachment, "cdn.example.com", "/uploads/existing-file", false},
+		{"public custom download", "public", "https://cdn.example.com", models.DispositionAttachment, "storage.example.com", "/test-bucket/uploads/existing-file", true},
 		{"public custom inline", "public", "https://cdn.example.com", models.DispositionInline, "cdn.example.com", "/uploads/existing-file", false},
 	}
 	for _, tt := range tests {

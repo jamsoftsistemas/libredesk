@@ -462,7 +462,7 @@ const formattedSlaCounts = computed(() => ({
   avg_resolution_time_sec: formatDuration(slaCounts.value.avg_resolution_time_sec, false)
 }))
 
-const lastUpdateFormatted = computed(() => lastUpdate.value.toLocaleTimeString())
+const lastUpdateFormatted = computed(() => lastUpdate.value.toLocaleTimeString([], { hour12: false }))
 
 const conversationCountLabels = computed(() => ({
   open: t('globals.terms.open'),

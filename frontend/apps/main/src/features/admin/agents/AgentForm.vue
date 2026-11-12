@@ -332,7 +332,7 @@ import { Alert, AlertDescription, AlertTitle } from '@shared-ui/components/ui/al
 import { useI18n } from 'vue-i18n'
 import { useEmitter } from '../../../composables/useEmitter.js'
 import { EMITTER_EVENTS } from '../../../constants/emitterEvents.js'
-import { format } from 'date-fns'
+import { format } from '@shared-ui/utils/date-fns'
 import api from '../../../api/index.js'
 
 const props = defineProps({

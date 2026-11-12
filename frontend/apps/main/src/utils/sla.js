@@ -1,4 +1,4 @@
-import { differenceInMinutes } from 'date-fns'
+import { differenceInMinutes } from '@shared-ui/utils/date-fns'
 
 /**
  * Calculates the SLA (Service Level Agreement) status based on the due date.
